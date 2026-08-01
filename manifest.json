@@ -5,7 +5,7 @@
   "api": 2,
   "entry": "main.lua",
   "profile": "content",
-  "category": "TOOL",
+  "category": "UI",
   "game_version": ">=0.0.0-0 <2.0.0",
   "priority": 100,
   "dependencies": [],
