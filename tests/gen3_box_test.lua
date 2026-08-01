@@ -253,5 +253,33 @@ Font.draw, Font.drawBox = realDraw, realBox
 T.check(widest <= 160,
   ("every drawn line fits the 160px screen (widest %d: %q)"):format(widest, worst))
 
+
+-- ------- auto-update wiring (engine >= the ModUpdate/ModIndex release)
+--
+-- The manifest's `github` field is what the launcher's updater and the
+-- "Find mods" tab read. And ModUpdate.pickZipAsset prefers an asset named
+-- exactly "<id>-<version>.zip" -- so the release file name is part of the
+-- contract, not decoration. This asserts the pair actually match.
+
+local Manifest = require("src.mods.Manifest")
+local ModUpdate = require("src.mods.ModUpdate")
+
+local fh = assert(io.open(DIR .. "/manifest.json", "rb"))
+local body = fh:read("*a"); fh:close()
+local declared = body:match('"github"%s*:%s*"([^"]+)"')
+T.check(declared ~= nil, "the manifest declares a github repo for updates")
+T.check(Manifest.parseGithub(declared) ~= nil,
+  "and it parses as owner/repo (" .. tostring(declared) .. ")")
+
+local id = body:match('"id"%s*:%s*"([^"]+)"')
+local version = body:match('"version"%s*:%s*"([^"]+)"')
+local wanted = id .. "-" .. version .. ".zip"
+local picked = ModUpdate.pickZipAsset({
+  { name = "Source code (zip)", browser_download_url = "x" },
+  { name = wanted, browser_download_url = "y" },
+}, id, version)
+T.eq(picked and picked.name, wanted,
+  "the release asset must be named " .. wanted)
+
 run.release()
 T.finish("gen3_box")

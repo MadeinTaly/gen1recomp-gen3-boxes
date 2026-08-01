@@ -11,11 +11,16 @@ button between the box and your party.
 
 ## Install
 
-Download `gen3-boxes-<version>.zip` from
+Download `gen3_box-<version>.zip` from
 [Releases](../../releases), then in the game:
 
 **Launcher → MODS → Import mod .zip**, or in a running game
 **START → MODS → Import mod .zip**.
+
+The launcher can also keep it up to date on its own: the manifest declares
+this repo, so **MODS → the mod's row** offers a newer release when one is
+published, and it can be installed from the launcher's **Find mods** tab
+without touching a file at all.
 
 Requires Gen1Recomp with mod API 2 (engine 0.1.37 or newer).
 
