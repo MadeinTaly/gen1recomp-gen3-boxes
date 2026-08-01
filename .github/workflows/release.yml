@@ -1,0 +1,96 @@
+name: Release
+
+# Publishing is driven by manifest.json, because that file is already the
+# single source of the version: the loader reads it, ModUpdate compares
+# against it, and the index mirrors it. Bumping it here is the whole act --
+# the tag, the archive and the release all follow from that one number, so
+# they cannot drift apart.
+#
+# It runs on every push rather than only when manifest.json changes, because
+# the first step asks GitHub whether this version already has a release and
+# stops if it does. That makes the job idempotent and self-starting: adding
+# this file publishes the version already sitting in the manifest, and every
+# later push is a no-op until the number moves.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write        # create the tag and the release; nothing else
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read id and version from the manifest
+        id: mod
+        run: |
+          id=$(python3 -c "import json;print(json.load(open('manifest.json'))['id'])")
+          version=$(python3 -c "import json;print(json.load(open('manifest.json'))['version'])")
+          echo "id=$id"           >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          # ModUpdate.pickZipAsset looks for "<id>-<version>.zip" before it
+          # settles for anything else, so this name is a contract, not a label.
+          echo "asset=$id-$version.zip" >> "$GITHUB_OUTPUT"
+
+      - name: Stop if this version is already released
+        id: check
+        run: |
+          if gh release view "v${{ steps.mod.outputs.version }}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "v${{ steps.mod.outputs.version }} is already published; nothing to do."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      # The archive is built by the engine's own packer rather than by zipping
+      # the checkout: pack runs validate --strict, honours .modkitignore, and
+      # writes a reproducible archive. A hand-rolled zip would ship the test
+      # suite and skip the checks.
+      - name: Fetch the engine's modkit
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          git clone --depth 1 https://github.com/bryanthaboi/gen1recomp.git "$RUNNER_TEMP/engine"
+          sudo apt-get update && sudo apt-get install -y luajit
+          python3 -m pip install --quiet pillow
+
+      - name: Validate, lint and pack
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          engine="$RUNNER_TEMP/engine"
+          python3 "$engine/tools/modkit.py" --repo "$engine" validate .
+          python3 "$engine/tools/modkit.py" --repo "$engine" lint .
+          python3 "$engine/tools/modkit.py" --repo "$engine" pack . \
+            -o "${{ steps.mod.outputs.asset }}"
+
+      - name: Run the mod's own test suite
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          engine="$RUNNER_TEMP/engine"
+          suite=$(ls tests/*_test.lua 2>/dev/null | head -1)
+          if [ -z "$suite" ]; then echo "no test suite found"; exit 1; fi
+          # The suite loads through the engine's headless loader, so it runs
+          # from the engine root with this checkout mounted as the mod.
+          mkdir -p "$engine/mods/${{ steps.mod.outputs.id }}"
+          cp -r ./* "$engine/mods/${{ steps.mod.outputs.id }}/"
+          cd "$engine"
+          # No ROM on a runner, so no generated data. The engine commits a
+          # fixture dataset for exactly this: three species and two maps,
+          # enough for the loader to come up and a mod to be exercised.
+          POKEPORT_DATA_DIR=tests/fixture_data luajit "mods/${{ steps.mod.outputs.id }}/$suite"
+
+      - name: Publish
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          notes=$(awk '/^## /{ if (seen) exit; seen=1; next } seen' CHANGELOG.md)
+          gh release create "v${{ steps.mod.outputs.version }}" \
+            "${{ steps.mod.outputs.asset }}" \
+            --title "${{ steps.mod.outputs.id }} ${{ steps.mod.outputs.version }}" \
+            --notes "${notes:-See CHANGELOG.md}"
+        env:
+          GH_TOKEN: ${{ github.token }}
