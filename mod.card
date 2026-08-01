@@ -3,6 +3,7 @@ return {
   summary = "A Ruby/Sapphire-style box screen: a grid you can see, and a cursor that carries a Pokemon.",
   author = "MadeinTaly",
   tags = { "ui", "storage", "quality-of-life", "boxes" },
+  compat = { modApi = 2 },
   differences = {
     added = {
       "a BOXES row on the start menu and under the Pokemon Center PC's own box row, opening a 5x4 grid of the current box",

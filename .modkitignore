@@ -1,0 +1,4 @@
+# Stays in the repo, out of the distributed package: the suite requires
+# engine modules, which reads as a private require against the shipped
+# archive (CONTRIBUTING-mods.md "What the PR must contain", 2).
+tests/gen3_box_test.lua
