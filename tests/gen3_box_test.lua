@@ -121,11 +121,11 @@ game.press("select"); screen:update()
 game.press("a"); screen:update()
 T.eq(#game.save.party, 1, "the last party member cannot be picked up")
 
--- START walks the boxes
+-- stepping off the right edge walks to the next box
 game = fakeGame({})
 screen = factory.new(game)
-game.press("start"); screen:update()
-T.eq(game.save.currentBox, 2, "START moves to the next box")
+for _ = 1, 5 do game.press("right"); screen:update() end
+T.eq(game.save.currentBox, 2, "walking off the right edge moves to the next box")
 
 -- neither side may overflow: a full box swapped against a party mon leaves
 -- the box at twenty and hands the displaced one back to the cursor
@@ -151,6 +151,107 @@ game.press("select"); screen:update()
 game.press("b"); screen:update()
 T.eq(#game.save.boxes[1], 20, "with the party full it goes back to the box")
 T.eq(#game.save.party, 6, "and the party is left untouched")
+
+-- ------- B opens the summary, and START is the way out
+--
+-- B cannot be the exit: on a full box every cell holds a Pokémon, so a B
+-- that means STATS there would leave no way off the screen.
+
+local Screens = require("src.ui.Screens")
+local realPush = Screens.push
+local pushed
+Screens.push = function(_, id, arg) pushed = { id = id, mon = arg } end
+
+game = fakeGame({ mon("PIKACHU", 5) })
+screen = factory.new(game)
+pushed = nil
+game.press("b"); screen:update()
+T.eq(pushed and pushed.id, "SummaryMenu", "B over a Pokémon opens its summary")
+T.eq(pushed and pushed.mon and pushed.mon.species, "PIKACHU",
+  "and hands the summary that very Pokémon")
+
+-- over an empty cell there is nothing to show, so B leaves
+local closed = false
+game = fakeGame({})
+game.stack.pop = function() closed = true end
+screen = factory.new(game)
+pushed = nil
+game.press("b"); screen:update()
+T.check(pushed == nil, "B over an empty cell opens no summary")
+T.check(closed, "and closes the screen instead")
+
+-- START always leaves, even from a box with no empty cell anywhere
+closed = false
+game = fakeGame({})
+for i = 1, 20 do game.save.boxes[1][i] = mon("F" .. i, 1) end
+game.stack.pop = function() closed = true end
+screen = factory.new(game)
+game.press("start"); screen:update()
+T.check(closed, "START leaves even when every cell is occupied")
+Screens.push = realPush
+
+-- ------- walking off the edge changes box
+
+game = fakeGame({})
+screen = factory.new(game)
+game.press("left"); screen:update()
+T.eq(game.save.currentBox, 12, "stepping off the left edge wraps to box 12")
+game.press("right"); screen:update()
+T.eq(game.save.currentBox, 1, "and back off the right edge to box 1")
+
+-- ------- nothing drawn may run off the 160-pixel screen
+--
+-- 1.1.0's footer hint was twenty-two glyphs at 8 pixels each: 176 wide on a
+-- 160-wide screen, with the tail off the edge. Every string the screen
+-- draws is collected here and measured.
+
+local Font = require("src.render.Font")
+Font.load(Data)
+local realDraw, realBox = Font.draw, Font.drawBox
+local drawn = {}
+Font.draw = function(text, x, y) drawn[#drawn + 1] = { text = text, x = x } end
+Font.drawBox = function() end
+
+local function collect(setup)
+  drawn = {}
+  local g = fakeGame({ mon("PIKACHU", 100) },
+    { mon("CHARIZARD", 100), mon("BLASTOISE", 88) })
+  local s = factory.new(g)
+  if setup then setup(g, s) end
+  s:draw()
+  return drawn
+end
+
+local widest, worst = 0, ""
+local function measure(lines)
+  for _, line in ipairs(lines) do
+    local w = line.x + Font.width(line.text)
+    if w > widest then widest, worst = w, line.text end
+  end
+end
+
+measure(collect())                                            -- box, on a mon
+measure(collect(function(_, s) s.col = 4; s.row = 3 end))      -- box, empty cell
+measure(collect(function(g)                                     -- specie ignota
+  g.save.boxes[1][1] = { species = "MISSINGNO", level = 100 }
+end))
+measure(collect(function(g, s)                                  -- party pane
+  g.press("select"); s:update()
+end))
+measure(collect(function(g, s)                                  -- party, empty cell
+  g.press("select"); s:update(); s.col = 2; s.row = 1
+end))
+measure(collect(function(g, s)                                  -- carrying one
+  g.press("a"); s:update()
+end))
+measure(collect(function(g, s)                                  -- box 12, full
+  g.save.currentBox = 12
+  for i = 1, 20 do g.save.boxes[12][i] = mon("NIDORANDER", 100) end
+end))
+
+Font.draw, Font.drawBox = realDraw, realBox
+T.check(widest <= 160,
+  ("every drawn line fits the 160px screen (widest %d: %q)"):format(widest, worst))
 
 run.release()
 T.finish("gen3_box")

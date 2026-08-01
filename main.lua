@@ -73,8 +73,13 @@ return function(mod)
 
   local function defOf(game, mon) return game.data.pokemon[mon.species] end
 
+  -- The species record can be missing: a save written while a mod that adds
+  -- species was enabled still names them after it is turned off. Falling
+  -- back to the raw id shows the player something true instead of taking
+  -- the frame down with it.
   local function nameOf(game, mon)
-    return mon.nickname or defOf(game, mon).name or mon.species
+    local def = defOf(game, mon)
+    return mon.nickname or (def and def.name) or mon.species or "?"
   end
 
   local function picOf(game, mon)
@@ -179,8 +184,23 @@ return function(mod)
       return false
     end
 
+    local function changeBox(step)
+      if self.mode ~= "box" then return end
+      local n = Boxes.COUNT
+      game.save.currentBox = ((game.save.currentBox - 1 + step) % n) + 1
+    end
+
+    -- Walking off the left or right edge of a box steps to the next one, the
+    -- way Ruby's L/R do -- a Game Boy has no shoulder buttons to spare, and
+    -- this frees START to be a way out that always works. In the party pane
+    -- there is nowhere to step to, so it wraps or clamps as before.
     local function move(dc, dr)
       local c, r = self.col + dc, self.row + dr
+      if self.mode == "box" and dc ~= 0 and (c < 0 or c >= cols()) then
+        changeBox(dc)
+        self.col = c < 0 and (cols() - 1) or 0
+        return
+      end
       if mod.options:get("wrap") then
         c = (c + cols()) % cols()
         r = (r + rows()) % rows()
@@ -196,10 +216,14 @@ return function(mod)
       self.col, self.row = 0, 0
     end
 
-    local function changeBox(step)
-      if self.mode ~= "box" then return end
-      local n = Boxes.COUNT
-      game.save.currentBox = ((game.save.currentBox - 1 + step) % n) + 1
+    -- The summary screen the rest of the game uses. It recalculates a box
+    -- mon's stat block on the way in (status_screen.asm does the same,
+    -- because box_struct carries none), so handing it one straight out of
+    -- save.boxes is the supported path -- Bill's PC STATS entry does
+    -- exactly this.
+    local function showStats()
+      local mon = self.held and self.held.mon or list()[index()]
+      if mon then Screens.push(game, "SummaryMenu", mon) end
     end
 
     function self:update()
@@ -211,12 +235,24 @@ return function(mod)
       elseif input:wasPressed("a") then
         if self.held then place() else grab() end
       elseif input:wasPressed("select") then switchMode()
-      elseif input:wasPressed("start") then changeBox(1)
+      elseif input:wasPressed("start") then
+        -- The one way out that is always available. B cannot be it: on a
+        -- full box every cell holds a Pokémon, so a B that means STATS
+        -- there would leave no way off the screen at all.
+        if self.held then
+          if stow() then game.stack:pop() end
+        else
+          game.stack:pop()
+        end
       elseif input:wasPressed("b") then
-        -- Never exit holding one: it is out of both arrays while carried,
-        -- so leaving now would drop it out of the save entirely.
+        -- Carrying one, B puts it back -- it is out of both arrays while
+        -- carried, so anything else risks dropping it out of the save.
+        -- Empty-handed over a Pokémon, B is its summary; over an empty
+        -- cell there is nothing to show, so B leaves.
         if self.held then
           if stow() then say(Strings("PUT IT BACK.")) end
+        elseif list()[index()] then
+          showStats()
         else
           game.stack:pop()
         end
@@ -246,6 +282,22 @@ return function(mod)
       love.graphics.rectangle("line", x + 0.5, y + 0.5, w - 1, h - 1)
     end
 
+    -- Every glyph in this font advances 8 pixels and the screen is 160
+    -- wide, so a line beside a 4-pixel margin has room for nineteen of
+    -- them and no more. 1.1.0 shipped a "SELECT:PARTY START:BOX" hint --
+    -- twenty-two glyphs, 176 pixels -- and the tail simply ran off the
+    -- right edge. Nothing is drawn now without being measured first.
+    local TEXT_X = 4
+    local TEXT_MAX = 160 - TEXT_X * 2
+
+    local function fit(text)
+      text = tostring(text or "")
+      while #text > 1 and Font.width(text) > TEXT_MAX do
+        text = text:sub(1, #text - 1)
+      end
+      return text
+    end
+
     function self:draw()
       love.graphics.clear(1, 1, 1, 1)
       love.graphics.setColor(0, 0, 0, 1)
@@ -256,12 +308,12 @@ return function(mod)
       -- header: which box, how full, and which pane has the cursor
       local title
       if self.mode == "box" then
-        title = Strings("BOX %d  %d/%d", game.save.currentBox,
+        title = Strings("BOX %d %d/%d", game.save.currentBox,
           #set, Boxes.CAPACITY)
       else
-        title = Strings("PARTY  %d/%d", #set, Party.MAX)
+        title = Strings("PARTY %d/%d", #set, Party.MAX)
       end
-      Font.draw(title, 4, 2)
+      Font.draw(fit(title), TEXT_X, 2)
 
       for i0 = 0, total - 1 do
         local x, y = cellRect(i0)
@@ -295,11 +347,13 @@ return function(mod)
         local mon = self.held and self.held.mon or set[index()]
         if mon then
           line = Strings("%s :L%d", nameOf(game, mon), mon.level or 0)
+        elseif self.mode == "box" then
+          line = Strings("SEL:PARTY ST:EXIT")
         else
-          line = Strings("SELECT:PARTY START:BOX")
+          line = Strings("SEL:BOX ST:EXIT")
         end
       end
-      Font.draw(line, 4, 132)
+      Font.draw(fit(line), TEXT_X, 132)
     end
 
     return self

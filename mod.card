@@ -11,7 +11,9 @@ return {
       "a BOXES row on the start menu and under the Pokemon Center PC's own box row, opening a 5x4 grid of the current box",
       "an OPEN FROM option choosing which of those two entrances exist: START+PC, START, or PC",
       "a cursor that picks a Pokemon up with A and puts it down with A, swapping when the target slot is taken",
-      "START cycles the twelve boxes; SELECT crosses to the party and back, which is how a mon is deposited or withdrawn",
+      "B over a Pokemon opens the game's own summary screen, which recalculates a box mon's stats on the way in",
+      "walking off the left or right edge of a box steps to the next one; START closes the screen from anywhere",
+      "SELECT crosses to the party and back, which is how a mon is deposited or withdrawn",
     },
     changed = {
       "the grid draws each Pokemon's battle pic at half scale, because Gen 1 has only four generic party icons and a grid of those is unreadable",
