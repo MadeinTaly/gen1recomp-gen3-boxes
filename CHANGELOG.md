@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.2.1
+
+### Added
+
+- **In-game updates.** The manifest now declares its `github` repo, which is
+  what the launcher's updater reads and what the "Find mods" tab installs
+  from. Releases are named `gen3_box-<version>.zip`, the exact name
+  `ModUpdate.pickZipAsset` prefers — a test asserts the manifest and that
+  file name still agree, because the two drifting apart would silently
+  demote the updater to "grab whatever zip is attached".
+
 ## 1.2.0
 
 ### Added
