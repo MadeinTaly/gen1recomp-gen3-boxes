@@ -23,11 +23,15 @@ Requires Gen1Recomp with mod API 2 (engine 0.1.37 or newer).
 
 | Key | Action |
 | --- | --- |
-| D-pad | move the cursor |
+| D-pad | move the cursor; stepping off the left or right edge changes box |
 | **A** | pick up / put down — on an occupied slot the two **swap** |
-| **B** | put the carried one back; with empty hands, close |
-| **START** | next box (cycles all twelve) |
+| **B** | over a Pokémon, its **summary**; carrying one, put it back; over an empty cell, close |
+| **START** | close the screen — always, from anywhere |
 | **SELECT** | cross to the party and back — this is how you deposit and withdraw |
+
+START is the way out rather than "next box" for a reason: with B over a
+Pokémon meaning STATS, a full box — where every cell holds one — would
+otherwise leave no way off the screen.
 
 ## Options
 
