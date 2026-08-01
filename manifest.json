@@ -1,0 +1,18 @@
+{
+  "id": "gen3_box",
+  "name": "Gen 3 Box",
+  "version": "1.1.0",
+  "api": 2,
+  "entry": "main.lua",
+  "profile": "content",
+  "category": "TOOL",
+  "game_version": ">=0.0.0-0 <2.0.0",
+  "priority": 100,
+  "dependencies": [],
+  "optional_dependencies": [],
+  "conflicts": [],
+  "permissions": [
+    "engine_internals"
+  ],
+  "description": "A Ruby/Sapphire-style storage screen over Gen 1's twelve boxes of twenty: a visible 5x4 grid drawn from the per-species battle pics, a cursor that picks a Pokemon up and puts it down, swapping on an occupied slot, and SELECT to cross between the box and the party. Reachable from the start menu, from the Pokemon Center PC, or both -- your choice in OPEN FROM."
+}

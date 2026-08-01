@@ -1,0 +1,10 @@
+# Never commit game data or a ROM: this repository ships Lua only.
+*.gb
+*.gbc
+*.sav
+*.ips
+*.bps
+data/generated/
+assets/generated/
+dist/
+*.zip
