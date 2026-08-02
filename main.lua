@@ -236,23 +236,17 @@ return function(mod)
         if self.held then place() else grab() end
       elseif input:wasPressed("select") then switchMode()
       elseif input:wasPressed("start") then
-        -- The one way out that is always available. B cannot be it: on a
-        -- full box every cell holds a Pokémon, so a B that means STATS
-        -- there would leave no way off the screen at all.
-        if self.held then
-          if stow() then game.stack:pop() end
-        else
-          game.stack:pop()
-        end
+        -- START is the summary. It can be, because B below always means
+        -- back: there is no cell where the way out disappears, which is
+        -- what forced the earlier arrangement into putting STATS on B.
+        showStats()
       elseif input:wasPressed("b") then
-        -- Carrying one, B puts it back -- it is out of both arrays while
-        -- carried, so anything else risks dropping it out of the save.
-        -- Empty-handed over a Pokémon, B is its summary; over an empty
-        -- cell there is nothing to show, so B leaves.
+        -- B is back, and only back -- the convention every other screen in
+        -- this game follows. Carrying one it goes back to a shelf first:
+        -- a carried Pokémon is out of both arrays, so leaving with it in
+        -- hand would drop it out of the save.
         if self.held then
           if stow() then say(Strings("PUT IT BACK.")) end
-        elseif list()[index()] then
-          showStats()
         else
           game.stack:pop()
         end
@@ -348,9 +342,9 @@ return function(mod)
         if mon then
           line = Strings("%s :L%d", nameOf(game, mon), mon.level or 0)
         elseif self.mode == "box" then
-          line = Strings("SEL:PARTY ST:EXIT")
+          line = Strings("SEL:PARTY B:EXIT")
         else
-          line = Strings("SEL:BOX ST:EXIT")
+          line = Strings("SEL:BOX B:EXIT")
         end
       end
       Font.draw(fit(line), TEXT_X, 132)

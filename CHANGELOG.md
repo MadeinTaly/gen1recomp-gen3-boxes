@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.3.0
+
+### Changed
+
+- **START opens the summary; B goes back.** The two have swapped.
+
+  B now means back and only back — the convention every other screen in this
+  game follows — and shelving a carried Pokémon first, so it is never
+  dropped out of the save. Because the way out no longer disappears on any
+  cell, START is free to be the summary.
+
+  1.2.0 had it the other way round and had to work around itself: B was the
+  summary over a Pokémon and the exit over an empty cell, which meant a full
+  box — where every cell holds one — had no exit at all, so START had to
+  carry it.
+
 ## 1.2.1
 
 ### Added

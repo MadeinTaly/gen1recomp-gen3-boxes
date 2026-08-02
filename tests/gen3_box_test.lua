@@ -152,10 +152,11 @@ game.press("b"); screen:update()
 T.eq(#game.save.boxes[1], 20, "with the party full it goes back to the box")
 T.eq(#game.save.party, 6, "and the party is left untouched")
 
--- ------- B opens the summary, and START is the way out
+-- ------- START opens the summary, B goes back
 --
--- B cannot be the exit: on a full box every cell holds a Pokémon, so a B
--- that means STATS there would leave no way off the screen.
+-- B means back and only back, the convention every other screen follows.
+-- That is what frees START to be the summary: there is no longer a cell
+-- where the way out disappears.
 
 local Screens = require("src.ui.Screens")
 local realPush = Screens.push
@@ -165,29 +166,39 @@ Screens.push = function(_, id, arg) pushed = { id = id, mon = arg } end
 game = fakeGame({ mon("PIKACHU", 5) })
 screen = factory.new(game)
 pushed = nil
-game.press("b"); screen:update()
-T.eq(pushed and pushed.id, "SummaryMenu", "B over a Pokémon opens its summary")
+game.press("start"); screen:update()
+T.eq(pushed and pushed.id, "SummaryMenu", "START over a Pokémon opens its summary")
 T.eq(pushed and pushed.mon and pushed.mon.species, "PIKACHU",
   "and hands the summary that very Pokémon")
 
--- over an empty cell there is nothing to show, so B leaves
-local closed = false
+-- over an empty cell there is nothing to show, and nothing to break
 game = fakeGame({})
-game.stack.pop = function() closed = true end
 screen = factory.new(game)
 pushed = nil
-game.press("b"); screen:update()
-T.check(pushed == nil, "B over an empty cell opens no summary")
-T.check(closed, "and closes the screen instead")
+game.press("start"); screen:update()
+T.check(pushed == nil, "START over an empty cell opens nothing")
 
--- START always leaves, even from a box with no empty cell anywhere
-closed = false
+-- B leaves, from any cell -- including a box with no empty one anywhere,
+-- which is the case that made the earlier B-means-STATS arrangement a trap
+local closed = false
 game = fakeGame({})
 for i = 1, 20 do game.save.boxes[1][i] = mon("F" .. i, 1) end
 game.stack.pop = function() closed = true end
 screen = factory.new(game)
-game.press("start"); screen:update()
-T.check(closed, "START leaves even when every cell is occupied")
+game.press("b"); screen:update()
+T.check(closed, "B leaves even when every cell is occupied")
+
+-- but never while carrying one: it is shelved first
+closed = false
+game = fakeGame({ mon("SOLO", 9) })
+game.stack.pop = function() closed = true end
+screen = factory.new(game)
+game.press("a"); screen:update()
+game.press("b"); screen:update()
+T.check(not closed, "B does not leave while carrying a Pokémon")
+T.eq(#game.save.boxes[1], 1, "it shelves it instead")
+game.press("b"); screen:update()
+T.check(closed, "and the next B leaves")
 Screens.push = realPush
 
 -- ------- walking off the edge changes box
