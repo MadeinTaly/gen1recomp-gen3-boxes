@@ -30,13 +30,14 @@ Requires Gen1Recomp with mod API 2 (engine 0.1.37 or newer).
 | --- | --- |
 | D-pad | move the cursor; stepping off the left or right edge changes box |
 | **A** | pick up / put down — on an occupied slot the two **swap** |
-| **B** | over a Pokémon, its **summary**; carrying one, put it back; over an empty cell, close |
-| **START** | close the screen — always, from anywhere |
+| **START** | the summary of whatever the cursor is on |
+| **B** | back: carrying one it goes back on a shelf first, otherwise close |
 | **SELECT** | cross to the party and back — this is how you deposit and withdraw |
 
-START is the way out rather than "next box" for a reason: with B over a
-Pokémon meaning STATS, a full box — where every cell holds one — would
-otherwise leave no way off the screen.
+B means back and only back, the convention every other screen in this game
+follows — and that is what frees START to be the summary. There is no cell
+where the way out disappears, which an earlier arrangement had to work
+around by putting STATS on B and the exit on START.
 
 ## Options
 
