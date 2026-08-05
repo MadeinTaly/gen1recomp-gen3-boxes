@@ -8,6 +8,7 @@ return {
   compat = { modApi = 2 },
   differences = {
     added = {
+      "BOX HEALS (off by default): closing the screen rests everything in storage -- full HP, status cleared, PP restored -- through Pokemon.heal, the same routine the Pokemon Centre nurse calls",
       "a BOXES row on the start menu and under the Pokemon Center PC's own box row, opening a 5x4 grid of the current box",
       "an OPEN FROM option choosing which of those two entrances exist: START+PC, START, or PC",
       "a cursor that picks a Pokemon up with A and puts it down with A, swapping when the target slot is taken",
@@ -19,6 +20,8 @@ return {
       "the grid draws each Pokemon's battle pic at half scale, because Gen 1 has only four generic party icons and a grid of those is unreadable",
     },
     known = {
+      "BOX HEALS runs once on close rather than per placement, because a swap is a deposit and a withdrawal at the same time and a move between two box slots is neither; and it covers every box, not only the open one",
+      "BOX HEALS leaves the party alone -- you can still deposit six and take them straight back, but the party is the half of this screen that is not storage",
       "a box stays a COMPACT array, the shape src/pokemon/Boxes.lua and the save format use, so dropping into an empty cell appends to the end instead of leaving a hole -- Ruby's sparse grid is the one thing not reproduced",
       "the vanilla box PC is left in place and still works whichever way OPEN FROM is set; this is an additional entrance, not a replacement for Bill's PC",
       "pics come through Assets.image, so a sprite mod's art shows up here too",

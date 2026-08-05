@@ -55,7 +55,40 @@ return function(mod)
         { "PC", "pc" },
       } },
     { key = "wrap", label = "CURSOR WRAP", type = "toggle", default = true },
+    -- See "the box as a nurse" below. Off by default because it is free
+    -- healing, and free healing is an economy change rather than a
+    -- convenience: it is Potions and Centre trips that stop being needed,
+    -- not clicks that stop being clicked.
+    { key = "heal", label = "BOX HEALS", type = "toggle", default = false },
   })
+
+  -- ------- the box as a nurse
+  --
+  -- BOX HEALS restores what is in storage: full HP, status cleared, every
+  -- move's PP back. It is the Pokemon Centre's own routine rather than an
+  -- imitation -- `Pokemon.heal` is what engine/events/heal_party.asm
+  -- HealParty does, PP-Up bonus included, and the nurse calls that same
+  -- function. Storage that quietly healed a differently-shaped amount
+  -- would be worse than storage that did not heal at all.
+  --
+  -- It runs ONCE, when the screen closes, and not on each placement.
+  -- Healing per move would have meant deciding what a move even is: a
+  -- deposit heals, but a swap is a deposit and a withdrawal at the same
+  -- time, and dragging a mon between two box slots is neither. On close
+  -- there is no such question -- whatever ended up in storage comes out of
+  -- it rested, however it got there.
+  --
+  -- The party is deliberately left alone. Not to police an exploit -- you
+  -- can deposit six and take them back -- but because the party is the
+  -- half of this screen that is NOT storage, and a screen that healed your
+  -- active six for opening and closing it would be a Centre with extra
+  -- steps.
+  local Pokemon = require("src.pokemon.Pokemon")
+
+  local function healing()
+    local ok, value = pcall(function() return mod.options:get("heal") end)
+    return ok and value and true or false
+  end
 
   -- Read per call rather than cached, so switching OPEN FROM in the manager
   -- takes effect on the next menu that opens instead of the next boot.
@@ -108,6 +141,25 @@ return function(mod)
       notice = nil,
       noticeAt = 0,
     }
+
+    -- StateStack calls this on pop and only on pop -- a screen pushed ON TOP
+    -- of this one (the summary) does not fire it -- so it is exactly "the
+    -- player is done with the boxes" and nothing else.
+    --
+    -- Every box, not only the open one: a mon put away in box 3 an hour ago
+    -- is as deposited as the one dropped a second ago, and "rested unless
+    -- you happened to be looking at that box when you left" is not a rule
+    -- anybody could hold in their head.
+    function self:exit()
+      if not healing() then return end
+      for _, box in ipairs(Boxes.ensure(game.save)) do
+        for _, mon in ipairs(box) do
+          -- guard rather than trust: a mon that arrived from a save written
+          -- by an older engine may be missing the fields heal writes
+          pcall(Pokemon.heal, mon)
+        end
+      end
+    end
 
     local function cols() return self.mode == "box" and COLS or PARTY_COLS end
     local function rows() return self.mode == "box" and ROWS or PARTY_ROWS end

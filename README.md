@@ -47,6 +47,7 @@ around by putting STATS on B and the exit on START.
 | --- | --- | --- |
 | `OPEN FROM` | `START+PC` / `START` / `PC` | where the BOXES entry appears |
 | `CURSOR WRAP` | on / off | whether the cursor wraps at the edges |
+| `BOX HEALS` | on / off | rest everything in storage when the screen closes |
 
 `OPEN FROM` is read each time a menu opens, so changing it takes effect
 immediately rather than on the next boot.
@@ -54,6 +55,31 @@ immediately rather than on the next boot.
 The vanilla box PC is left in place whichever way this is set. Nothing is
 taken away, and turning the mod off leaves a save reaching its storage
 exactly as before.
+
+## BOX HEALS
+
+Off by default. Turn it on and closing the box screen rests everything in
+storage — full HP, status cleared, every move's PP back. It is the Pokémon
+Centre's own routine (`Pokemon.heal`, which is what `HealParty` does, PP-Up
+bonus and all), not a lookalike.
+
+It runs **once, when you close**, rather than on each placement. Healing per
+move would have meant deciding what a move even is: a deposit heals, but a
+swap is a deposit and a withdrawal at once, and dragging a Pokémon between
+two box slots is neither. Closing has no such question — whatever ended up
+in storage comes out of it rested, however it got there.
+
+**Every box**, not only the one you were looking at, for the same reason:
+"rested unless you happened to be on that box when you left" is not a rule
+anyone could hold in their head.
+
+The party is untouched. Not to stop you depositing six and taking them
+straight back — you can — but because the party is the half of this screen
+that is not storage, and resting your active six for opening and closing a
+menu would be a Pokémon Centre with extra steps.
+
+It is off by default because it is an economy change rather than a
+convenience: what stops being needed is Potions and trips to town.
 
 ## Two design notes
 
