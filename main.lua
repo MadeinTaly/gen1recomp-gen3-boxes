@@ -426,8 +426,21 @@ return function(mod)
         return nil
       end
       local PaletteFX = require("src.render.PaletteFX")
-      local zones = {}
       local tiles = L.cell / 8
+
+      -- The BASE zone, first and covering the whole surface. Without it the
+      -- only remapped pixels are the cells themselves and everything else
+      -- composites black -- including the header and footer, which are
+      -- drawn in black and therefore vanish. SummaryMenu does the same
+      -- thing: a whole-screen palette, then the per-mon one on top of it,
+      -- because the renderer draws later zones over earlier ones.
+      --
+      -- PaletteFX.whole() is hardcoded to the 160x144 tile grid, so it
+      -- would cover a quarter of a BIG canvas and leave the rest black.
+      -- The size comes from the layout instead.
+      local zones = {
+        PaletteFX.zone(PaletteFX.GRAYS, 0, 0, L.w / 8 - 1, L.h / 8 - 1),
+      }
 
       local function add(set, mode)
         for i, mon in ipairs(set) do
@@ -516,10 +529,37 @@ return function(mod)
         love.graphics.setColor(0, 0, 0, 1)
       end
 
-      -- cursor last, so it sits over the art it is pointing at
+      -- Cursor last, so it sits over the art it is pointing at.
+      --
+      -- Corner brackets rather than a box: a one-pixel outline is what
+      -- 1.5.x drew, and on a 56-pixel cell it is a hairline you have to
+      -- hunt for -- and it competes with the cell outlines, which are the
+      -- same shape one pixel away. Brackets read as a cursor at any size,
+      -- and they leave the middle of the cell clear so the Pokemon under
+      -- them is not fenced in.
+      --
+      -- Both numbers scale with the cell: 2px arms of 9 on CLASSIC, 4px
+      -- arms of 18 on BIG.
       local cx, cy = cellRect(self.row * cols() + self.col)
-      love.graphics.setLineWidth(1)
-      outline(cx - 1, cy - 1, layout().cell + 2, layout().cell + 2)
+      do
+        local cell = layout().cell
+        local t = math.max(1, math.floor(cell / 14))
+        local arm = math.floor(cell / 3)
+        local x0, y0 = cx - t, cy - t
+        local x1, y1 = cx + cell, cy + cell
+        local function bracket(bx, by, dx, dy)
+          love.graphics.rectangle("fill", bx, by, dx * arm, t)
+          love.graphics.rectangle("fill", bx, by, t, dy * arm)
+        end
+        love.graphics.rectangle("fill", x0, y0, arm, t)
+        love.graphics.rectangle("fill", x0, y0, t, arm)
+        love.graphics.rectangle("fill", x1 - arm + t, y0, arm, t)
+        love.graphics.rectangle("fill", x1, y0, t, arm)
+        love.graphics.rectangle("fill", x0, y1, arm, t)
+        love.graphics.rectangle("fill", x0, y1 - arm + t, t, arm)
+        love.graphics.rectangle("fill", x1 - arm + t, y1, arm, t)
+        love.graphics.rectangle("fill", x1, y1 - arm + t, t, arm)
+      end
 
       -- the carried mon rides just above the cursor, clear of the grid
       if self.held then

@@ -436,14 +436,27 @@ do
     local zones = havePalettes and s:sgbPalettes(g) or nil
     if not havePalettes then goto skipColours end
     T.check(zones ~= nil, "BIG asks for zones")
+
+    -- zone 1 is the BASE: the whole surface, drawn first, with the per-mon
+    -- zones on top. Without it only the cells are remapped and the rest of
+    -- the frame composites BLACK -- header and footer included, since they
+    -- are drawn in black. PaletteFX.whole() is not usable here: it is
+    -- hardcoded to the 160x144 tile grid and would cover a quarter of this
+    -- surface, which is the same bug wearing a helpful-looking name.
+    local base = zones[1]
+    T.eq(base.x, 0, "the base zone starts at the origin")
+    T.eq(base.y, 0, "in both axes")
+    T.eq(base.w, w, "and spans the whole surface width")
+    T.eq(base.h, h, "and the whole height")
     -- one per stored Pokemon, and NOT one per party member: the two panes
     -- overlap by design and only one is drawn, so zones for both would
     -- paint the party's palettes across the box grid
-    T.eq(#zones, 20, "one zone per stored Pokemon, from the visible pane only")
+    T.eq(#zones, 21, "the base zone plus one per stored Pokemon")
 
     -- every zone must sit on the tile grid and inside the canvas
     local bad = {}
-    for i, z in ipairs(zones) do
+    for i = 2, #zones do
+      local z = zones[i]
       if z.x % 8 ~= 0 or z.y % 8 ~= 0 then
         bad[#bad + 1] = ("zone %d starts mid-tile (%d,%d)"):format(i, z.x, z.y)
       end
@@ -460,7 +473,7 @@ do
 
     -- and no two box cells may overlap, or one Pokemon wears another's colours
     local seen, clash = {}, 0
-    for i = 1, 20 do
+    for i = 2, 21 do
       local z = zones[i]
       local key = z.x .. "," .. z.y
       if seen[key] then clash = clash + 1 end
@@ -471,11 +484,10 @@ do
     -- and each zone must sit EXACTLY on its cell, not merely on some tile:
     -- flooring a stray offset would slide the colour off the sprite
     local drift = {}
-    for i = 1, 20 do
-      local cx, cy = s.cellRectFor and s.cellRectFor(i - 1, "box") or nil
+    for i = 2, 21 do
       local z = zones[i]
       -- recomputed from the layout the mod published, independently of it
-      local col, row = (i - 1) % 5, math.floor((i - 1) / 5)
+      local col, row = (i - 2) % 5, math.floor((i - 2) / 5)
       local wantX, wantY = 16 + col * 56, 32 + row * 56
       if z.x ~= wantX or z.y ~= wantY then
         drift[#drift + 1] = ("zone %d at (%d,%d), cell at (%d,%d)")
@@ -501,7 +513,7 @@ do
     -- picking one up takes it out of the box list, so the count only holds
     -- if the carried one is zoned where the cursor is
     local held = s:sgbPalettes(g)
-    T.eq(#held, 20, "the carried one keeps a zone of its own")
+    T.eq(#held, 21, "the carried one keeps a zone of its own")
 
     ::skipColours::
   end
@@ -636,9 +648,9 @@ end
     -- zones: one pane only, and none may overlap another
     if PaletteFX.monPal(Data, anySpecies) then
       local zones = s:sgbPalettes(g)
-      T.eq(#zones, 20, "only the visible pane gets zones, not both")
+      T.eq(#zones, 21, "the base plus the visible pane only, not both panes")
       local clash = {}
-      for i = 1, #zones do
+      for i = 2, #zones do
         for j = i + 1, #zones do
           local a, b = zones[i], zones[j]
           if a.x < b.x + b.w and b.x < a.x + a.w
