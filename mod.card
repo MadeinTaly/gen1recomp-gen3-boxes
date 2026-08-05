@@ -8,6 +8,7 @@ return {
   compat = { modApi = 2 },
   differences = {
     added = {
+      "GRID BIG: a 320x288 surface through the engine's own uiSize hook -- battle pics at scale 1 instead of half, and a palette zone per cell so every Pokemon in the grid wears its own species colours, twenty-one at once where the Game Boy could show four",
       "BOX HEALS (off by default): closing the screen rests everything in storage -- full HP, status cleared, PP restored -- through Pokemon.heal, the same routine the Pokemon Centre nurse calls",
       "a BOXES row on the start menu and under the Pokemon Center PC's own box row, opening a 5x4 grid of the current box",
       "an OPEN FROM option choosing which of those two entrances exist: START+PC, START, or PC",

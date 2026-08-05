@@ -1,5 +1,37 @@
 # Changelog
 
+## 1.5.0 — the grid in colour
+
+- **`GRID`** — `CLASSIC` (as before) or **`BIG`**.
+
+  `BIG` asks the renderer for a **320×288** surface instead of 160×144, and
+  two things follow from the one number that makes it worth doing, **56**:
+
+  **Battle pics draw at scale 1.** A pic is 56×56 and the cell is now 56.
+  Not halved, not stretched — every pixel of the sprite is one pixel of the
+  canvas. It is the first time this screen has shown one undamaged.
+
+  **Every Pokémon wears its own colours.** 56 is *seven tiles exactly*, and
+  a palette zone is addressed in tiles — so each cell can carry the
+  species' own palette, the same table the summary screen and the battle
+  use. A Charmander is orange, a Bulbasaur green and a Gengar purple, all
+  at once, in one grid. That is what Gen 3 storage looks like and what Gen
+  1 never had the hardware to draw: the Game Boy could show four palettes,
+  and this shows twenty-one.
+
+  `CLASSIC` cannot do either, and the reason is the same number: a
+  28-pixel cell is three and a half tiles, and half a tile cannot carry a
+  zone at all.
+
+  There is nothing to restore. `Game:draw` asks the **top state** for its
+  surface every frame and passes 160×144 when the state has no opinion, so
+  the moment this screen is not on top the game is back on the Game Boy
+  canvas — no enter hook, no exit hook, no way to leave the rest of the
+  game wearing a canvas it did not ask for.
+
+  **What it does not buy:** sharper Pokémon. The sprites are the ROM's own
+  art and cannot be redrawn, so `BIG` buys *room and colour*, not detail.
+
 ## 1.4.0
 
 - **`BOX HEALS`** (off) — close the box screen and everything in storage is

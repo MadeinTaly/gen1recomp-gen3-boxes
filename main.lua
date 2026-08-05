@@ -29,10 +29,37 @@
 -- of Ruby, and the price of a save the rest of the game still understands.
 
 local COLS, ROWS = 5, 4
-local CELL = 28
-local GRID_X, GRID_Y = 10, 16
 local PARTY_COLS, PARTY_ROWS = 3, 2
-local PARTY_X, PARTY_Y = 38, 40
+
+-- ------- the two layouts
+--
+-- CLASSIC is the 160x144 Game Boy screen: a 28-pixel cell with the pic at
+-- half scale, which is what every version up to 1.4.0 drew.
+--
+-- BIG asks the renderer for a 320x288 surface. The engine offers this
+-- properly: `Game:draw` calls `Renderer:setUISize(top:uiSize())` before
+-- anything draws, and falls back to 160x144 the moment this screen is not
+-- on top -- so there is nothing to restore and no way to leave the game
+-- wearing a canvas it did not ask for.
+--
+-- 56 is the number that makes BIG worth having, twice over:
+--
+--   * a battle pic is 56x56, so it is drawn at scale 1. Not enlarged, not
+--     shrunk -- every pixel of the sprite is one pixel of the canvas, the
+--     first time this screen has shown one undamaged.
+--   * 56 is SEVEN TILES exactly, and a palette zone is addressed in
+--     tiles. A 28-pixel cell is three and a half, which cannot carry a
+--     zone at all. That is the whole reason the colours below are only
+--     possible in this mode.
+local LAYOUT = {
+  classic = { cell = 28, gridX = 10, gridY = 16, partyX = 38, partyY = 40,
+              scale = 0.5, w = 160, h = 144 },
+  -- gridX 16 rather than 20: 5x56 = 280 leaves a 40-pixel margin, and
+  -- half of it is not a whole tile. Eight pixels off centre is invisible;
+  -- a zone that starts mid-tile is not.
+  big     = { cell = 56, gridX = 16, gridY = 32, partyX = 72, partyY = 72,
+              scale = 1, w = 320, h = 288 },
+}
 
 return function(mod)
   local Boxes = require("src.pokemon.Boxes")
@@ -60,7 +87,18 @@ return function(mod)
     -- convenience: it is Potions and Centre trips that stop being needed,
     -- not clicks that stop being clicked.
     { key = "heal", label = "BOX HEALS", type = "toggle", default = false },
+    -- See "the two layouts" above. CLASSIC is what 1.4.0 drew.
+    { key = "grid", label = "GRID", type = "choice", default = "classic",
+      choices = {
+        { "CLASSIC", "classic" },
+        { "BIG", "big" },
+      } },
   })
+
+  local function layout()
+    local ok, value = pcall(function() return mod.options:get("grid") end)
+    return LAYOUT[(ok and value) or "classic"] or LAYOUT.classic
+  end
 
   -- ------- the box as a nurse
   --
@@ -141,6 +179,17 @@ return function(mod)
       notice = nil,
       noticeAt = 0,
     }
+
+    -- ------- the surface this screen wants
+    --
+    -- Game:draw asks the TOP state for its size before anything is drawn,
+    -- and passes 160x144 when the state has no opinion. So this is the
+    -- whole mechanism: no enter hook, no restore on exit, and no way to
+    -- leave the rest of the game wearing a canvas it did not ask for.
+    function self:uiSize()
+      local L = layout()
+      return L.w, L.h
+    end
 
     -- StateStack calls this on pop and only on pop -- a screen pushed ON TOP
     -- of this one (the summary) does not fire it -- so it is exactly "the
@@ -307,21 +356,84 @@ return function(mod)
 
     -- ------- drawing
 
-    local function cellRect(i0)
-      local c, r = i0 % cols(), math.floor(i0 / cols())
-      if self.mode == "box" then
-        return GRID_X + c * CELL, GRID_Y + r * CELL
+    local function cellRect(i0, mode)
+      local L = layout()
+      mode = mode or self.mode
+      local n = mode == "box" and COLS or PARTY_COLS
+      local c, r = i0 % n, math.floor(i0 / n)
+      if mode == "box" then
+        return L.gridX + c * L.cell, L.gridY + r * L.cell
       end
-      return PARTY_X + c * CELL, PARTY_Y + r * CELL
+      return L.partyX + c * L.cell, L.partyY + r * L.cell
     end
 
     local function drawPic(mon, x, y)
       local img = picOf(game, mon)
       if not img then return end
-      local w, h = img:getWidth(), img:getHeight()
-      -- half scale: 56 -> 28 fills the cell, 40 -> 20 sits centred in it
-      love.graphics.draw(img, x + (CELL - w / 2) / 2, y + (CELL - h / 2) / 2,
-        0, 0.5, 0.5)
+      local L = layout()
+      local w, h = img:getWidth() * L.scale, img:getHeight() * L.scale
+      love.graphics.draw(img, x + (L.cell - w) / 2, y + (L.cell - h) / 2,
+        0, L.scale, L.scale)
+    end
+
+    -- ------- a palette per Pokemon
+    --
+    -- This is the reason BIG exists. A zone is a palette bound to a TILE
+    -- rectangle (PaletteFX.zone takes tile coordinates), and the engine
+    -- draws each one scissored through the shade-remap shader -- so twenty
+    -- zones is twenty draws, not a hardware limit. The Game Boy could show
+    -- four; nothing here has to.
+    --
+    -- `monPal` is the species' own palette, the same table the summary
+    -- screen and the battle use. So a Charmander is orange, a Bulbasaur
+    -- green and a Gengar purple, all at once, in the grid -- which is what
+    -- Gen 3's storage actually looks like and what Gen 1 never had the
+    -- hardware to draw.
+    --
+    -- CLASSIC gets none of it, and cannot: a 28-pixel cell is three and a
+    -- half tiles, and half a tile cannot carry a zone.
+    function self:sgbPalettes(game)
+      local L = layout()
+      -- Everything here has to land on the tile grid: the cell, and both
+      -- grid origins. Flooring a stray offset into tile coordinates would
+      -- not fail -- it would quietly slide every palette four pixels off
+      -- its sprite, which is the kind of wrong that looks like a rendering
+      -- bug rather than a layout mistake.
+      if L.cell % 8 ~= 0 or L.gridX % 8 ~= 0 or L.gridY % 8 ~= 0
+         or L.partyX % 8 ~= 0 or L.partyY % 8 ~= 0 then
+        return nil
+      end
+      local PaletteFX = require("src.render.PaletteFX")
+      local zones = {}
+      local tiles = L.cell / 8
+
+      local function add(set, mode)
+        for i, mon in ipairs(set) do
+          local colors = PaletteFX.monPal(game.data, mon.species)
+          if colors then
+            local x, y = cellRect(i - 1, mode)
+            local tx, ty = x / 8, y / 8
+            zones[#zones + 1] =
+              PaletteFX.zone(colors, tx, ty, tx + tiles - 1, ty + tiles - 1)
+          end
+        end
+      end
+
+      add(boxList(game), "box")
+      add(game.save.party, "party")
+      -- the one on the cursor is drawn where the cursor is, so it needs its
+      -- own zone or it wears whatever the cell under it is wearing
+      if self.held and self.held.mon then
+        local colors = PaletteFX.monPal(game.data, self.held.mon.species)
+        if colors then
+          local x, y = cellRect(self.row * cols() + self.col)
+          local tx, ty = x / 8, y / 8
+          zones[#zones + 1] =
+            PaletteFX.zone(colors, tx, ty, tx + tiles - 1, ty + tiles - 1)
+        end
+      end
+      if not zones[1] then return nil end
+      return zones
     end
 
     local function outline(x, y, w, h)
@@ -365,7 +477,7 @@ return function(mod)
         local x, y = cellRect(i0)
         local mon = set[i0 + 1]
         love.graphics.setColor(0, 0, 0, 0.25)
-        outline(x, y, CELL, CELL)
+        outline(x, y, layout().cell, layout().cell)
         love.graphics.setColor(1, 1, 1, 1)
         if mon then drawPic(mon, x, y) end
         love.graphics.setColor(0, 0, 0, 1)
@@ -374,7 +486,7 @@ return function(mod)
       -- cursor last, so it sits over the art it is pointing at
       local cx, cy = cellRect(self.row * cols() + self.col)
       love.graphics.setLineWidth(1)
-      outline(cx - 1, cy - 1, CELL + 2, CELL + 2)
+      outline(cx - 1, cy - 1, layout().cell + 2, layout().cell + 2)
 
       -- the carried mon rides just above the cursor, clear of the grid
       if self.held then

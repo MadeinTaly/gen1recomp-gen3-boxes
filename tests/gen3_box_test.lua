@@ -383,5 +383,126 @@ do
   store.heal = false
 end
 
+-- ------- BIG: the surface, and a palette per Pokemon
+--
+-- The arithmetic is checked rather than eyeballed, for the reason the
+-- footer taught in 1.2.1: 22 glyphs of 8 pixels came to 176 on a 160-wide
+-- screen and the tail simply ran off. A zone that starts half a tile out,
+-- or a grid that runs past the canvas, fails the same silent way.
+
+do
+  local PaletteFX = require("src.render.PaletteFX")
+  local loader = run.loader
+  loader.modOptions = loader.modOptions or {}
+  loader.modOptions.gen3_box = loader.modOptions.gen3_box or {}
+  local store = loader.modOptions.gen3_box
+
+  local full = {}
+  local species = {}
+  for id in pairs(Data.pokemon) do species[#species + 1] = id end
+  table.sort(species)
+  for i = 1, 20 do full[i] = mon(species[((i - 1) % #species) + 1], 10) end
+
+  -- CLASSIC keeps the surface and asks for no zones
+  store.grid = "classic"
+  do
+    local g = fakeGame(full)
+    local s = factory.new(g)
+    T.eq(select(1, s:uiSize()), 160, "CLASSIC keeps the Game Boy surface")
+    T.eq(select(2, s:uiSize()), 144, "in both directions")
+    T.check(s:sgbPalettes(g) == nil,
+      "and asks for no zones -- a 28-pixel cell is three and a half tiles")
+  end
+
+  store.grid = "big"
+  do
+    local g = fakeGame(full, { mon(species[1], 5) })
+    local s = factory.new(g)
+    local w, h = s:uiSize()
+    T.eq(w, 320, "BIG asks for a 320-wide surface")
+    T.eq(h, 288, "and 288 tall")
+    T.check(w <= 640 and h <= 576,
+      "within Renderer.MAX_UI_WIDTH/HEIGHT, or setUISize silently refuses it")
+
+    -- Species palettes come from the ROM-derived dataset; CI boots the
+    -- 3-species fixture, which carries none, and monPal then has nothing
+    -- to return. The gate reports which way it went rather than skipping
+    -- in silence.
+    local havePalettes = PaletteFX.monPal(Data, species[1]) ~= nil
+    T.check(true, havePalettes
+      and "species palettes present: the colour checks ARE running"
+      or "fixture dataset: no species palettes, colour checks skipped")
+
+    local zones = havePalettes and s:sgbPalettes(g) or nil
+    if not havePalettes then goto skipColours end
+    T.check(zones ~= nil, "BIG asks for zones")
+    T.eq(#zones, 21, "one per stored Pokemon plus one per party member")
+
+    -- every zone must sit on the tile grid and inside the canvas
+    local bad = {}
+    for i, z in ipairs(zones) do
+      if z.x % 8 ~= 0 or z.y % 8 ~= 0 then
+        bad[#bad + 1] = ("zone %d starts mid-tile (%d,%d)"):format(i, z.x, z.y)
+      end
+      if z.x + z.w > w or z.y + z.h > h then
+        bad[#bad + 1] = ("zone %d runs off the canvas (%d+%d, %d+%d)")
+          :format(i, z.x, z.w, z.y, z.h)
+      end
+      if z.w ~= 56 or z.h ~= 56 then
+        bad[#bad + 1] = ("zone %d is %dx%d, not one cell"):format(i, z.w, z.h)
+      end
+    end
+    T.eq(#bad, 0, "every zone is tile-aligned and on screen (" ..
+      table.concat(bad, "; ") .. ")")
+
+    -- and no two box cells may overlap, or one Pokemon wears another's colours
+    local seen, clash = {}, 0
+    for i = 1, 20 do
+      local z = zones[i]
+      local key = z.x .. "," .. z.y
+      if seen[key] then clash = clash + 1 end
+      seen[key] = true
+    end
+    T.eq(clash, 0, "no two cells share a zone")
+
+    -- and each zone must sit EXACTLY on its cell, not merely on some tile:
+    -- flooring a stray offset would slide the colour off the sprite
+    local drift = {}
+    for i = 1, 20 do
+      local cx, cy = s.cellRectFor and s.cellRectFor(i - 1, "box") or nil
+      local z = zones[i]
+      -- recomputed from the layout the mod published, independently of it
+      local col, row = (i - 1) % 5, math.floor((i - 1) / 5)
+      local wantX, wantY = 16 + col * 56, 32 + row * 56
+      if z.x ~= wantX or z.y ~= wantY then
+        drift[#drift + 1] = ("zone %d at (%d,%d), cell at (%d,%d)")
+          :format(i, z.x, z.y, wantX, wantY)
+      end
+    end
+    T.eq(#drift, 0, "every zone sits exactly on its cell (" ..
+      table.concat(drift, "; ") .. ")")
+
+    -- the colours must actually differ between species, or the whole
+    -- feature is twenty identical palettes
+    local distinct = {}
+    for _, z in ipairs(zones) do
+      distinct[tostring(z.colors[2][1]) .. "," .. tostring(z.colors[2][2])] = true
+    end
+    local n = 0; for _ in pairs(distinct) do n = n + 1 end
+    T.check(n > 1, ("the grid shows more than one palette (%d distinct)"):format(n))
+
+    -- a carried Pokemon needs its own zone: it is drawn on the cursor, not
+    -- in its cell, and would otherwise wear whatever is underneath
+    g.press("a"); s:update()
+    T.check(s.held ~= nil, "picking one up")
+    local held = s:sgbPalettes(g)
+    T.eq(#held, 21, "the carried one keeps a zone of its own")
+
+    ::skipColours::
+  end
+
+  store.grid = "classic"
+end
+
 run.release()
 T.finish("gen3_box")
