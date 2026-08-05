@@ -48,6 +48,7 @@ around by putting STATS on B and the exit on START.
 | `OPEN FROM` | `START+PC` / `START` / `PC` | where the BOXES entry appears |
 | `CURSOR WRAP` | on / off | whether the cursor wraps at the edges |
 | `BOX HEALS` | on / off | rest everything in storage when the screen closes |
+| `GRID` | `CLASSIC` / `BIG` | a 320×288 surface, full-size pics, and a palette per Pokémon |
 
 `OPEN FROM` is read each time a menu opens, so changing it takes effect
 immediately rather than on the next boot.
@@ -55,6 +56,32 @@ immediately rather than on the next boot.
 The vanilla box PC is left in place whichever way this is set. Nothing is
 taken away, and turning the mod off leaves a save reaching its storage
 exactly as before.
+
+## GRID: BIG
+
+`BIG` asks the renderer for a **320×288** surface instead of the Game Boy's
+160×144. Two things follow from the one number that makes it worth doing —
+**56**:
+
+**Battle pics draw at scale 1.** A pic is 56×56 and the cell is now 56, so
+every pixel of the sprite is one pixel of the canvas. Not halved, not
+stretched. It is the first time this screen has shown one undamaged.
+
+**Every Pokémon wears its own colours.** 56 is *seven tiles exactly*, and a
+palette zone is addressed in tiles — so each cell carries that species' own
+palette, the same table the summary screen and the battle use. Charmander
+orange, Bulbasaur green, Gengar purple, all at once. The Game Boy could
+show four palettes on a screen; this shows twenty-one.
+
+`CLASSIC` can do neither, for the same reason: a 28-pixel cell is three and
+a half tiles, and half a tile cannot carry a zone.
+
+Nothing has to be restored. `Game:draw` asks the **top state** for its
+surface every frame and passes 160×144 when the state has no opinion, so
+the moment this screen is not on top the game is back on its own canvas.
+
+**What it does not buy:** sharper Pokémon. The sprites are the ROM's art
+and cannot be redrawn, so `BIG` buys room and colour, not detail.
 
 ## BOX HEALS
 
