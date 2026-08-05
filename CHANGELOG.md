@@ -1,5 +1,36 @@
 # Changelog
 
+## 1.4.0
+
+- **`BOX HEALS`** (off) — close the box screen and everything in storage is
+  rested: full HP, status cleared, every move's PP back.
+
+  It is the Pokémon Centre's own routine rather than an imitation.
+  `Pokemon.heal` is what `engine/events/heal_party.asm` `HealParty` does,
+  PP-Up bonus included, and the nurse calls that same function — storage
+  that quietly healed a differently-shaped amount would be worse than
+  storage that did not heal at all.
+
+  **Once, on closing, not on each placement.** Healing per move would have
+  meant deciding what a move even is: a deposit heals, but a swap is a
+  deposit and a withdrawal at the same time, and dragging a Pokémon between
+  two box slots is neither. `StateStack` calls `exit()` on pop and only on
+  pop — opening the summary on top of the screen does not fire it — so "the
+  player is done with the boxes" is something the engine already tells us.
+
+  **Every box, not only the open one.** One put away in box 3 an hour ago is
+  as deposited as one dropped a second ago, and *"rested unless you happened
+  to be looking at that box when you left"* is not a rule anybody could hold
+  in their head.
+
+  The party is left alone. Not to police anything — you can deposit six and
+  take them straight back — but because the party is the half of this screen
+  that is not storage, and a screen that rested your active six for opening
+  and closing it would be a Centre with extra steps.
+
+  Off by default: free healing is an economy change, not a convenience. What
+  stops being needed is Potions and trips to town.
+
 ## 1.3.0
 
 ### Changed

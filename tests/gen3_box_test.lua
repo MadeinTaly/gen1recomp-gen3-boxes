@@ -292,5 +292,96 @@ local picked = ModUpdate.pickZipAsset({
 T.eq(picked and picked.name, wanted,
   "the release asset must be named " .. wanted)
 
+-- ------- BOX HEALS
+--
+-- The whole feature is one function on one event: StateStack calls exit()
+-- on pop and only on pop, so "the player closed the boxes" is a thing the
+-- engine already tells us and there is nothing to detect.
+--
+-- These build a hurt Pokemon rather than a stub, because Pokemon.heal
+-- writes hp, status AND every move's pp, and a test that only checked hp
+-- would pass on a heal that quietly forgot the other two.
+
+do
+  local Pokemon = require("src.pokemon.Pokemon")
+  local loader = run.loader
+  loader.modOptions = loader.modOptions or {}
+  loader.modOptions.gen3_box = loader.modOptions.gen3_box or {}
+  local store = loader.modOptions.gen3_box
+
+  local function hurt(species)
+    local move = next(Data.moves)
+    return { species = species, level = 20,
+             stats = { hp = 60 }, hp = 7, status = "PSN",
+             moves = { { id = move, pp = 1, ppUps = 0 } } }
+  end
+  local function isRested(m)
+    return m.hp == m.stats.hp and m.status == nil and m.moves[1].pp > 1
+  end
+
+  -- OFF: closing must change nothing at all
+  store.heal = false
+  do
+    local g = fakeGame({ hurt("PIKACHU") })
+    local s = factory.new(g)
+    s:exit()
+    local m = g.save.boxes[1][1]
+    T.eq(m.hp, 7, "BOX HEALS off leaves a stored Pokemon exactly as it was")
+    T.eq(m.status, "PSN", "including its status")
+  end
+
+  -- ON: closing rests everything in storage
+  store.heal = true
+  do
+    local g = fakeGame({ hurt("PIKACHU"), hurt("ABRA") })
+    local s = factory.new(g)
+    local m = g.save.boxes[1][1]
+    T.check(not isRested(m), "the Pokemon starts hurt, so the check below means something")
+    s:exit()
+    T.check(isRested(g.save.boxes[1][1]), "closing the boxes rests what is in them")
+    T.check(isRested(g.save.boxes[1][2]), "all of them, not just the first")
+    T.eq(g.save.boxes[1][1].hp, 60, "to full HP")
+    T.eq(g.save.boxes[1][1].status, nil, "with the status cleared")
+    T.check(g.save.boxes[1][1].moves[1].pp > 1, "and the PP restored")
+  end
+
+  -- the party is NOT storage
+  do
+    local g = fakeGame({}, { hurt("BULBASAUR") })
+    local s = factory.new(g)
+    s:exit()
+    T.check(not isRested(g.save.party[1]),
+      "the party is left alone -- this screen is not a Pokemon Centre")
+  end
+
+  -- every box, not only the one that happened to be open
+  do
+    local g = fakeGame({})
+    g.save.boxes[7][1] = hurt("GEODUDE")
+    g.save.currentBox = 1
+    local s = factory.new(g)
+    s:exit()
+    T.check(isRested(g.save.boxes[7][1]),
+      "a Pokemon in a box you were not looking at is rested too")
+  end
+
+  -- and a deposit made during the visit is rested on the way out, which is
+  -- the thing the feature is actually for
+  do
+    local g = fakeGame({}, { hurt("CHARMANDER"), mon("SQUIRTLE", 5) })
+    local s = factory.new(g)
+    g.press("select"); s:update()          -- cross to the party
+    g.press("a"); s:update()               -- pick the hurt one up
+    g.press("select"); s:update()          -- back to the box
+    g.press("a"); s:update()               -- put it away
+    T.eq(#g.save.boxes[1], 1, "the deposit landed")
+    T.check(not isRested(g.save.boxes[1][1]), "and is still hurt while the screen is open")
+    s:exit()
+    T.check(isRested(g.save.boxes[1][1]), "then rests when the screen closes")
+  end
+
+  store.heal = false
+end
+
 run.release()
 T.finish("gen3_box")
