@@ -1,5 +1,37 @@
 # Changelog
 
+## 1.5.1 — BIG was broken on a real screen
+
+**If you are on 1.5.0 with `GRID` set to `BIG`, update.** The colours were
+right; everything around them was not.
+
+- **Fixed: the footer printed across the grid.** It was drawn at `y=132`, a
+  number taken from the Game Boy screen and never adapted. On the 288-tall
+  BIG canvas that is the middle of the grid, so `B:EXIT` landed on top of
+  the Pokémon.
+
+- **Fixed: palettes bled across the box.** `sgbPalettes` emitted zones for
+  **both** panes at once. The box grid and the party pane overlap by
+  design — only one is drawn at a time — so the party's palettes were
+  painted in stripes over the box. Only the visible pane is zoned now.
+
+- **Fixed: lines were measured against 160** even on a 320-wide surface, so
+  a message was cut at nineteen glyphs with half the screen empty beside
+  it.
+
+- **Fixed: a custom sprite drew over its neighbours.** Pics come through
+  `Assets.image`, which is the seam a sprite mod shadows — the README calls
+  that a feature — so a 112×112 or 168×168 replacement is a thing that
+  happens. The scale was a fixed 0.5/1.0, and a 2× pic overflowed a BIG
+  cell by a whole cell, a 3× one by two. It is now derived from the picture
+  the game actually hands over, still in whole steps so two-bit art stays
+  crisp.
+
+Every one of these is now a test: text is collected as it is drawn and
+checked against the surface and against the grid rectangle, zones are
+checked for overlap, and the scale is checked across seven picture sizes in
+both layouts.
+
 ## 1.5.0 — the grid in colour
 
 - **`GRID`** — `CLASSIC` (as before) or **`BIG`**.

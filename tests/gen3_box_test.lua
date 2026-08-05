@@ -436,7 +436,10 @@ do
     local zones = havePalettes and s:sgbPalettes(g) or nil
     if not havePalettes then goto skipColours end
     T.check(zones ~= nil, "BIG asks for zones")
-    T.eq(#zones, 21, "one per stored Pokemon plus one per party member")
+    -- one per stored Pokemon, and NOT one per party member: the two panes
+    -- overlap by design and only one is drawn, so zones for both would
+    -- paint the party's palettes across the box grid
+    T.eq(#zones, 20, "one zone per stored Pokemon, from the visible pane only")
 
     -- every zone must sit on the tile grid and inside the canvas
     local bad = {}
@@ -495,14 +498,163 @@ do
     -- in its cell, and would otherwise wear whatever is underneath
     g.press("a"); s:update()
     T.check(s.held ~= nil, "picking one up")
+    -- picking one up takes it out of the box list, so the count only holds
+    -- if the carried one is zoned where the cursor is
     local held = s:sgbPalettes(g)
-    T.eq(#held, 21, "the carried one keeps a zone of its own")
+    T.eq(#held, 20, "the carried one keeps a zone of its own")
 
     ::skipColours::
   end
 
   store.grid = "classic"
 end
+
+  -- ------- a custom sprite must not spill into its neighbours
+  --
+  -- Pics come through Assets.image, the seam a sprite mod shadows, so a
+  -- 112x112 or 168x168 replacement is a thing that happens. 1.5.0 scaled
+  -- by a fixed 0.5/1.0 and drew a 2x pic a whole cell wide over the one
+  -- next to it.
+  do
+    local loader2 = run.loader
+    loader2.modOptions = loader2.modOptions or {}
+    loader2.modOptions.gen3_box = loader2.modOptions.gen3_box or {}
+    local store = loader2.modOptions.gen3_box
+    local anySpecies = next(Data.pokemon)
+
+    local function fakeImg(n)
+      return { getWidth = function() return n end, getHeight = function() return n end }
+    end
+    local over = {}
+    for _, grid in ipairs({ "classic", "big" }) do
+      store.grid = grid
+      local sc = factory.new(fakeGame({ mon(anySpecies, 5) }))
+      local cell = grid == "classic" and 28 or 56
+      for _, size in ipairs({ 40, 56, 64, 112, 160, 168, 224 }) do
+        local k = sc.picScale(fakeImg(size), cell)
+        local drawn = size * k
+        if drawn > cell then
+          over[#over + 1] = ("%s: %dpx pic drawn at %g (%gpx) in a %d cell")
+            :format(grid, size, k, drawn, cell)
+        end
+        local whole = (k >= 1 and k % 1 == 0) or (k < 1 and (1 / k) % 1 == 0)
+        if not whole then
+          over[#over + 1] = ("%s: %dpx pic scaled by %g, not a whole step")
+            :format(grid, size, k)
+        end
+      end
+    end
+    T.eq(#over, 0, "no picture ever spills its cell (" ..
+      table.concat(over, "; ") .. ")")
+
+    store.grid = "classic"
+    local sc = factory.new(fakeGame({ mon(anySpecies, 5) }))
+    T.eq(sc.picScale(fakeImg(56), 28), 0.5, "CLASSIC still halves a 56px pic")
+    store.grid = "big"
+    sc = factory.new(fakeGame({ mon(anySpecies, 5) }))
+    T.eq(sc.picScale(fakeImg(56), 56), 1, "BIG still draws a 56px pic at scale 1")
+  end
+
+  -- ------- BIG's layout must survive the surface it asked for
+  --
+  -- 1.5.0 hardcoded the footer at y=132 and the line width at 160. On the
+  -- 288-tall BIG canvas that printed "B:EXIT" across the middle of the
+  -- grid, over the Pokemon. And sgbPalettes emitted zones for BOTH panes
+  -- at once: the two overlap by design, since only one is drawn at a time,
+  -- so the party's palettes appeared as stripes across the box grid.
+  do
+    local loader3 = run.loader
+    loader3.modOptions = loader3.modOptions or {}
+    loader3.modOptions.gen3_box = loader3.modOptions.gen3_box or {}
+    local store = loader3.modOptions.gen3_box
+    local anySpecies = next(Data.pokemon)
+
+    local PaletteFX = require("src.render.PaletteFX")
+    store.grid = "big"
+    local box20 = {}
+    for i = 1, 20 do box20[i] = mon(anySpecies, 10) end
+    local g = fakeGame(box20, { mon(anySpecies, 5), mon(anySpecies, 5) })
+    local s = factory.new(g)
+    local W, H = s:uiSize()
+
+    -- the grid, from the layout the mod actually uses
+    local gx, gy, cell = 16, 32, 56
+    local gridBottom = gy + 4 * cell
+
+    -- every line the screen draws must land inside the surface, and the
+    -- footer must sit BELOW the grid rather than on it
+    local lines = {}
+    local realDraw = Font.draw
+    Font.draw = function(text, x, y)
+      lines[#lines + 1] = { text = text, x = x, y = y,
+                            w = Font.width(text) }
+    end
+    s:draw()
+    Font.draw = realDraw
+
+    local bad = {}
+    for _, l in ipairs(lines) do
+      if l.x + l.w > W then
+        bad[#bad + 1] = ("%q runs to %d on a %d-wide surface")
+          :format(l.text, l.x + l.w, W)
+      end
+      if l.y + 8 > H then
+        bad[#bad + 1] = ("%q runs to %d on a %d-tall surface")
+          :format(l.text, l.y + 8, H)
+      end
+      -- a line inside the grid rectangle is printed over the Pokemon
+      if l.y + 8 > gy and l.y < gridBottom and l.x < gx + 5 * cell then
+        bad[#bad + 1] = ("%q at y=%d is inside the grid (%d..%d)")
+          :format(l.text, l.y, gy, gridBottom)
+      end
+    end
+    T.eq(#bad, 0, "no text lands on the grid or off the surface (" ..
+      table.concat(bad, "; ") .. ")")
+    T.check(#lines > 0, "and the screen did draw some text")
+
+    -- and the line may USE the wider surface: 1.5.0 measured against 160
+    -- even on a 320-wide canvas, so a message was cut at nineteen glyphs
+    -- with half the screen still empty beside it
+    do
+      local long = "ABCDEFGHIJKLMNOPQRSTUVWXYZ012345"
+      s.notice = long
+      s.noticeAt = 1e9
+      local shown
+      local real = Font.draw
+      Font.draw = function(text, x, y)
+        if y >= gridBottom then shown = text end
+      end
+      s:draw()
+      Font.draw = real
+      s.notice = nil
+      T.check(shown ~= nil, "the notice is drawn")
+      T.check(shown and #shown > 19,
+        ("BIG uses its width: %d glyphs shown of %d (19 would be the Game Boy)")
+          :format(shown and #shown or 0, #long))
+    end
+
+    -- zones: one pane only, and none may overlap another
+    if PaletteFX.monPal(Data, anySpecies) then
+      local zones = s:sgbPalettes(g)
+      T.eq(#zones, 20, "only the visible pane gets zones, not both")
+      local clash = {}
+      for i = 1, #zones do
+        for j = i + 1, #zones do
+          local a, b = zones[i], zones[j]
+          if a.x < b.x + b.w and b.x < a.x + a.w
+             and a.y < b.y + b.h and b.y < a.y + a.h then
+            clash[#clash + 1] = i .. "/" .. j
+          end
+        end
+      end
+      T.eq(#clash, 0, "and no two zones overlap (" ..
+        table.concat(clash, " ") .. ")")
+    else
+      T.check(true, "fixture dataset: zone overlap check skipped")
+    end
+
+    store.grid = "classic"
+  end
 
 run.release()
 T.finish("gen3_box")

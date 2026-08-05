@@ -367,14 +367,36 @@ return function(mod)
       return L.partyX + c * L.cell, L.partyY + r * L.cell
     end
 
+    -- The scale is derived from the picture the game actually handed us,
+    -- never assumed. Pics reach this screen through Assets.image, which is
+    -- the seam a sprite mod shadows -- the README calls that a feature --
+    -- so a 112x112 or 168x168 replacement is a thing that will happen, and
+    -- a fixed 0.5/1.0 would have drawn it straight over its neighbours: a
+    -- 2x pic overflows a BIG cell by a whole cell, a 3x one by two.
+    --
+    -- Integer factors both ways. Two-bit pixel art survives being halved
+    -- or doubled and smears at 0.6, so this picks the nearest whole step
+    -- that fits rather than the one that fills the cell exactly.
+    local function picScale(img, cell)
+      local m = math.max(img:getWidth(), img:getHeight())
+      if m <= 0 then return 1 end
+      if m <= cell then return math.max(1, math.floor(cell / m)) end
+      return 1 / math.ceil(m / cell)
+    end
+
     local function drawPic(mon, x, y)
       local img = picOf(game, mon)
       if not img then return end
       local L = layout()
-      local w, h = img:getWidth() * L.scale, img:getHeight() * L.scale
+      local k = picScale(img, L.cell)
+      local w, h = img:getWidth() * k, img:getHeight() * k
       love.graphics.draw(img, x + (L.cell - w) / 2, y + (L.cell - h) / 2,
-        0, L.scale, L.scale)
+        0, k, k)
     end
+
+    -- exposed so the suite can check the arithmetic without a graphics
+    -- context, which is where the overflow above was found
+    self.picScale = picScale
 
     -- ------- a palette per Pokemon
     --
@@ -419,8 +441,15 @@ return function(mod)
         end
       end
 
-      add(boxList(game), "box")
-      add(game.save.party, "party")
+      -- Only the pane on screen. The two panes overlap by design -- one is
+      -- drawn at a time -- so emitting zones for both painted the party's
+      -- palettes in stripes across the box grid, which is exactly what the
+      -- first BIG screenshot showed.
+      if self.mode == "box" then
+        add(boxList(game), "box")
+      else
+        add(game.save.party, "party")
+      end
       -- the one on the cursor is drawn where the cursor is, so it needs its
       -- own zone or it wears whatever the cell under it is wearing
       if self.held and self.held.mon then
@@ -445,12 +474,16 @@ return function(mod)
     -- them and no more. 1.1.0 shipped a "SELECT:PARTY START:BOX" hint --
     -- twenty-two glyphs, 176 pixels -- and the tail simply ran off the
     -- right edge. Nothing is drawn now without being measured first.
+    -- Both of these follow the SURFACE, not the Game Boy. 1.5.0 hardcoded
+    -- 160 and a footer at y=132: on the 288-tall BIG canvas that put
+    -- "B:EXIT" in the middle of the grid, printed over the Pokemon.
     local TEXT_X = 4
-    local TEXT_MAX = 160 - TEXT_X * 2
+    local function textMax() return layout().w - TEXT_X * 2 end
+    local function footerY() return layout().h - 12 end
 
     local function fit(text)
       text = tostring(text or "")
-      while #text > 1 and Font.width(text) > TEXT_MAX do
+      while #text > 1 and Font.width(text) > textMax() do
         text = text:sub(1, #text - 1)
       end
       return text
@@ -511,7 +544,7 @@ return function(mod)
           line = Strings("SEL:BOX B:EXIT")
         end
       end
-      Font.draw(fit(line), TEXT_X, 132)
+      Font.draw(fit(line), TEXT_X, footerY())
     end
 
     return self
