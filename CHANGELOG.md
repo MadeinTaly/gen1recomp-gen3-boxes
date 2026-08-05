@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.5.2 — the black screen, and a cursor you can find
+
+- **Fixed: everything outside the cells was black**, the header and footer
+  included.
+
+  The screen emitted a palette zone per Pokémon and nothing else, so those
+  were the only remapped pixels on the frame — the rest composited black,
+  and text drawn in black on it simply disappeared. There is now a **base
+  zone covering the whole surface**, drawn first with the per-Pokémon zones
+  on top, which is exactly what `SummaryMenu` does.
+
+  `PaletteFX.whole()` is not usable for it: that helper is hardcoded to the
+  160×144 tile grid and would have covered a quarter of a BIG canvas — the
+  same bug wearing a helpful-looking name. The size comes from the layout.
+
+- **Fixed: the cursor was a hairline.** It was a one-pixel outline one
+  pixel outside a cell that already has its own one-pixel outline — two
+  identical shapes a pixel apart, on a 56-pixel cell. It is now four
+  **corner brackets**, scaled to the cell (2px arms on CLASSIC, 4px on
+  BIG), which read as a cursor at any size and leave the middle of the cell
+  clear so the Pokémon is not fenced in.
+
 ## 1.5.1 — BIG was broken on a real screen
 
 **If you are on 1.5.0 with `GRID` set to `BIG`, update.** The colours were
