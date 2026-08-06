@@ -1,0 +1,33 @@
+name: Suggest a feature
+description: Something this mod should do that it does not. No code needed.
+title: "[idea] "
+labels: ["idea"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **The idea is the contribution.** You do not have to build it, mock
+        it up, or know any Lua. Describe what you want and why, and it gets
+        considered — the best ones ship.
+  - type: textarea
+    id: what
+    attributes:
+      label: What should it do?
+      description: Describe it as a player, not as a programmer.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why would you want it?
+      description: >
+        What is annoying now, or what would it make possible? This is the
+        part that decides whether something ships, so it matters more than
+        the description above.
+    validations:
+      required: true
+  - type: input
+    id: prior
+    attributes:
+      label: Does another game already do this well?
+      placeholder: "e.g. the way Gen 3 handles ..., or a mod you have used"

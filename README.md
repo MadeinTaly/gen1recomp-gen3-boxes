@@ -142,29 +142,31 @@ still understands.
 - It touches nothing but `save.boxes` and `save.party`, which are the
   engine's own storage arrays.
 
-## Help wanted
+## Tell me what the box should do next
 
-The grid is verified by 73 checks and has never been seen running on a real
-screen. Two of its releases shipped visibly broken and both were caught from
-a photo, not from the suite.
+Right now it stores, moves and (optionally) heals. Everything else people
+expect from a modern box system is missing, and I would rather build what
+you actually want than guess.
 
-What would help most:
+Open an issue if you want:
 
-- **a photo of it on your device**, especially `GRID BIG`, and especially if
-  something overlaps or falls off the edge;
-- **opinions on the cursor.** It is four corner brackets because a one-pixel
-  outline vanished next to the cell's own outline. There may be a better
-  answer;
-- **what else belongs in the box screen.** Sorting, searching and marking
-  are all absent and all plausible.
+- **finding things** — search by name, type or move; filter to what is
+  holding a slot you need; jump to a Pokémon anywhere in the PC;
+- **organising things** — sort a box, mass-move, mark favourites, name your
+  boxes, wallpapers;
+- **knowing things** — stats and moves at a glance, IV/DV display, which of
+  these is your strongest;
+- **something else entirely** — a release confirmation, a Pokémon-of-the-day
+  slot, a box that follows a rule.
 
-The one hard rule is that anything you send has to be **yours**. No sprites,
-palettes, audio or text lifted from a ROM, a fan game, a wiki or another
-mod — not out of fussiness, but because this whole project stands on not
-redistributing other people's game data, and the other modders on the index
-deserve the same courtesy we would want.
+**Ideas are the contribution.** You do not have to build it, mock it up or
+know Lua — describe what you want and why, and it gets considered. The best
+ones ship.
 
-You do not need to know Lua for any of the above.
+If an idea comes with art, the art has to be **yours**: nothing traced,
+edited or recoloured from a ROM, a fan game, a wiki or another mod. That is
+what keeps this shippable, and it is what the other authors on the index are
+owed.
 
 ## Requirements and legal
 
