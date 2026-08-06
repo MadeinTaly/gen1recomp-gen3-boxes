@@ -142,6 +142,30 @@ still understands.
 - It touches nothing but `save.boxes` and `save.party`, which are the
   engine's own storage arrays.
 
+## Help wanted
+
+The grid is verified by 73 checks and has never been seen running on a real
+screen. Two of its releases shipped visibly broken and both were caught from
+a photo, not from the suite.
+
+What would help most:
+
+- **a photo of it on your device**, especially `GRID BIG`, and especially if
+  something overlaps or falls off the edge;
+- **opinions on the cursor.** It is four corner brackets because a one-pixel
+  outline vanished next to the cell's own outline. There may be a better
+  answer;
+- **what else belongs in the box screen.** Sorting, searching and marking
+  are all absent and all plausible.
+
+The one hard rule is that anything you send has to be **yours**. No sprites,
+palettes, audio or text lifted from a ROM, a fan game, a wiki or another
+mod — not out of fussiness, but because this whole project stands on not
+redistributing other people's game data, and the other modders on the index
+deserve the same courtesy we would want.
+
+You do not need to know Lua for any of the above.
+
 ## Requirements and legal
 
 This mod is Lua source only. It contains **no ROM, no ROM-derived data, and
