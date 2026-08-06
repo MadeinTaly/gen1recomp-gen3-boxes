@@ -142,31 +142,17 @@ still understands.
 - It touches nothing but `save.boxes` and `save.party`, which are the
   engine's own storage arrays.
 
-## Tell me what the box should do next
+## Ideas, and help building them
 
-Right now it stores, moves and (optionally) heals. Everything else people
-expect from a modern box system is missing, and I would rather build what
-you actually want than guess.
+**Got an idea for something this should do?** Open an issue — there is a
+template for it. You do not need to know any Lua, and you do not need to
+have worked out how it would be built. Describe what you want and why.
 
-Open an issue if you want:
+**Want to build it yourself?** Open a pull request. Collaboration is welcome
+on any part of this.
 
-- **finding things** — search by name, type or move; filter to what is
-  holding a slot you need; jump to a Pokémon anywhere in the PC;
-- **organising things** — sort a box, mass-move, mark favourites, name your
-  boxes, wallpapers;
-- **knowing things** — stats and moves at a glance, IV/DV display, which of
-  these is your strongest;
-- **something else entirely** — a release confirmation, a Pokémon-of-the-day
-  slot, a box that follows a rule.
-
-**Ideas are the contribution.** You do not have to build it, mock it up or
-know Lua — describe what you want and why, and it gets considered. The best
-ones ship.
-
-If an idea comes with art, the art has to be **yours**: nothing traced,
-edited or recoloured from a ROM, a fan game, a wiki or another mod. That is
-what keeps this shippable, and it is what the other authors on the index are
-owed.
+Anything you send that includes art has to be your own work — nothing
+traced, edited or recoloured from a ROM, a fan game, a wiki or another mod.
 
 ## Requirements and legal
 
