@@ -214,6 +214,28 @@ still understands.
 - It touches nothing but `save.boxes` and `save.party`, which are the
   engine's own storage arrays.
 
+## What is coming next
+
+**Overworld sprites in the CLASSIC grid.** CLASSIC draws a battle pic at half
+scale into a 28-pixel cell, which is the best Gen 1 has on its own: the four
+generic party icons are unreadable in a grid, so there was never a third
+option. [Wilds of Kanto](https://github.com/YoDrehDenSwagAuf/overworld-spawn-mod)
+(`overworld_wild_spawns`) changes that — it builds a per-species 16×16
+overworld sprite for its wilds and its followers, which is a whole sprite
+rather than a halved one and fits a 28-pixel cell with room to spare.
+
+The intent is that when that mod is installed and enabled, and the layout is
+CLASSIC, the grid draws those sprites instead of the half-scale pics; BIG
+keeps the battle pics, because at 56 pixels a pic already draws at scale 1
+and a 16-pixel sprite would have to be enlarged to fill the cell. Without
+that mod, nothing changes.
+
+It is not built yet, and it depends on that mod exposing a supported way to
+ask for a species' sprite rather than this one reaching into its files. If it
+turns out there is no such seam, this gets dropped rather than bodged: a
+cross-mod hack that breaks on someone else's next release is worse than the
+half-scale pic that has always worked.
+
 ## Ideas, and help building them
 
 **Got an idea for something this should do?** Open an issue — there is a
