@@ -1,7 +1,7 @@
 {
   "id": "gen3_box",
   "name": "Gen 3 Box",
-  "version": "1.5.2",
+  "version": "1.6.0",
   "api": 2,
   "entry": "main.lua",
   "profile": "content",
@@ -14,6 +14,6 @@
   "permissions": [
     "engine_internals"
   ],
-  "description": "A Ruby/Sapphire-style storage screen over Gen 1's twelve boxes of twenty: a visible 5x4 grid drawn from the per-species battle pics, a cursor that picks a Pokemon up and puts it down, swapping on an occupied slot, and SELECT to cross between the box and the party. Reachable from the start menu, from the Pokemon Center PC, or both -- your choice in OPEN FROM. BOX HEALS, off by default, rests everything in storage when you close the screen -- the Pokemon Centre's own routine, HP, status and PP. GRID BIG doubles the surface to 320x288: battle pics at full size instead of half, and every Pokemon in the grid wearing its OWN species palette.",
+  "description": "A Ruby/Sapphire-style storage screen over Gen 1's twelve boxes of twenty: a visible 5x4 grid drawn from the per-species battle pics, a cursor that picks a Pokemon up and puts it down, swapping on an occupied slot, and SELECT to cross between the box and the party. Search every box by species, type, or mark with FIND; sort by dex, level, name, or type with UNDO; mark Pokemon with the four Gen 3 symbols; give each box a custom name up to eight glyphs and pick a wallpaper from six patterns; and hear a cry every time a Pokemon lands. BOX HEALS rests everything in storage when you close the screen. GRID BIG doubles the surface to 320x288, showing battle pics at full size and giving each Pokemon its own species palette.",
   "github": "MadeinTaly/gen1recomp-gen3-boxes"
 }

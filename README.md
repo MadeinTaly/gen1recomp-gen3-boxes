@@ -28,16 +28,21 @@ Requires Gen1Recomp with mod API 2 (engine 0.1.37 or newer).
 
 | Key | Action |
 | --- | --- |
-| D-pad | move the cursor; stepping off the left or right edge changes box |
-| **A** | pick up / put down — on an occupied slot the two **swap** |
-| **START** | the summary of whatever the cursor is on |
+| D-pad UP (at top row) | move onto the header row |
+| D-pad DOWN (at header) | move back into the grid |
+| D-pad LEFT/RIGHT (at header) | change box |
+| D-pad LEFT/RIGHT (off edge) | change box |
+| **A** | pick up / put down — on an occupied slot the two **swap**; on the header, open the BOX MENU |
+| **START** | the summary of whatever the cursor is on in the grid; on the header (with a search active) find next |
 | **B** | back: carrying one it goes back on a shelf first, otherwise close |
 | **SELECT** | cross to the party and back — this is how you deposit and withdraw |
 
-B means back and only back, the convention every other screen in this game
-follows — and that is what frees START to be the summary. There is no cell
-where the way out disappears, which an earlier arrangement had to work
-around by putting STATS on B and the exit on START.
+The header row is the box title at the top, reached by moving up from the grid
+in CLASSIC or BIG layout. B works from anywhere and only back — the convention
+every other screen in this game follows — and that is what frees START to be
+the summary when the cursor is on a Pokémon. With `CURSOR WRAP` on, UP from
+the top row moves to the header, and UP again wraps to the bottom, not back as
+in 1.5.2.
 
 ## Options
 
@@ -48,10 +53,12 @@ around by putting STATS on B and the exit on START.
 | `OPEN FROM` | `START+PC` / `START` / `PC` | where the BOXES entry appears |
 | `CURSOR WRAP` | on / off | whether the cursor wraps at the edges |
 | `BOX HEALS` | on / off | rest everything in storage when the screen closes |
+| `PLACE CRY` | on / off | play the Pokémon's cry every time one lands in a slot |
 | `GRID` | `CLASSIC` / `BIG` | a 320×288 surface, full-size pics, and a palette per Pokémon |
 
 `OPEN FROM` is read each time a menu opens, so changing it takes effect
-immediately rather than on the next boot.
+immediately rather than on the next boot. `PLACE CRY` is on by default, because
+it changes nothing but sound.
 
 The vanilla box PC is left in place whichever way this is set. Nothing is
 taken away, and turning the mod off leaves a save reaching its storage
@@ -108,6 +115,71 @@ menu would be a Pokémon Centre with extra steps.
 It is off by default because it is an economy change rather than a
 convenience: what stops being needed is Potions and trips to town.
 
+## FIND
+
+Every box is searched from the cursor forward, wrapping around to where it
+started. Open the BOX MENU and choose FIND, then pick a search kind:
+
+- **SPECIES** — type a substring to match against the Pokémon's nickname, its
+  species name, or its raw species ID. `CHAR` finds CHARMANDER, and a Pokémon
+  nicknamed CHARLIE alike.
+- **TYPE** — pick from the list of types. The list is built from every species
+  in the data each time, so a mod that adds species does not need to be named
+  here.
+- **MARK** — pick from the four marks: CIRCLE, SQUARE, TRIANGLE, HEART.
+
+A hit lands the cursor on that Pokémon and reports its name in the footer. A
+miss says so and moves nothing. The search is remembered: with a search active,
+START on the header row finds the next match. The party is not searched — it is
+six visible slots on the same screen.
+
+## JUMP TO BOX
+
+Open the BOX MENU and choose JUMP TO BOX to see all twelve boxes with their
+names and population (`n/20`). Pick one and the cursor moves there without a
+save prompt.
+
+## SORT
+
+Open the BOX MENU and choose SORT. The options are:
+
+- **BY DEX** — by species ID.
+- **BY LEVEL** — descending, strongest first.
+- **BY NAME** — by species name, then nickname.
+- **BY TYPE** — by the first type, then dex.
+- **UNDO** — restore the order before the last sort, if the box has not changed.
+
+Every sort is stable: equal keys stay in their original order. When you undo,
+UNDO refuses if the box has changed (a Pokémon arrived or left), and says so.
+
+## MARKS
+
+Open the BOX MENU and choose MARK MODE to toggle it on. With it on, A opens the
+marking window on a Pokémon instead of picking it up. The window shows four
+marks: CIRCLE, SQUARE, TRIANGLE, HEART. Use LEFT/RIGHT or A to pick each one
+and toggle it (they draw as small filled shapes in the corner of the cell), and B
+to close the window. B from the grid leaves MARK MODE.
+
+## BOX NAMES AND WALLPAPERS
+
+Open the BOX MENU and choose NAME BOX to give the current box a custom name up
+to eight glyphs. The name shows in the header and in JUMP TO BOX. An empty
+confirm keeps the current name unchanged; to return to the numbered default
+(`BOX 1`, `BOX 2`, etc), type `BOX n` back.
+
+Choose WALLPAPER to change the background pattern and colours for the current
+box. Six options are available: PLAIN (the default, no colour change), STRIPES,
+CHECKS, DOTS, WAVES, and NIGHT (a dark mode where the background is dark and
+the text is light). Names and wallpapers are saved with the save file, so they
+travel between screens.
+
+## PLACE CRY
+
+When a Pokémon lands in a slot — dropped into an empty cell, swapped in, or
+shelved with B — its cry plays. Turn `PLACE CRY` off in the options if you do
+not want it. A refused landing (full box, full party, nowhere to go) plays no
+cry, because nothing landed.
+
 ## Two design notes
 
 **The grid is drawn from battle pics, not icons.** Gen 3's grid works
@@ -141,6 +213,28 @@ still understands.
   it out of the save.
 - It touches nothing but `save.boxes` and `save.party`, which are the
   engine's own storage arrays.
+
+## What is coming next
+
+**Overworld sprites in the CLASSIC grid.** CLASSIC draws a battle pic at half
+scale into a 28-pixel cell, which is the best Gen 1 has on its own: the four
+generic party icons are unreadable in a grid, so there was never a third
+option. [Wilds of Kanto](https://github.com/YoDrehDenSwagAuf/overworld-spawn-mod)
+(`overworld_wild_spawns`) changes that — it builds a per-species 16×16
+overworld sprite for its wilds and its followers, which is a whole sprite
+rather than a halved one and fits a 28-pixel cell with room to spare.
+
+The intent is that when that mod is installed and enabled, and the layout is
+CLASSIC, the grid draws those sprites instead of the half-scale pics; BIG
+keeps the battle pics, because at 56 pixels a pic already draws at scale 1
+and a 16-pixel sprite would have to be enlarged to fill the cell. Without
+that mod, nothing changes.
+
+It is not built yet, and it depends on that mod exposing a supported way to
+ask for a species' sprite rather than this one reaching into its files. If it
+turns out there is no such seam, this gets dropped rather than bodged: a
+cross-mod hack that breaks on someone else's next release is worse than the
+half-scale pic that has always worked.
 
 ## Ideas, and help building them
 

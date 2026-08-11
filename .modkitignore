@@ -2,3 +2,7 @@
 # engine modules, which reads as a private require against the shipped
 # archive (CONTRIBUTING-mods.md "What the PR must contain", 2).
 tests/gen3_box_test.lua
+
+# The working plan for the next release: repo business, not something a
+# player downloads inside the mod.
+PLAN.md
