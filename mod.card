@@ -1,6 +1,6 @@
 -- Sharing metadata: read by tooling and the manager detail pane.
 return {
-  summary = "A Ruby/Sapphire-style box screen: a grid you can see, and a cursor that carries a Pokemon.",
+  summary = "A Ruby/Sapphire-style box screen: a grid you can see, a cursor that carries a Pokemon, and a way to find one of two hundred and forty.",
   author = "MadeinTaly",
   -- shown in the manager's detail pane next to the author
   support = "https://linktr.ee/made_in_taly",
@@ -13,12 +13,22 @@ return {
       "a BOXES row on the start menu and under the Pokemon Center PC's own box row, opening a 5x4 grid of the current box",
       "an OPEN FROM option choosing which of those two entrances exist: START+PC, START, or PC",
       "a cursor that picks a Pokemon up with A and puts it down with A, swapping when the target slot is taken",
-      "B over a Pokemon opens the game's own summary screen, which recalculates a box mon's stats on the way in",
-      "walking off the left or right edge of a box steps to the next one; START closes the screen from anywhere",
+      "START over a Pokemon opens the game's own summary screen, which recalculates a box mon's stats on the way in",
+      "walking off the left or right edge of a box steps to the next one; B is back from anywhere and only back",
       "SELECT crosses to the party and back, which is how a mon is deposited or withdrawn",
+      "a HEADER ROW: UP out of the top row lands on the box title, where A opens the BOX MENU and LEFT/RIGHT change box",
+      "FIND: search every box from the cursor forward by species substring, by type or by mark, wrapping back to where it started; START on the header is FIND NEXT",
+      "JUMP TO BOX: the twelve boxes with their names and how full each one is, without the vanilla PC's save prompt",
+      "SORT: BY DEX, BY LEVEL (strongest first), BY NAME or BY TYPE, stable, in place, and UNDO for the last one while the screen is open",
+      "MARKS: Gen 3's circle, square, triangle and heart, stored on the Pokemon and drawn in the corner of its cell; MARK MODE is how they are set",
+      "NAME BOX: eight glyphs through the engine's own naming screen, stored in the save rather than the install",
+      "WALLPAPER: a pattern and a four-colour palette per box, including NIGHT, which is the greys in reverse and therefore a real dark mode",
+      "PLACE CRY (on by default): the cry of whichever Pokemon just landed in a slot",
     },
     changed = {
       "the grid draws each Pokemon's battle pic at half scale, because Gen 1 has only four generic party icons and a grid of those is unreadable",
+      "with CURSOR WRAP on, UP from the top row now stops on the header instead of wrapping; UP again wraps to the bottom as before, so the wrap is not lost, it gains a stop",
+      "a Pokemon withdrawn from a box into the party has its stat block recalculated, which the vanilla PC always did and this screen did not -- a mon decoded out of an imported .sav could reach the party menu with no stats at all",
     },
     known = {
       "BOX HEALS runs once on close rather than per placement, because a swap is a deposit and a withdrawal at the same time and a move between two box slots is neither; and it covers every box, not only the open one",
@@ -27,6 +37,11 @@ return {
       "the vanilla box PC is left in place and still works whichever way OPEN FROM is set; this is an additional entrance, not a replacement for Bill's PC",
       "pics come through Assets.image, so a sprite mod's art shows up here too",
       "the party may not be emptied, exactly as the vanilla PC refuses the last mon",
+      "FIND searches storage and not the party, because the party is six visible slots on the same screen",
+      "marks are drawn as shapes rather than glyphs, because the Gen 1 font has none; they are stored as a four-character string on the Pokemon and travel with the save",
+      "a wallpaper's colours reach the whole surface only in BIG: a CLASSIC cell is three and a half tiles, and half a tile cannot carry a palette zone, so CLASSIC gets the pattern alone",
+      "an empty confirm on the naming screen keeps the name a box already has -- the engine treats what you pass it as the fallback for an empty confirm, not as a pre-filled grid, so typing the plain BOX n back is what returns a box to being numbered",
+      "every wallpaper colour is authored in this mod's own source; no ROM palette is copied, and modkit lint still reports no ROM-derived content",
     },
   },
 }

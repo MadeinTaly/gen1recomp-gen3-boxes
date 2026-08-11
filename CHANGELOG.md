@@ -1,5 +1,51 @@
 # Changelog
 
+## 1.6.0 — search, sort, marks, names, and a cry when it lands
+
+- **FIND and FIND NEXT** — search every box by species, type, or mark. Open
+  the BOX MENU and choose FIND, then pick a search kind: type a species name
+  or nickname substring, pick a type, or pick a mark. The cursor moves to the
+  first match. START on the header (which costs no binding) finds the next
+  match, wrapping back around to where you started.
+
+- **JUMP TO BOX** — the BOX MENU shows all twelve boxes with their names and
+  population. Pick one and jump there without a save prompt.
+
+- **SORT** — order the current box by species ID, level (descending), name, or
+  type. UNDO keeps one snapshot per box for as long as the screen is open and
+  refuses if the box has changed since. The sort is stable and never reshuffles
+  equal keys.
+
+- **MARKS** — Gen 3's four marks (CIRCLE, SQUARE, TRIANGLE, HEART) now live on
+  each Pokémon. Enter MARK MODE from the BOX MENU; A opens the marking window
+  instead of picking the Pokémon up. Toggle each mark in the window and B
+  closes it. Marks draw as small filled shapes in the corner of the cell.
+
+- **BOX NAMES and WALLPAPERS** — give each box a custom name up to eight glyphs
+  (shown in the header and JUMP TO BOX), or return to the numbered default by
+  typing `BOX n`. Choose a wallpaper: PLAIN (the default), STRIPES, CHECKS,
+  DOTS, WAVES, or NIGHT (a dark mode). The pattern draws behind the cells in
+  both layouts, and the colour palette replaces the whole-screen base zone, so
+  the header and footer stay readable. Every colour is authored in the mod —
+  nothing is copied from a ROM — and PLAIN still emits exactly what 1.5.2 drew.
+  Names and wallpapers travel with the save.
+
+- **PLACE CRY** — every landing plays the Pokémon's cry. On by default, because
+  it changes nothing but sound. A refused landing (full box, full party, nowhere
+  to go) plays no cry, because nothing landed.
+
+- **Fixed: Stats.ensure now called on every party landing.** The vanilla PC
+  recalculates a box Pokémon's stat block when it leaves the box for the party,
+  because `box_struct` carries none — a Pokémon withdrawn from an imported
+  `.sav` reaches the party menu with `mon.stats` nil and the HP bar crashes. This
+  screen now does the same on every path that puts a Pokémon into `save.party`.
+
+- **Changed: UP from the top row now stops on the header.** With `CURSOR WRAP`
+  on, UP from the top row moves onto the header, and UP again wraps to the
+  bottom row (not back as in 1.5.2). The header is the one place you need to
+  reach to use the BOX MENU and FIND NEXT, so the wrap gains a stop where
+  nothing was before.
+
 ## 1.5.2 — the black screen, and a cursor you can find
 
 - **Fixed: everything outside the cells was black**, the header and footer
