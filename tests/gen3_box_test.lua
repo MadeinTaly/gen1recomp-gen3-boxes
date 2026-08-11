@@ -804,9 +804,8 @@ end
 -- ------- the BOX MENU skeleton
 --
 -- A ListMenu, titled with the box's name, holding FIND / SORT / JUMP TO BOX
--- / MARK MODE / CANCEL -- NAME BOX and WALLPAPER are a later wave's rows,
--- not restructured for here. FIND NEXT only joins the list once a search is
--- active (tested in "FIND and FIND NEXT" below).
+-- / NAME BOX / WALLPAPER / MARK MODE / CANCEL. FIND NEXT only joins the
+-- list once a search is active (tested in "FIND and FIND NEXT" below).
 
 do
   local game = fakeGame({})
@@ -817,8 +816,9 @@ do
   local menu = findMenu(game, "BOX 1")
   T.check(menu ~= nil, "A on the header opens a menu titled with the box's name")
   T.check(menu == game.stack:top(), "and it is what is now on top of the stack")
-  T.eq(labels(menu.items), "FIND|SORT|JUMP TO BOX|MARK MODE|CANCEL",
-    "holding FIND, SORT, JUMP TO BOX, MARK MODE and CANCEL")
+  T.eq(labels(menu.items),
+    "FIND|SORT|JUMP TO BOX|NAME BOX|WALLPAPER|MARK MODE|CANCEL",
+    "holding FIND, SORT, JUMP TO BOX, NAME BOX, WALLPAPER, MARK MODE and CANCEL")
 
   for i, item in ipairs(menu.items) do
     if item.label == "CANCEL" then menu.index = i end
@@ -1293,6 +1293,279 @@ do
     T.check(screen:sgbPalettes(game) == nil,
       "CLASSIC still asks for no zones with the window open")
   end
+end
+
+-- ------- NAME BOX
+--
+-- The engine's own naming screen, 8 glyphs. NamingScreen's own declined
+-- contract (src/ui/NamingScreen.lua) hands an empty confirm back as
+-- whatever `default` was, never a raw "" -- there is no glyph pre-fill
+-- (self.glyphs always starts empty), so confirming with nothing typed
+-- reconfirms the box's current name, custom or not, rather than clearing
+-- it. Typing back the box's own canonical "BOX n" is what actually clears
+-- a custom name. Names live in mod.save under boxNames, keyed by box
+-- number, and reads tolerate string keys in case a save has been through a
+-- converter.
+
+do
+  local loader = run.loader
+  loader.modSave = loader.modSave or {}
+  loader.modSave.gen3_box = loader.modSave.gen3_box or {}
+  local store = loader.modSave.gen3_box
+  store.boxNames = nil
+
+  local function openBoxMenu(game, screen)
+    if not screen.header then
+      game.press("up"); screen:update()
+    end
+    game.press("a"); screen:update()
+    return game.stack:top()
+  end
+
+  local function choose(list, game, label)
+    for i, item in ipairs(list.items) do
+      if item.label == label then list.index = i end
+    end
+    game.press("a"); list:update()
+  end
+
+  local game = fakeGame({ mon("FIXMON_A", 5) })
+  local screen = factory.new(game)
+
+  local boxMenu = openBoxMenu(game, screen)
+  T.eq(boxMenu.title, "BOX 1", "the box menu is titled BOX n before any name is set")
+  choose(boxMenu, game, "NAME BOX")
+  local naming = game.stack:top()
+  T.eq(naming.default, "BOX 1", "NAME BOX defaults to the box's current name")
+  T.eq(naming.maxLen, 8, "and allows 8 glyphs")
+
+  naming.glyphs = { "H", "O", "M", "E" }
+  naming:confirm()
+  T.eq(store.boxNames and store.boxNames[1], "HOME",
+    "confirming a name stores it in mod.save boxNames, keyed by box number")
+  T.check(game.stack:top() == nil, "and lands back on the grid")
+
+  local boxMenu2 = openBoxMenu(game, screen)
+  T.eq(boxMenu2.title, "HOME",
+    "boxName() -- and every caller through it, the box menu's own title here -- shows it")
+  choose(boxMenu2, game, "NAME BOX")
+  local naming2 = game.stack:top()
+  T.eq(naming2.default, "HOME", "re-opening NAME BOX defaults to the name just set")
+  naming2.glyphs = {}
+  naming2:confirm()
+  T.eq(store.boxNames[1], "HOME",
+    "a confirm with nothing typed reconfirms the current name rather than clearing it")
+
+  local boxMenu3 = openBoxMenu(game, screen)
+  T.eq(boxMenu3.title, "HOME", "so the box is still named HOME")
+  choose(boxMenu3, game, "NAME BOX")
+  local naming3 = game.stack:top()
+  naming3.glyphs = { "B", "O", "X", " ", "1" }
+  naming3:confirm()
+  T.check(store.boxNames == nil or store.boxNames[1] == nil,
+    "typing the literal \"BOX 1\" back is what actually clears a custom name")
+
+  local boxMenu3b = openBoxMenu(game, screen)
+  T.eq(boxMenu3b.title, "BOX 1", "and the box goes back to being numbered")
+  choose(boxMenu3b, game, "NAME BOX")
+  local naming3b = game.stack:top()
+  T.eq(naming3b.default, "BOX 1",
+    "with no custom name, an empty confirm's default is already \"BOX n\"")
+  naming3b.glyphs = {}
+  naming3b:confirm()
+  T.check(store.boxNames == nil or store.boxNames[1] == nil,
+    "so an empty confirm on an unnamed box stores nothing there either")
+
+  -- reads tolerate a save that has been through a converter and kept
+  -- string keys instead of numeric ones
+  store.boxNames = { ["1"] = "LEGACY" }
+  local boxMenu4 = openBoxMenu(game, screen)
+  T.eq(boxMenu4.title, "LEGACY",
+    "a string-keyed boxNames entry reads the same as a numeric one")
+  choose(boxMenu4, game, "CANCEL")
+
+  store.boxNames = nil
+end
+
+-- ------- WALLPAPER
+--
+-- Each wallpaper is a pattern and a four-colour palette; the palette
+-- replaces the whole-surface base zone self:sgbPalettes already emits
+-- rather than adding one, so a wallpaper changes that zone's colours and
+-- only that zone. PLAIN carries no palette at all, so it keeps emitting
+-- exactly what 1.5.2 emitted.
+
+do
+  local PaletteFX = require("src.render.PaletteFX")
+  local loader = run.loader
+  loader.modSave = loader.modSave or {}
+  loader.modSave.gen3_box = loader.modSave.gen3_box or {}
+  local store = loader.modSave.gen3_box
+  store.boxPapers = nil
+
+  loader.modOptions = loader.modOptions or {}
+  loader.modOptions.gen3_box = loader.modOptions.gen3_box or {}
+  local optStore = loader.modOptions.gen3_box
+  optStore.grid = "big"
+
+  local function openBoxMenu(game, screen)
+    if not screen.header then
+      game.press("up"); screen:update()
+    end
+    game.press("a"); screen:update()
+    return game.stack:top()
+  end
+
+  local function choose(list, game, label)
+    for i, item in ipairs(list.items) do
+      if item.label == label then list.index = i end
+    end
+    game.press("a"); list:update()
+  end
+
+  local game = fakeGame({ mon("FIXMON_A", 5), mon("FIXMON_B", 3) })
+  local screen = factory.new(game)
+
+  local zonesBefore = screen:sgbPalettes(game)
+  T.check(zonesBefore ~= nil, "BIG asks for zones with the default wallpaper")
+  T.check(zonesBefore[1].colors == PaletteFX.GRAYS,
+    "PLAIN carries no palette of its own, so the base zone stays plain GRAYS")
+  local beforeCount = #zonesBefore
+  local beforeMon = {}
+  for i = 2, #zonesBefore do beforeMon[i] = zonesBefore[i] end
+
+  local boxMenu = openBoxMenu(game, screen)
+  choose(boxMenu, game, "WALLPAPER")
+  local wallMenu = game.stack:top()
+  T.eq(labels(wallMenu.items), "PLAIN|STRIPES|CHECKS|DOTS|WAVES|NIGHT",
+    "WALLPAPER lists the five patterns plus NIGHT")
+  choose(wallMenu, game, "STRIPES")
+  T.eq(store.boxPapers and store.boxPapers[1], "STRIPES",
+    "choosing a wallpaper stores it in mod.save boxPapers, keyed by box number")
+  T.check(game.stack:top() == nil, "and lands back on the grid")
+
+  local zonesAfter = screen:sgbPalettes(game)
+  T.check(zonesAfter[1].colors ~= PaletteFX.GRAYS,
+    "STRIPES changes the base zone's colours")
+  T.eq(#zonesAfter, beforeCount,
+    "and only the base zone -- the zone count is unchanged")
+  local drifted = false
+  for i = 2, #zonesAfter do
+    local a, b = zonesAfter[i], beforeMon[i]
+    if not (b and a.x == b.x and a.y == b.y and a.w == b.w and a.h == b.h
+            and a.colors == b.colors) then
+      drifted = true
+    end
+  end
+  T.check(not drifted, "and every per-Pokemon zone is untouched")
+
+  -- CLASSIC still asks for no zones at all, wallpaper or not: a 28-pixel
+  -- cell carries no zone, so the palette can only ever be a BIG thing
+  optStore.grid = "classic"
+  T.check(screen:sgbPalettes(game) == nil,
+    "CLASSIC still asks for no zones with a wallpaper set")
+  optStore.grid = "big"
+
+  -- NIGHT is a palette in reverse, not a tint: its lightest-mapped entry is
+  -- black and its darkest-mapped entry is white
+  choose(openBoxMenu(game, screen), game, "WALLPAPER")
+  choose(game.stack:top(), game, "NIGHT")
+  local night = screen:sgbPalettes(game)[1].colors
+  T.same(night[1], { 0, 0, 0 }, "NIGHT's lightest-mapped shade is black")
+  T.same(night[4], { 255, 255, 255 }, "and its darkest-mapped shade is white")
+
+  store.boxPapers = nil
+  optStore.grid = "classic"
+end
+
+-- ------- PLACE CRY
+--
+-- On by default: every landing plays the cry of the Pokemon that landed --
+-- a drop into an empty slot, the one put down in a swap, and the shelving
+-- B does (stow). A refused placement plays nothing, because nothing
+-- landed, and the option can turn the whole feature off.
+
+do
+  local Sound = require("src.core.Sound")
+  local realPlayCry = Sound.playCry
+  local calls
+  Sound.playCry = function(_, _species)
+    calls = calls + 1
+    return nil
+  end
+
+  local loader = run.loader
+  loader.modOptions = loader.modOptions or {}
+  loader.modOptions.gen3_box = loader.modOptions.gen3_box or {}
+  local store = loader.modOptions.gen3_box
+  store.placeCry = true
+
+  -- a drop into an empty slot
+  do
+    calls = 0
+    local game = fakeGame({ mon("FIXMON_A", 5) })
+    local screen = factory.new(game)
+    game.press("a"); screen:update()      -- pick up
+    game.press("right"); screen:update()
+    game.press("a"); screen:update()      -- drop into the empty slot beside it
+    T.eq(calls, 1, "a drop into an empty slot plays exactly one cry")
+  end
+
+  -- an occupied slot: the one put down in the swap
+  do
+    calls = 0
+    local game = fakeGame({ mon("A", 1), mon("B", 2) })
+    local screen = factory.new(game)
+    game.press("a"); screen:update()
+    game.press("right"); screen:update()
+    game.press("a"); screen:update()      -- swap
+    T.eq(calls, 1, "a swap plays exactly one cry, for the one put down")
+  end
+
+  -- B while carrying: the shelving stow() does lands it too
+  do
+    calls = 0
+    local game = fakeGame({ mon("SOLO", 9) })
+    local screen = factory.new(game)
+    game.press("a"); screen:update()
+    game.press("b"); screen:update()      -- stowed back into the box
+    T.eq(calls, 1, "B shelving a carried Pokemon plays exactly one cry")
+  end
+
+  -- a refused placement plays nothing: nothing landed. The current box
+  -- (wherever the cursor is, not necessarily where the carried mon started)
+  -- and the party are both full, so stow() has nowhere to put it.
+  do
+    calls = 0
+    local game = fakeGame({ mon("CARRY", 5) }, {})
+    for i = 1, 6 do game.save.party[i] = mon("P" .. i, 5) end
+    for i = 1, 20 do game.save.boxes[2][i] = mon("F" .. i, 1) end
+    local screen = factory.new(game)
+    game.press("a"); screen:update()      -- grab CARRY out of box 1
+    game.press("up"); screen:update()     -- onto the header
+    game.press("right"); screen:update()  -- box 2, already full
+    game.press("down"); screen:update()   -- back into the grid, still carrying it
+    game.press("b"); screen:update()      -- nowhere to put it: box 2 and the party are both full
+    T.eq(calls, 0, "a refused placement plays no cry")
+    T.eq(#game.save.boxes[2], 20, "and box 2 is undisturbed")
+    T.eq(#game.save.party, 6, "and so is the party")
+  end
+
+  -- the option, off: nothing plays even on a landing that would otherwise
+  -- have played one
+  do
+    calls = 0
+    store.placeCry = false
+    local game = fakeGame({ mon("FIXMON_A", 5) })
+    local screen = factory.new(game)
+    game.press("a"); screen:update()
+    game.press("right"); screen:update()
+    game.press("a"); screen:update()
+    T.eq(calls, 0, "PLACE CRY off plays nothing on a landing that would otherwise cry")
+    store.placeCry = true
+  end
+
+  Sound.playCry = realPlayCry
 end
 
 -- ------- the existing invariants, re-run in the new states

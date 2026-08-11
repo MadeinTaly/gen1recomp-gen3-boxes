@@ -69,6 +69,7 @@ return function(mod)
   local Screens = require("src.ui.Screens")
   local Strings = require("src.core.Strings")
   local Stats = require("src.pokemon.Stats")
+  local Sound = require("src.core.Sound")
 
   local SCREEN = "Gen3Box"
 
@@ -94,6 +95,10 @@ return function(mod)
         { "CLASSIC", "classic" },
         { "BIG", "big" },
       } },
+    -- See "the cry on put-down" (PLAN.md "5. THE CRY ON PUT-DOWN"). On by
+    -- default: it changes nothing but sound, which is the line BOX HEALS
+    -- is on the wrong side of.
+    { key = "placeCry", label = "PLACE CRY", type = "toggle", default = true },
   })
 
   local function layout()
@@ -129,6 +134,15 @@ return function(mod)
     return ok and value and true or false
   end
 
+  -- PLACE CRY, on by default (guarded the way every other options read
+  -- here is, rather than trusted).
+  local function placeCryOn()
+    local ok, value = pcall(function() return mod.options:get("placeCry") end)
+    if not ok then return true end
+    if value == nil then return true end
+    return value and true or false
+  end
+
   -- Read per call rather than cached, so switching OPEN FROM in the manager
   -- takes effect on the next menu that opens instead of the next boot.
   local function access() return mod.options:get("access") or "both" end
@@ -154,13 +168,61 @@ return function(mod)
     return mon.nickname or (def and def.name) or mon.species or "?"
   end
 
-  -- A box's name. Wave A never stores one -- every box is "BOX n" -- but
-  -- every caller that wants a box's name goes through here rather than
-  -- formatting the number itself, so a later wave can make this consult
-  -- mod.save (boxNames, see PLAN.md "BOX NAMES") without touching a single
-  -- call site.
+  -- A box's name. Every caller that wants one goes through here rather than
+  -- formatting the number itself (PLAN.md "4. BOX NAMES and WALLPAPERS"), so
+  -- NAME BOX only ever had to change this one function. Names live in
+  -- mod.save under boxNames, keyed by box number -- but a save that has been
+  -- through a converter may hand them back with string keys, so both are
+  -- tried before falling back to the plain "BOX n" every box starts as.
   local function boxName(n)
+    local names = mod.save:get("boxNames")
+    local custom = names and (names[n] or names[tostring(n)])
+    if type(custom) == "string" and custom ~= "" then return custom end
     return Strings("BOX %d", n)
+  end
+
+  -- ------- wallpapers (PLAN.md "4. BOX NAMES and WALLPAPERS")
+  --
+  -- Each wallpaper is a pattern (drawn behind the grid) and a four-colour
+  -- palette (which replaces the whole-surface GRAYS zone self:sgbPalettes
+  -- already emits, the same trick SummaryMenu uses for its own whole-screen
+  -- palette). The colour tables below are authored here, plain {r,g,b}
+  -- tables -- no ROM-derived palette is copied, which is what keeps
+  -- `modkit lint`'s "no ROM-derived content" check passing.
+  --
+  -- PLAIN carries no palette at all (nil), so self:sgbPalettes falls back
+  -- to PaletteFX.GRAYS exactly as it always has: the default draws
+  -- pixel-for-pixel what 1.5.2 drew, and nobody's screen changes until they
+  -- pick something else.
+  --
+  -- NIGHT is a palette in reverse rather than a tint: GRAYS lightest-first
+  -- (white background, black text) turned end-for-end, so the background
+  -- maps to the dark end and the text to the light end -- a real dark mode.
+  local WALLPAPERS = {
+    { id = "PLAIN",   pattern = "PLAIN",   palette = nil },
+    { id = "STRIPES", pattern = "STRIPES",
+      palette = { { 216, 224, 255 }, { 144, 168, 232 }, { 64, 88, 168 }, { 8, 16, 72 } } },
+    { id = "CHECKS",  pattern = "CHECKS",
+      palette = { { 224, 255, 224 }, { 152, 224, 152 }, { 64, 160, 64 }, { 8, 72, 8 } } },
+    { id = "DOTS",    pattern = "DOTS",
+      palette = { { 255, 224, 232 }, { 232, 152, 176 }, { 176, 64, 96 }, { 72, 8, 24 } } },
+    { id = "WAVES",   pattern = "WAVES",
+      palette = { { 216, 255, 255 }, { 136, 216, 224 }, { 40, 144, 160 }, { 8, 56, 64 } } },
+    { id = "NIGHT",   pattern = "PLAIN",
+      palette = { { 0, 0, 0 }, { 64, 64, 64 }, { 160, 160, 160 }, { 255, 255, 255 } } },
+  }
+  local WALLPAPER_BY_ID = {}
+  for _, w in ipairs(WALLPAPERS) do WALLPAPER_BY_ID[w.id] = w end
+
+  -- boxPapers, the same string-key-tolerant shape as boxNames above.
+  local function paperIdOf(n)
+    local papers = mod.save:get("boxPapers")
+    local id = papers and (papers[n] or papers[tostring(n)])
+    return (type(id) == "string" and WALLPAPER_BY_ID[id]) and id or "PLAIN"
+  end
+
+  local function paperOf(n)
+    return WALLPAPER_BY_ID[paperIdOf(n)] or WALLPAPER_BY_ID.PLAIN
   end
 
   local function picOf(game, mon)
@@ -310,6 +372,17 @@ return function(mod)
       pcall(Stats.ensure, defOf(game, mon), mon)
     end
 
+    -- PLACE CRY (PLAN.md "5. THE CRY ON PUT-DOWN"): every landing plays the
+    -- cry of the Pokemon that landed. Sound.playCry returns nil headless,
+    -- which is what makes this safe in the test suite, but it is guarded
+    -- with pcall anyway -- the same rule ensureStats and BOX HEALS follow
+    -- for every engine call this screen does not own. A refused placement
+    -- never reaches here, because nothing landed.
+    local function playLandingCry(mon)
+      if not placeCryOn() then return end
+      pcall(Sound.playCry, game.data, mon.species)
+    end
+
     -- Put down. On an occupied slot the two trade places, which is what
     -- Ruby does -- the displaced one comes back onto the cursor rather than
     -- being overwritten. On an empty one the mon appends, for the
@@ -321,6 +394,7 @@ return function(mod)
       if sitting then
         set[i] = held
         if self.mode == "party" then ensureStats(held) end
+        playLandingCry(held)
         self.held = { mon = sitting, from = self.mode }
         return
       end
@@ -331,6 +405,7 @@ return function(mod)
       end
       set[#set + 1] = held
       if self.mode == "party" then ensureStats(held) end
+      playLandingCry(held)
       self.held = nil
     end
 
@@ -352,12 +427,14 @@ return function(mod)
       if #a < aCap then
         a[#a + 1] = held
         if a == party then ensureStats(held) end
+        playLandingCry(held)
         self.held = nil
         return true
       end
       if #b < bCap then
         b[#b + 1] = held
         if b == party then ensureStats(held) end
+        playLandingCry(held)
         self.held = nil
         return true
       end
@@ -729,7 +806,8 @@ return function(mod)
       end
       table.insert(items, { label = Strings("SORT"), value = "sort" })
       table.insert(items, { label = Strings("JUMP TO BOX"), value = "jump" })
-      -- NAME BOX, WALLPAPER: a later wave inserts here, above MARK MODE.
+      table.insert(items, { label = Strings("NAME BOX"), value = "namebox" })
+      table.insert(items, { label = Strings("WALLPAPER"), value = "wallpaper" })
       table.insert(items, { label = Strings("MARK MODE"), value = "markmode" })
       table.insert(items, { label = Strings("CANCEL"), value = "cancel" })
       return items
@@ -802,6 +880,78 @@ return function(mod)
       game.stack:push(sub)
     end
 
+    -- NAME BOX: the engine's own naming screen, 8 glyphs, defaulting to the
+    -- box's current name (PLAN.md "4. BOX NAMES and WALLPAPERS"). "default"
+    -- is NamingScreen's own declined-confirm fallback, not a glyph pre-fill
+    -- -- self.glyphs always starts empty (src/ui/NamingScreen.lua:73), so
+    -- typing nothing and confirming hands back exactly what `default` was
+    -- given, the same contract a declined nickname keeps the old one under.
+    -- So a confirm with nothing typed is a no-op here: it reconfirms
+    -- whatever the box was already called, custom name included, which is
+    -- an honest engine-shaped reading of the plan's "an empty confirm
+    -- stores nothing" -- on a box with no custom name that default already
+    -- IS "BOX n", so nothing changes there either. Typing back the literal
+    -- "BOX n" is the one input that always clears a custom name, because it
+    -- is compared against the canonical string below rather than against
+    -- an impossible-to-reach raw "".
+    local function openNameBoxScreen(boxMenu)
+      local n = game.save.currentBox
+      game.stack:push(mod.ui.NamingScreen.new(game, {
+        title = Strings("BOX NAME?"),
+        maxLen = 8,
+        default = boxName(n),
+        onDone = function(name)
+          local canonical = Strings("BOX %d", n)
+          if name == "" or name == canonical then
+            local names = mod.save:get("boxNames")
+            if names then
+              names[n] = nil
+              names[tostring(n)] = nil
+            end
+          else
+            local names = mod.save:get("boxNames")
+            if not names then
+              names = {}
+              mod.save:set("boxNames", names)
+            end
+            names[n] = name
+            names[tostring(n)] = nil
+          end
+          self.header = false
+          boxMenu:close()
+        end,
+      }))
+    end
+
+    -- WALLPAPER: a ListMenu of the named wallpapers above, each a pattern
+    -- and a palette together. Choosing one writes boxPapers for THIS box
+    -- only -- every other box keeps its own.
+    local function openWallpaperMenu(parent)
+      local n = game.save.currentBox
+      local items = {}
+      for _, w in ipairs(WALLPAPERS) do
+        table.insert(items, { label = Strings(w.id), value = w.id })
+      end
+      local sub
+      sub = mod.ui.ListMenu.new(game, Strings("WALLPAPER"), items, {
+        kind = "gen3_box_wallpaper",
+        onChoose = function(item)
+          local papers = mod.save:get("boxPapers")
+          if not papers then
+            papers = {}
+            mod.save:set("boxPapers", papers)
+          end
+          papers[n] = item.value
+          papers[tostring(n)] = nil
+          self.header = false
+          say(Strings("WALLPAPER SET."))
+          sub:close()
+          parent:close()
+        end,
+      })
+      game.stack:push(sub)
+    end
+
     local function openBoxMenu()
       local menu
       menu = mod.ui.ListMenu.new(game, boxName(game.save.currentBox),
@@ -818,6 +968,10 @@ return function(mod)
             openSortMenu(menu)
           elseif item.value == "jump" then
             openJumpMenu(menu)
+          elseif item.value == "namebox" then
+            openNameBoxScreen(menu)
+          elseif item.value == "wallpaper" then
+            openWallpaperMenu(menu)
           elseif item.value == "markmode" then
             self.markMode = not self.markMode
             self.header = false
@@ -1035,8 +1189,18 @@ return function(mod)
       -- PaletteFX.whole() is hardcoded to the 160x144 tile grid, so it
       -- would cover a quarter of a BIG canvas and leave the rest black.
       -- The size comes from the layout instead.
+      --
+      -- The wallpaper's palette (PLAN.md "4. BOX NAMES and WALLPAPERS")
+      -- replaces GRAYS here rather than adding a zone of its own, tinting
+      -- the whole surface the same way SummaryMenu's own whole-screen
+      -- palette does -- which is the entire reason the header and footer
+      -- keep working under it. Only the box pane has a wallpaper; the party
+      -- pane keeps plain GRAYS, and PLAIN itself carries no palette at all,
+      -- so a box nobody has touched renders exactly what 1.5.2 rendered.
+      local paper = self.mode == "box" and paperOf(game.save.currentBox) or nil
+      local baseColors = (paper and paper.palette) or PaletteFX.GRAYS
       local zones = {
-        PaletteFX.zone(PaletteFX.GRAYS, 0, 0, L.w / 8 - 1, L.h / 8 - 1),
+        PaletteFX.zone(baseColors, 0, 0, L.w / 8 - 1, L.h / 8 - 1),
       }
 
       local function add(set, mode)
@@ -1139,9 +1303,60 @@ return function(mod)
       end
     end
 
+    -- ------- the wallpaper pattern
+    --
+    -- Behind the cells, at low alpha, before anything else is drawn
+    -- (PLAN.md "4. BOX NAMES and WALLPAPERS") -- the grid's cell outlines,
+    -- pics and marks all draw on top of it. PLAIN draws nothing at all, so
+    -- a box nobody has touched looks exactly like 1.5.2 did. Scissored to
+    -- the grid rect so nothing here can bleed into the header or footer.
+    local function drawWallpaperPattern(pattern, x, y, w, h)
+      if pattern == "PLAIN" then return end
+      love.graphics.setScissor(x, y, w, h)
+      love.graphics.setColor(0, 0, 0, 0.12)
+      local step = 8
+      if pattern == "STRIPES" then
+        for dx = -h, w, step do
+          love.graphics.line(x + dx, y, x + dx + h, y + h)
+        end
+      elseif pattern == "CHECKS" then
+        for cy = 0, h - 1, step do
+          for cx = 0, w - 1, step do
+            if (math.floor(cx / step) + math.floor(cy / step)) % 2 == 0 then
+              love.graphics.rectangle("fill", x + cx, y + cy, step, step)
+            end
+          end
+        end
+      elseif pattern == "DOTS" then
+        for cy = step / 2, h, step do
+          for cx = step / 2, w, step do
+            love.graphics.circle("fill", x + cx, y + cy, 2)
+          end
+        end
+      elseif pattern == "WAVES" then
+        for cy = step / 2, h, step do
+          local prevX, prevY
+          for cx = 0, w, 4 do
+            local wy = cy + 3 * math.sin(cx / 8)
+            if prevX then love.graphics.line(x + prevX, y + prevY, x + cx, y + wy) end
+            prevX, prevY = cx, wy
+          end
+        end
+      end
+      love.graphics.setColor(0, 0, 0, 1)
+      love.graphics.setScissor()
+    end
+
     function self:draw()
       love.graphics.clear(1, 1, 1, 1)
       love.graphics.setColor(0, 0, 0, 1)
+
+      if self.mode == "box" then
+        local L = layout()
+        local paper = paperOf(game.save.currentBox)
+        drawWallpaperPattern(paper.pattern, L.gridX, L.gridY,
+          COLS * L.cell, ROWS * L.cell)
+      end
 
       local set = list()
       local total = cols() * rows()
