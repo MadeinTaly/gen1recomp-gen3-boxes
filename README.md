@@ -38,7 +38,10 @@ Requires Gen1Recomp with mod API 2 (engine 0.1.37 or newer).
 | **SELECT** | cross to the party and back — this is how you deposit and withdraw |
 
 The header row is the box title at the top, reached by moving up from the grid
-in CLASSIC or BIG layout. B works from anywhere and only back — the convention
+in CLASSIC or BIG layout. It carries a **MENU** button on its right-hand end —
+that is the BOX MENU, and everything this screen gained in 1.6.0 is behind it:
+FIND, JUMP TO BOX, SORT, MARK MODE, NAME BOX and WALLPAPER. Press UP from the
+top row, then A. B works from anywhere and only back — the convention
 every other screen in this game follows — and that is what frees START to be
 the summary when the cursor is on a Pokémon. With `CURSOR WRAP` on, UP from
 the top row moves to the header, and UP again wraps to the bottom, not back as
