@@ -1,15 +1,12 @@
 # Changelog
 
-## 1.8.0-beta.1 — it runs on Gold
+## 1.8.0 — it runs on Gold
 
-**A pre-release.** Gen 2 support in the engine is itself a beta, and this port
-has been verified against the mod loader, `modkit gen2check` and the headless
-harness — not inside a real Gold boot. It ships as a semver pre-release so the
-launcher's auto-update leaves everyone on 1.7.0 unless they go looking for this
-one (`ModUpdate.pickRelease` returns the newest non-prerelease).
+Same release as `1.8.0-beta.1`, shipped stable: Gold plays, so a Gen 2 player
+should be updated into this rather than have to go looking for it.
 
 Nothing about the Gen 1 screen changes. Every Gen 1 assertion in the suite is
-the one it was.
+the one it was, and the suite is green on both generations.
 
 - **`"games": ["gen1", "gen2"]`** in the manifest. A mod is not loaded on a
   Gold boot unless it says it is for Gold; without the claim the manager lists

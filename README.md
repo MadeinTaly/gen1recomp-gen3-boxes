@@ -29,9 +29,10 @@ Requires Gen1Recomp with mod API 2 (engine 0.1.37 or newer). Gold needs
 
 The mod runs on Pokémon Gold as well as on Red, Blue and Yellow: the manifest
 claims `"games": ["gen1", "gen2"]`, which is what a Gen 2 boot loads a mod on.
-Gen 2 support in the engine is a beta and so is this port — it has been checked
-against the loader, `modkit gen2check` and the headless harness, not inside a
-full playthrough — which is why it ships as a pre-release.
+Gen 2 support in the engine is a beta, and this port is held to the loader,
+`modkit gen2check` and the headless harness rather than to a full playthrough.
+It ships stable all the same: Gold plays, so a Gen 2 player is updated into
+this the way a Gen 1 player is.
 
 What is different there, and nowhere else:
 

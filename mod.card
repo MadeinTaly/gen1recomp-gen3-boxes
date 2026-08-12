@@ -46,7 +46,7 @@ return {
       "every wallpaper colour is authored in this mod's own source; no ROM palette is copied, and modkit lint still reports no ROM-derived content",
       "OW SPRITES only applies in GRID CLASSIC; GRID BIG keeps the battle picture, because its 56px cell already draws one at scale 1 and a 16px overworld sprite would have to be enlarged to fill it",
       "on Gold, GRID is read as CLASSIC whatever it is set to, and a wallpaper's four colours do not reach the surround: BIG is built on Game:draw asking the top state for a uiSize() and its sgbPalettes() zones, and src/core/Game2.lua scales one Game Boy canvas instead of doing either",
-      "Gen 2 support is a beta on both sides -- the engine's and this mod's -- which is why the first release carrying it is a semver pre-release",
+      "Gen 2 support is a beta in the engine, and this port is held to the loader, modkit gen2check and the headless harness rather than to a full Gold playthrough",
       "OW SPRITES treats a black-silhouette fallback from the other mod as a miss and falls back to the battle picture, because a silhouette in a storage grid hides which Pokemon it is and the battle picture does not",
     },
   },
