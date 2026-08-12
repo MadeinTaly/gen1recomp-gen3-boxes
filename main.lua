@@ -1507,15 +1507,47 @@ return function(mod)
       else
         title = Strings("PARTY %d/%d", #set, Party.MAX)
       end
-      local shownTitle = fit(title)
+      -- ------- the MENU button
+      --
+      -- 1.6.0 put six features behind the header and told nobody it was
+      -- there. The footer hint that named it only ever drew on an EMPTY
+      -- cell, because an occupied one shows the Pokemon's name instead --
+      -- and the cell under the cursor is occupied nearly all the time. So
+      -- the whole release was invisible unless you happened to press UP on
+      -- the top row and notice something had changed.
+      --
+      -- A drawn button fixes that by being a thing on the screen rather
+      -- than a move you have to already know. It is right-aligned on the
+      -- title row, outlined so it reads as pressable, and it is the same
+      -- MENU the header's A opens -- no new binding, no new state, just the
+      -- affordance the header always needed.
+      local hint = self.mode == "box" and Strings("MENU") or nil
+      local hintW = hint and Font.width(hint) or 0
+      local hintX = layout().w - TEXT_X - hintW
+
+      -- the title yields to the button rather than running under it: an
+      -- eight-glyph box name plus " 20/20" is wider than a CLASSIC screen
+      -- has left once the button has its corner.
+      local shownTitle = hint
+        and fitTo(title, hintX - TEXT_X - 6)
+        or fit(title)
       Font.draw(shownTitle, TEXT_X, 2)
+
+      if hint then
+        Font.draw(hint, hintX, 2)
+        outline(hintX - 3, 0, hintW + 6, 11)
+      end
 
       -- the cursor's own row (PLAN.md "the control scheme"): an outline
       -- around the title, sized to the text rather than the surface, so it
       -- reads on CLASSIC and BIG alike and never runs wider than fit()
-      -- already guaranteed the text itself does not.
+      -- already guaranteed the text itself does not. With the button drawn
+      -- the outline runs to its far edge, so the row reads as one selected
+      -- thing with a button on it rather than two unrelated outlines.
       if onHeader then
-        outline(TEXT_X - 2, 0, Font.width(shownTitle) + 4, 10)
+        local right = hint and (hintX + hintW + 3)
+          or (TEXT_X + Font.width(shownTitle) + 2)
+        outline(TEXT_X - 2, 0, right - (TEXT_X - 2), 11)
       end
 
       for i0 = 0, total - 1 do
@@ -1603,6 +1635,13 @@ return function(mod)
       -- the marking window, last, so it sits over the grid and the cursor
       drawMarkWindow()
     end
+
+    -- The button says there is a menu; this says how to reach it, once, on
+    -- the way in. It goes through the ordinary notice channel, so it fades
+    -- after a second and a half like every other line and the footer is
+    -- back to naming what the cursor is on -- a hint that stayed would be
+    -- competing with the thing it is pointing at.
+    say(Strings("UP: BOX MENU"))
 
     return self
   end
