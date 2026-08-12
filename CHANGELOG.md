@@ -1,5 +1,30 @@
 # Changelog
 
+## 1.6.1 — the menu you could not see
+
+1.6.0 put six features behind the header row and told nobody it was there.
+The footer hint that named it only ever drew on an **empty** cell, because an
+occupied one shows the Pokémon's name instead — and the cell under the cursor
+is occupied nearly all the time. So unless you happened to press UP on the top
+row and notice something had changed, the entire release was invisible and the
+screen looked exactly like 1.5.2.
+
+Two fixes, both about being seen rather than about behaviour:
+
+- **A MENU button is drawn on the title row**, right-aligned and outlined so
+  it reads as pressable. It is the same menu the header's A always opened —
+  no new binding, no new state, just the affordance the header needed from
+  the start. The title gives way to it rather than running underneath: an
+  eight-glyph box name plus ` 20/20` is wider than a CLASSIC screen has left
+  once the button has its corner.
+- **Opening the screen says `UP: BOX MENU` once**, through the ordinary notice
+  channel, so it fades after a second and a half and the footer goes back to
+  naming what the cursor is on. A hint that stayed would compete with the
+  thing it was pointing at.
+
+Nothing else changed. Every control, option and save field is exactly what
+1.6.0 shipped.
+
 ## 1.6.0 — search, sort, marks, names, and a cry when it lands
 
 - **FIND and FIND NEXT** — search every box by species, type, or mark. Open

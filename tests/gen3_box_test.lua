@@ -1649,5 +1649,64 @@ do
   end
 end
 
+-- ------- the MENU button, and saying where the menu is
+--
+-- 1.6.0's whole surface hung off a move nothing on screen mentioned: the
+-- footer hint that named the header only drew on an EMPTY cell, and the
+-- cell under the cursor is occupied nearly all the time. These assert the
+-- two things that fix it -- a button that is always drawn, and one notice
+-- on the way in -- and that the button never costs the title its text.
+
+do
+  local realDraw2, realBox2 = Font.draw, Font.drawBox
+  local lines = {}
+  Font.draw = function(text, x, y) lines[#lines + 1] = { text = text, x = x, y = y } end
+  Font.drawBox = function() end
+
+  local function draw(setup)
+    lines = {}
+    local g = fakeGame({ mon("PIKACHU", 100) }, { mon("CHARIZARD", 100) })
+    local s = factory.new(g)
+    if setup then setup(g, s) end
+    s:draw()
+    return lines
+  end
+
+  local function find(set, text)
+    for _, l in ipairs(set) do if l.text == text then return l end end
+    return nil
+  end
+
+  local boxLines = draw()
+  T.check(find(boxLines, "MENU") ~= nil,
+    "the box pane draws a MENU button without being asked")
+
+  local partyLines = draw(function(g, s) g.press("select"); s:update() end)
+  T.check(find(partyLines, "MENU") == nil,
+    "the party pane draws none -- there is no header there to open")
+
+  -- the notice is on the first frame and gone once it has aged out
+  T.check(find(boxLines, "UP: BOX MENU") ~= nil,
+    "opening the screen says where the menu is")
+  local aged = draw(function(_, s) s.noticeAt = -10 end)
+  T.check(find(aged, "UP: BOX MENU") == nil,
+    "and stops saying it, rather than sitting on the footer forever")
+
+  -- an eight-glyph name plus " 20/20" is wider than CLASSIC has left once
+  -- the button has its corner: the title gives way, the button does not
+  local long = draw(function(g)
+    g.save.currentBox = 12
+    for i = 1, 20 do g.save.boxes[12][i] = mon("NIDORANDER", 100) end
+  end)
+  local button = find(long, "MENU")
+  T.check(button ~= nil, "a full box with a long title still draws the button")
+  local title = long[1]
+  T.check(title.x + Font.width(title.text) <= button.x,
+    ("the title stops before the button (title ends %d, button at %d)")
+      :format(title.x + Font.width(title.text), button.x))
+
+  Font.draw, Font.drawBox = realDraw2, realBox2
+end
+
 run.release()
 T.finish("gen3_box")
