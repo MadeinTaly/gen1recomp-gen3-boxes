@@ -63,6 +63,32 @@ local shared = Runtime.call("ui.start_menu.items", function(_, items)
 end, {}, startRows())
 T.check(has(shared, "DEXNAV"), "another mod's start-menu row survives the wrap")
 
+-- ------- the pc.items discriminator, Gen 2 only
+--
+-- The same hook fires at two Gold menus (src/ui/gen2/PcMenu.lua, the
+-- storage system, and src/ui/gen2/ItemPcMenu.lua, the player's own item
+-- PC), and both carry WITHDRAW/DEPOSIT/MAILBOX rows -- so a label is not a
+-- safe anchor. Only the storage menu's rows carry id == "changebox".
+do
+  local gen2Game = { save = { generation = 2 } }
+  local storageRows = {
+    { id = "withdraw", label = "WITHDRAW <PK><MN>" },
+    { id = "deposit", label = "DEPOSIT <PK><MN>" },
+    { id = "changebox", label = "CHANGE BOX" },
+  }
+  local itemRows = {
+    { id = "withdraw", label = "WITHDRAW ITEM" },
+    { id = "deposit", label = "DEPOSIT ITEM" },
+    { id = "toss", label = "TOSS ITEM" },
+  }
+  local storageOut = Runtime.call("ui.pc.items", passthru, gen2Game, storageRows)
+  T.check(has(storageOut, "BOXES"),
+    "a storage-menu list (carrying a changebox row) gains the BOXES row")
+  local itemOut = Runtime.call("ui.pc.items", passthru, gen2Game, itemRows)
+  T.check(not has(itemOut, "BOXES"),
+    "an item-PC list (no changebox row) does not")
+end
+
 -- ------- the storage rules
 --
 -- The screen is driven the way the player drives it: fake input, one press
@@ -193,6 +219,48 @@ game.press("start"); screen:update()
 T.eq(pushed and pushed.id, "SummaryMenu", "START over a Pokémon opens its summary")
 T.eq(pushed and pushed.mon and pushed.mon.species, "PIKACHU",
   "and hands the summary that very Pokémon")
+
+-- ------- the summary screen id resolves per generation
+--
+-- Gold's builtin screens carry a Gen2 prefix and a different constructor
+-- shape (src/ui/gen2/SummaryMenu.lua:235's opts.mon, vs Gen 1's
+-- SummaryMenu.new(game, mon) above).
+do
+  local gen2Game = fakeGame({ mon("PIKACHU", 5) })
+  gen2Game.save.generation = 2
+  local gen2Screen = factory.new(gen2Game)
+  pushed = nil
+  gen2Game.press("start"); gen2Screen:update()
+  T.eq(pushed and pushed.id, "Gen2SummaryMenu",
+    "on Gen 2, START opens the Gen2-prefixed summary screen")
+  T.eq(pushed and pushed.mon and pushed.mon.mon and pushed.mon.mon.species,
+    "PIKACHU", "wrapped in opts.mon, the Gen 2 constructor shape")
+end
+
+-- ------- MAIL stays with its own mon, Gen 2 only
+--
+-- save.mail.party is keyed by SLOT NUMBER (src/core/gen2/Mail.lua), so it
+-- has to stay aligned with save.party through every length change this
+-- screen makes, not only a removal: grab() shifts the letters behind a
+-- departure down (Mail.removeSlot), and every site that grows save.party
+-- again has to make room the same way (gen2InsertPartySlot in main.lua) or
+-- a later mon lands wearing an earlier one's letter.
+do
+  local gen2Game = fakeGame({}, { mon("FIXMON_A", 1), mon("FIXMON_B", 2) })
+  gen2Game.save.generation = 2
+  gen2Game.save.mail = { party = { [2] = { type = "FLOWER_MAIL", message = "for B" } } }
+  local screen = factory.new(gen2Game)
+  gen2Game.press("select"); screen:update() -- cross to the party
+  gen2Game.press("a"); screen:update()      -- grab slot 1 (FIXMON_A, no mail)
+  gen2Game.press("b"); screen:update()      -- put it straight back
+  T.eq(#gen2Game.save.party, 2, "the party is back to two")
+  T.eq(gen2Game.save.party[1].species, "FIXMON_B",
+    "FIXMON_B is now first -- the array shifted under the letter")
+  T.eq(gen2Game.save.mail.party[1] and gen2Game.save.mail.party[1].message, "for B",
+    "the letter followed FIXMON_B to its new slot")
+  T.check(gen2Game.save.mail.party[2] == nil,
+    "and did not stay behind on FIXMON_A's old slot, now FIXMON_A itself")
+end
 
 -- over an empty cell there is nothing to show, and nothing to break
 game = fakeGame({})
@@ -1950,4 +2018,39 @@ do
 end
 
 run.release()
+
+-- ------- runs on Gen 2 too
+--
+-- Runtime is process-wide, so a second load has to come after this file's
+-- first one is released -- and everything above depends on that first
+-- run's own registrations (Data.screens.Gen3Box, the hooks it drives), so
+-- this sits at the very end rather than beside the load at the top.
+--
+-- A load with no `data =` would inherit from the `Data` singleton through
+-- __index -- Data:load() already ran at the top of this file -- so
+-- namespaces the fresh fixture does not carry (tokens, statuses, ...) would
+-- leak through and the loader would re-register them. T.fixtures.fresh()
+-- is the real fresh dataset; only Data's METHODS are borrowed off it,
+-- never its already-loaded tables.
+--
+-- The SDK harness takes the generation directly and runs the real loader --
+-- same validate, same topological sort, same merge
+-- (docs/preparing-your-mod-for-gen2.md "Testing"). A gate skip is
+-- deliberately not an error, so the error count alone is not enough: state
+-- has to be "loaded" for this to mean the entry chunk actually ran, not
+-- merely that nothing threw.
+do
+  local D = T.fixtures.fresh()
+  setmetatable(D, { __index = function(_, k)
+    local v = Data[k]
+    if type(v) == "function" then return v end
+    return nil
+  end })
+  local gen2Run = T.sdk.loadMod(DIR, { data = D, generation = 2 })
+  T.eq(gen2Run.mod and gen2Run.mod.state, "loaded",
+    "runs on gen 2: " .. tostring(gen2Run.mod and gen2Run.mod.skipReason))
+  T.eq(#gen2Run.errors, 0, "and loads with no boot errors")
+  gen2Run.release()
+end
+
 T.finish("gen3_box")

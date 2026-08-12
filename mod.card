@@ -5,7 +5,7 @@ return {
   -- shown in the manager's detail pane next to the author
   support = "https://linktr.ee/made_in_taly",
   tags = { "ui", "storage", "quality-of-life", "boxes" },
-  compat = { modApi = 2 },
+  compat = { modApi = 2, games = { "gen1", "gen2" } },
   differences = {
     added = {
       "GRID BIG: a 320x288 surface through the engine's own uiSize hook -- battle pics at scale 1 instead of half, and a palette zone per cell so every Pokemon in the grid wears its own species colours, twenty-one at once where the Game Boy could show four",
@@ -24,6 +24,7 @@ return {
       "NAME BOX: eight glyphs through the engine's own naming screen, stored in the save rather than the install",
       "WALLPAPER: a pattern and a four-colour palette per box, including NIGHT, which is the greys in reverse and therefore a real dark mode",
       "PLACE CRY (on by default): the cry of whichever Pokemon just landed in a slot",
+      "runs on Pokemon Gold as well as Red, Blue and Yellow: fourteen boxes instead of twelve, Gen 2's own summary screen and stat block, Gold's PP table behind BOX HEALS, the BOXES row in the storage PC rather than the ITEM PC, and MAIL refused out of a box exactly as the vanilla PC refuses it",
       "OW SPRITES (on by default): when Wilds of Kanto (overworld_wild_spawns) is installed and enabled, draws its per-species overworld sprite in each occupied CLASSIC cell instead of the half-scale battle picture, asked through the same follower sprite service that mod already draws the vanilla party menu icons with, and reached via mod.find rather than a manifest dependency, so it changes nothing for anyone without that mod",
     },
     changed = {
@@ -44,6 +45,8 @@ return {
       "an empty confirm on the naming screen keeps the name a box already has -- the engine treats what you pass it as the fallback for an empty confirm, not as a pre-filled grid, so typing the plain BOX n back is what returns a box to being numbered",
       "every wallpaper colour is authored in this mod's own source; no ROM palette is copied, and modkit lint still reports no ROM-derived content",
       "OW SPRITES only applies in GRID CLASSIC; GRID BIG keeps the battle picture, because its 56px cell already draws one at scale 1 and a 16px overworld sprite would have to be enlarged to fill it",
+      "on Gold, GRID is read as CLASSIC whatever it is set to, and a wallpaper's four colours do not reach the surround: BIG is built on Game:draw asking the top state for a uiSize() and its sgbPalettes() zones, and src/core/Game2.lua scales one Game Boy canvas instead of doing either",
+      "Gen 2 support is a beta on both sides -- the engine's and this mod's -- which is why the first release carrying it is a semver pre-release",
       "OW SPRITES treats a black-silhouette fallback from the other mod as a miss and falls back to the battle picture, because a silhouette in a storage grid hides which Pokemon it is and the battle picture does not",
     },
   },

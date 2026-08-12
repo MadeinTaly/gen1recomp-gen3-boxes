@@ -73,6 +73,32 @@ return function(mod)
 
   local SCREEN = "Gen3Box"
 
+  -- ------- which generation is running
+  --
+  -- Resolved fresh every call, off the live game -- never cached at file
+  -- scope and never a version allow-list (docs/mod-api-gen2-compat.md's
+  -- "what the facades cannot fix", and modkit's own MK409 check exists to
+  -- catch exactly that shape). A Gen 2 save carries `generation` once it
+  -- exists (src/core/gen2/Save.lua:344); before that -- a save mid
+  -- construction, or a headless test harness with no save at all --
+  -- GameVersion.generation() is asked instead, itself pcall'd because this
+  -- file is required by the SDK test harness outside a booted game too.
+  local function isGen2(game)
+    local save = game and game.save
+    if save and save.generation ~= nil then
+      return save.generation == 2
+    end
+    local ok, generation = pcall(function()
+      return require("src.core.GameVersion").generation()
+    end)
+    return ok and generation == 2
+  end
+
+  -- modkit's MK409 check flags this pair as a hardcoded Gen 1 screen id;
+  -- false positive here, since isGen2(game) below is the real branch.
+  local SCREEN_SUMMARY_GEN1 = "SummaryMenu"
+  local SCREEN_SUMMARY_GEN2 = "Gen2SummaryMenu"
+
   -- Only what is actually honoured below. The vanilla box PC is left in
   -- place whichever way this is set: nothing is taken away, and turning the
   -- mod off leaves a save reaching its storage exactly as before.
@@ -89,8 +115,17 @@ return function(mod)
     -- convenience: it is Potions and Centre trips that stop being needed,
     -- not clicks that stop being clicked.
     { key = "heal", label = "BOX HEALS", type = "toggle", default = false },
-    -- See "the two layouts" above. CLASSIC is what 1.4.0 drew.
-    { key = "grid", label = "GRID", type = "choice", default = "classic",
+    -- See "the two layouts" above. CLASSIC is what 1.4.0 drew. layout()
+    -- reads CLASSIC on Gold regardless of this option (Game2:draw has no
+    -- uiSize seam for BIG to ask through -- see layout()'s own comment),
+    -- so the row's label says so on that boot rather than offering a
+    -- choice that quietly does nothing. isGen2(nil) here reads the SAME
+    -- generation layout() reads at draw time -- GameVersion.generation(),
+    -- resolved once at schema-definition time because no live game exists
+    -- yet to carry a save. mod.options:define builds this table once per
+    -- boot, so a Red boot with this mod installed still says plain "GRID".
+    { key = "grid", label = isGen2(nil) and "GRID (GEN 1 ONLY)" or "GRID",
+      type = "choice", default = "classic",
       choices = {
         { "CLASSIC", "classic" },
         { "BIG", "big" },
@@ -106,7 +141,20 @@ return function(mod)
     { key = "owSprites", label = "OW SPRITES", type = "toggle", default = true },
   })
 
-  local function layout()
+  -- GRID BIG asks the renderer for a 320x288 surface, and that ask only
+  -- ever reaches anything on Gen 1: Game:draw (src/core/Game.lua:471-478)
+  -- is what calls `top:uiSize()` and scales the window to fit what comes
+  -- back. Game2:draw (src/core/Game2.lua:1334-1450) never does either --
+  -- Gold always fits one fixed 160x144 canvas through Chrome.fitScale and
+  -- hands every state that same coordinate space -- so a Gold boot honouring
+  -- BIG would lay 320x288 of drawing into a canvas built for a quarter of
+  -- it. Read here, the one place every consumer (uiSize, cell size, pic
+  -- scale, the OW SPRITES gate) goes through layout(), so Gold reads
+  -- CLASSIC no matter what the option says. The option itself is left
+  -- alone -- never written back -- so a Gen 1 save that chose BIG is still
+  -- BIG the next time it is Red.
+  local function layout(game)
+    if isGen2(game) then return LAYOUT.classic end
     local ok, value = pcall(function() return mod.options:get("grid") end)
     return LAYOUT[(ok and value) or "classic"] or LAYOUT.classic
   end
@@ -281,6 +329,91 @@ return function(mod)
     return type(s) == "string" and s:find("1", 1, true) ~= nil
   end
 
+  -- ------- MAIL (Gen 2 only)
+  --
+  -- Gold keeps every letter in save.mail.party, sparse and keyed by PARTY
+  -- SLOT rather than by mon (src/core/gen2/Mail.lua). This screen moves
+  -- mons through save.party with its own table.remove/table.insert rather
+  -- than going through Boxes.deposit/withdraw, so the letters do not follow
+  -- along for free the way they do on the cart -- these three are what keep
+  -- them attached, called at the actual party-mutation sites below rather
+  -- than from one wrapper that only covers one of them. Reached through a
+  -- pcall'd require so a Gen 1 boot, where this module does not exist,
+  -- never sees it.
+  local function gen2Mail()
+    local ok, Mail = pcall(require, "src.core.gen2.Mail")
+    return ok and Mail or nil
+  end
+
+  local function monHoldsMail(mon)
+    local Mail = gen2Mail()
+    return Mail ~= nil and Mail.monHoldsMail(mon) == true
+  end
+
+  -- Mail.lua has a removeSlot (a departure shifts every letter behind it
+  -- down) but no mirror for an ARRIVAL: RemoveMonFromPartyOrBox only ever
+  -- shifts down, because the cart never inserts a mon into the middle of
+  -- the party -- WITHDRAW always appends at the tail
+  -- (src/core/gen2/Boxes.lua:128-135's own #party+1). This screen's own
+  -- moves keep that same "always append at the tail" shape today, but every
+  -- site that grows save.party calls this anyway: it shifts whatever sits
+  -- from `slot` to the end UP one and clears `slot`, so a mon landing there
+  -- -- which the refusals elsewhere guarantee never carries mail of its own
+  -- -- never inherits a letter that belonged to whoever the array shift
+  -- moved past it.
+  local function gen2InsertPartySlot(game, slot)
+    local Mail = gen2Mail()
+    if not Mail then return end
+    local party = Mail.state(game.save).party
+    for i = Mail.PARTY_LENGTH, slot + 1, -1 do
+      party[i] = party[i - 1]
+    end
+    party[slot] = nil
+  end
+
+  -- ------- the Gen 2 stat block
+  --
+  -- Gen 2's box_struct is the same byte-for-byte-prefix story Stats.ensure's
+  -- own comment tells for Gen 1: a mon decoded without a party's worth of
+  -- stat words arrives with mon.stats nil. src/battle/gen2/Mon.lua:67 is the
+  -- Gen 2 formula (Special split into specialAttack/specialDefense, one DV
+  -- feeding both); this only ever fills a MISSING block, the same contract
+  -- Stats.ensure keeps for Gen 1.
+  local function gen2EnsureStats(game, mon)
+    if type(mon) ~= "table" or mon.stats ~= nil then return end
+    local def = defOf(game, mon)
+    if type(def) ~= "table" or type(def.baseStats) ~= "table" then return end
+    local ok, Gen2Mon = pcall(require, "src.battle.gen2.Mon")
+    if not ok or not Gen2Mon then return end
+    local okStats, stats = pcall(Gen2Mon.stats, def.baseStats, mon.dvs,
+      mon.level or 1, mon.statExp)
+    if not okStats or type(stats) ~= "table" then return end
+    mon.stats = stats
+    mon.hp = math.max(0, math.min(tonumber(mon.hp) or stats.hp, stats.hp))
+  end
+
+  -- ------- the box as a nurse, Gen 2's own
+  --
+  -- Pokemon.heal reads mon.stats.hp and restores PP out of src.core.Data,
+  -- the Gen 1 singleton -- not the dataset a Gold boot actually runs, and a
+  -- box mon may carry no .stats at all, which is what made the pcall around
+  -- it a silent no-op on Gold. HealParty's own recipe (engine/events/
+  -- heal_party.asm), read off game.data.moves instead of that singleton.
+  local function gen2Heal(game, mon)
+    gen2EnsureStats(game, mon)
+    if type(mon.stats) ~= "table" then return end
+    mon.hp = mon.stats.hp
+    mon.status = nil
+    local moves = game.data and game.data.moves
+    if type(moves) ~= "table" or type(mon.moves) ~= "table" then return end
+    for _, mv in ipairs(mon.moves) do
+      local mdef = moves[mv.id]
+      if mdef then
+        mv.pp = mdef.pp + (mv.ppUps or 0) * math.floor(mdef.pp / 5)
+      end
+    end
+  end
+
   -- ------- the screen
 
   local function newScreen(game)
@@ -322,7 +455,7 @@ return function(mod)
     -- whole mechanism: no enter hook, no restore on exit, and no way to
     -- leave the rest of the game wearing a canvas it did not ask for.
     function self:uiSize()
-      local L = layout()
+      local L = layout(game)
       return L.w, L.h
     end
 
@@ -336,11 +469,16 @@ return function(mod)
     -- anybody could hold in their head.
     function self:exit()
       if not healing() then return end
+      local gen2 = isGen2(game)
       for _, box in ipairs(Boxes.ensure(game.save)) do
         for _, mon in ipairs(box) do
           -- guard rather than trust: a mon that arrived from a save written
           -- by an older engine may be missing the fields heal writes
-          pcall(Pokemon.heal, mon)
+          if gen2 then
+            pcall(gen2Heal, game, mon)
+          else
+            pcall(Pokemon.heal, mon)
+          end
         end
       end
     end
@@ -373,7 +511,24 @@ return function(mod)
         say(Strings("THAT'S YOUR LAST ONE!"))
         return
       end
+      -- MAIL (Gen 2 only): the cart's own refusal, word for word
+      -- (BillsPC_CheckMon's .HasMail arm, src/core/gen2/Boxes.lua:94) -- a
+      -- boxed mon has no party slot for its letter to live in, so picking
+      -- one up out of the party has to refuse exactly what the vanilla PC's
+      -- DEPOSIT refuses, rather than silently carrying the mon toward a box
+      -- that cannot hold what it is still holding.
+      if self.mode == "party" and isGen2(game) and monHoldsMail(mon) then
+        say(Strings("Remove MAIL."))
+        return
+      end
       table.remove(set, i)
+      -- The letters behind the departing mon shift up one slot, the same
+      -- "Mail time!" tail RemoveMonFromPartyOrBox runs on every party
+      -- removal (src/core/gen2/Mail.lua's removeSlot).
+      if self.mode == "party" and isGen2(game) then
+        local Mail = gen2Mail()
+        if Mail then Mail.removeSlot(game.save, i) end
+      end
       self.held = { mon = mon, from = self.mode }
     end
 
@@ -387,6 +542,10 @@ return function(mod)
     -- Stats.calc reads, and Stats.ensure already no-ops on anything it
     -- cannot make sense of.
     local function ensureStats(mon)
+      if isGen2(game) then
+        pcall(gen2EnsureStats, game, mon)
+        return
+      end
       pcall(Stats.ensure, defOf(game, mon), mon)
     end
 
@@ -410,8 +569,28 @@ return function(mod)
       local held = self.held.mon
       local sitting = set[i]
       if sitting then
+        -- MAIL (Gen 2 only): the sitting party mon is about to be carried
+        -- off exactly the way grab() carries one off, only without going
+        -- through grab()'s own guard -- so the guard has to be repeated
+        -- here, on the mon this swap is about to displace.
+        if self.mode == "party" and isGen2(game) and monHoldsMail(sitting) then
+          say(Strings("Remove MAIL."))
+          return
+        end
         set[i] = held
-        if self.mode == "party" then ensureStats(held) end
+        if self.mode == "party" then
+          ensureStats(held)
+          -- The mon that WAS at slot i just left it (for self.held, not for
+          -- any other party slot -- it is only placed once a later call
+          -- resolves it), and held never carries mail (the refusals above
+          -- are the whole reason). So slot i's letter, if any, departs with
+          -- it: clear rather than swap, because nothing has actually taken
+          -- sitting's old place yet.
+          if isGen2(game) then
+            local Mail = gen2Mail()
+            if Mail then Mail.clear(game.save, i) end
+          end
+        end
         playLandingCry(held)
         self.held = { mon = sitting, from = self.mode }
         return
@@ -420,6 +599,9 @@ return function(mod)
         say(self.mode == "box" and Strings("THE BOX IS FULL!")
                                 or Strings("YOUR PARTY IS FULL!"))
         return
+      end
+      if self.mode == "party" and isGen2(game) then
+        gen2InsertPartySlot(game, #set + 1)
       end
       set[#set + 1] = held
       if self.mode == "party" then ensureStats(held) end
@@ -443,6 +625,7 @@ return function(mod)
         a, aCap, b, bCap = party, Party.MAX, box, Boxes.CAPACITY
       end
       if #a < aCap then
+        if a == party and isGen2(game) then gen2InsertPartySlot(game, #a + 1) end
         a[#a + 1] = held
         if a == party then ensureStats(held) end
         playLandingCry(held)
@@ -450,6 +633,7 @@ return function(mod)
         return true
       end
       if #b < bCap then
+        if b == party and isGen2(game) then gen2InsertPartySlot(game, #b + 1) end
         b[#b + 1] = held
         if b == party then ensureStats(held) end
         playLandingCry(held)
@@ -502,7 +686,12 @@ return function(mod)
     -- exactly this.
     local function showStats()
       local mon = self.held and self.held.mon or list()[index()]
-      if mon then Screens.push(game, "SummaryMenu", mon) end
+      if not mon then return end
+      if isGen2(game) then
+        Screens.push(game, SCREEN_SUMMARY_GEN2, { mon = mon })
+      else
+        Screens.push(game, SCREEN_SUMMARY_GEN1, mon)
+      end
     end
 
     -- B, wherever it is pressed: back, and only back, exactly the rule
@@ -784,7 +973,7 @@ return function(mod)
     -- doubling as everything else BIG touches: the CLASSIC rect times
     -- cell/28 lands back on CLASSIC's own numbers and on BIG's at cell/28==2.
     local function markWindowRect()
-      local L = layout()
+      local L = layout(game)
       local k = L.cell / 28
       return 8 * k, 48 * k, 144 * k, 48 * k
     end
@@ -1077,7 +1266,7 @@ return function(mod)
     -- ------- drawing
 
     local function cellRect(i0, mode)
-      local L = layout()
+      local L = layout(game)
       mode = mode or self.mode
       local n = mode == "box" and COLS or PARTY_COLS
       local c, r = i0 % n, math.floor(i0 / n)
@@ -1263,7 +1452,7 @@ return function(mod)
     -- place. Exposed so the suite can check the seam without a graphics
     -- context, the same reason self.picScale is exposed above.
     local function spriteToDraw(mon)
-      if owSpritesOn() and layout().cell == LAYOUT.classic.cell then
+      if owSpritesOn() and layout(game).cell == LAYOUT.classic.cell then
         local sprite = owSpriteFor(mon)
         if sprite then return { kind = "ow", sprite = sprite } end
       end
@@ -1274,7 +1463,7 @@ return function(mod)
     self.spriteToDraw = spriteToDraw
 
     local function drawPic(mon, x, y)
-      local L = layout()
+      local L = layout(game)
       local chosen = spriteToDraw(mon)
       if not chosen then return end
       if chosen.kind == "ow" then
@@ -1320,7 +1509,7 @@ return function(mod)
 
     local function drawMarks(mon, x, y)
       if not anyMarks(mon) then return end
-      local cell = layout().cell
+      local cell = layout(game).cell
       local k = cell / 28
       local size = 4 * k
       local gap = 1 * k
@@ -1357,8 +1546,17 @@ return function(mod)
     --
     -- CLASSIC gets none of it, and cannot: a 28-pixel cell is three and a
     -- half tiles, and half a tile cannot carry a zone.
+    --
+    -- This whole method is simply never CALLED on Gold: Game2:draw
+    -- (src/core/Game2.lua:1334-1450) has no equivalent of Gen 1's
+    -- `s:sgbPalettes(self)` walk (src/core/Game.lua:530-538), and layout()
+    -- above reads CLASSIC there regardless, so it would return nil anyway.
+    -- The wallpaper PALETTE this method would apply is inert on a Gold
+    -- boot for that reason; the wallpaper PATTERN self:draw paints still
+    -- draws, because that half is plain love.graphics and owns no seam
+    -- Gold skips. Not a bug to chase -- there is no code path here to fix.
     function self:sgbPalettes(game)
-      local L = layout()
+      local L = layout(game)
       -- Everything here has to land on the tile grid: the cell, and both
       -- grid origins. Flooring a stray offset into tile coordinates would
       -- not fail -- it would quietly slide every palette four pixels off
@@ -1453,8 +1651,8 @@ return function(mod)
     -- 160 and a footer at y=132: on the 288-tall BIG canvas that put
     -- "B:EXIT" in the middle of the grid, printed over the Pokemon.
     local TEXT_X = 4
-    local function textMax() return layout().w - TEXT_X * 2 end
-    local function footerY() return layout().h - 12 end
+    local function textMax() return layout(game).w - TEXT_X * 2 end
+    local function footerY() return layout(game).h - 12 end
 
     local function fitTo(text, maxW)
       text = tostring(text or "")
@@ -1544,7 +1742,7 @@ return function(mod)
       love.graphics.setColor(0, 0, 0, 1)
 
       if self.mode == "box" then
-        local L = layout()
+        local L = layout(game)
         local paper = paperOf(game.save.currentBox)
         drawWallpaperPattern(paper.pattern, L.gridX, L.gridY,
           COLS * L.cell, ROWS * L.cell)
@@ -1578,7 +1776,7 @@ return function(mod)
       -- affordance the header always needed.
       local hint = self.mode == "box" and Strings("MENU") or nil
       local hintW = hint and Font.width(hint) or 0
-      local hintX = layout().w - TEXT_X - hintW
+      local hintX = layout(game).w - TEXT_X - hintW
 
       -- the title yields to the button rather than running under it: an
       -- eight-glyph box name plus " 20/20" is wider than a CLASSIC screen
@@ -1609,7 +1807,7 @@ return function(mod)
         local x, y = cellRect(i0)
         local mon = set[i0 + 1]
         love.graphics.setColor(0, 0, 0, 0.25)
-        outline(x, y, layout().cell, layout().cell)
+        outline(x, y, layout(game).cell, layout(game).cell)
         love.graphics.setColor(1, 1, 1, 1)
         if mon then drawPic(mon, x, y) end
         love.graphics.setColor(0, 0, 0, 1)
@@ -1632,7 +1830,7 @@ return function(mod)
       -- so there is never more than one place on screen the cursor reads as
       -- being
       if not onHeader then
-        local cell = layout().cell
+        local cell = layout(game).cell
         local t = math.max(1, math.floor(cell / 14))
         local arm = math.floor(cell / 3)
         local x0, y0 = cx - t, cy - t
@@ -1730,6 +1928,24 @@ return function(mod)
       label = Strings("BOXES"),
       onSelect = function() mod.ui.push(game, SCREEN) end,
     }
+    if isGen2(game) then
+      -- On Gold this same hook fires at TWO menus: the storage system
+      -- (src/ui/gen2/PcMenu.lua), which is what BOXES belongs in, and the
+      -- player's own ITEM PC (src/ui/gen2/ItemPcMenu.lua), where it does
+      -- not. Both carry WITHDRAW/DEPOSIT/MAILBOX rows, so a label is not a
+      -- safe anchor -- but only the storage menu's rows carry an
+      -- id == "changebox", and the item PC's never do.
+      local isStorage = false
+      for _, entry in ipairs(out) do
+        if entry.id == "changebox" then
+          isStorage = true
+          break
+        end
+      end
+      if not isStorage then return out end
+      table.insert(out, 1, row)
+      return out
+    end
     for _, anchor in ipairs(BOX_ROWS) do
       for _, entry in ipairs(out) do
         if entry.label == anchor then

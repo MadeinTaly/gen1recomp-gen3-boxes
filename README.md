@@ -22,7 +22,32 @@ this repo, so **MODS → the mod's row** offers a newer release when one is
 published, and it can be installed from the launcher's **Find mods** tab
 without touching a file at all.
 
-Requires Gen1Recomp with mod API 2 (engine 0.1.37 or newer).
+Requires Gen1Recomp with mod API 2 (engine 0.1.37 or newer). Gold needs
+0.1.79 or newer — see **On Gold** below.
+
+## On Gold
+
+The mod runs on Pokémon Gold as well as on Red, Blue and Yellow: the manifest
+claims `"games": ["gen1", "gen2"]`, which is what a Gen 2 boot loads a mod on.
+Gen 2 support in the engine is a beta and so is this port — it has been checked
+against the loader, `modkit gen2check` and the headless harness, not inside a
+full playthrough — which is why it ships as a pre-release.
+
+What is different there, and nowhere else:
+
+| | on Gold |
+| --- | --- |
+| boxes | **14** of 20, not 12 — the grid, JUMP TO BOX and FIND all follow |
+| the summary | Gen 2's own summary screen, which is a different screen with a different call |
+| stats | a withdrawn Pokémon's missing stat block is Gen 2's, Special split in two |
+| BOX HEALS | Gold's own PP table, rather than the Gen 1 one that was never loaded |
+| MAIL | a party Pokémon holding mail cannot be picked up or displaced — `Remove MAIL.`, the same refusal the vanilla PC gives |
+| the PC entrance | the BOXES row goes in the storage menu, not in the ITEM PC |
+| `GRID` | `CLASSIC` always: `BIG` needs two Gen 1 drawing seams Gold's boot does not have |
+| wallpapers | the pattern, without the four-colour palette, for the same reason |
+
+Everything else — FIND, SORT, MARKS, NAME BOX, PLACE CRY, the header row and
+the BOX MENU — is the same screen doing the same thing.
 
 ## Controls
 

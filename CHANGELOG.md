@@ -1,5 +1,65 @@
 # Changelog
 
+## 1.8.0-beta.1 — it runs on Gold
+
+**A pre-release.** Gen 2 support in the engine is itself a beta, and this port
+has been verified against the mod loader, `modkit gen2check` and the headless
+harness — not inside a real Gold boot. It ships as a semver pre-release so the
+launcher's auto-update leaves everyone on 1.7.0 unless they go looking for this
+one (`ModUpdate.pickRelease` returns the newest non-prerelease).
+
+Nothing about the Gen 1 screen changes. Every Gen 1 assertion in the suite is
+the one it was.
+
+- **`"games": ["gen1", "gen2"]`** in the manifest. A mod is not loaded on a
+  Gold boot unless it says it is for Gold; without the claim the manager lists
+  it as `ENABLED (NOT THIS GAME)` and nothing else happens.
+
+- **Fourteen boxes, not twelve.** Gold's storage is 14 boxes of 20, and this
+  screen already read `Boxes.COUNT` and `Boxes.CAPACITY` rather than spelling
+  either number, so the grid, JUMP TO BOX, FIND's wrap-around and the flat
+  box-and-slot ring all widened on their own. On Gold those constants come off
+  the engine's own adapter over `src/core/gen2/Boxes.lua`.
+
+- **The summary screen is a different screen on Gold.** Gen 2's builtins carry
+  a `Gen2` prefix and its summary takes an options table rather than the mon —
+  `Screens.push(game, "Gen2SummaryMenu", { mon = mon })` against Gen 1's
+  `Screens.push(game, "SummaryMenu", mon)`. START over a Pokémon opened nothing
+  at all before this.
+
+- **The stat block is Gen 2's.** `Stats.ensure` computes Gen 1's five stats,
+  Special included, which is the wrong block for a Gen 2 mon: Gold splits it
+  into `specialAttack` and `specialDefense`. A mon withdrawn on Gold now has a
+  missing block filled by `src/battle/gen2/Mon.lua`'s own formula instead.
+
+- **BOX HEALS works on Gold.** `Pokemon.heal` restores PP out of the Gen 1
+  `Data` singleton and reads a stat block a box mon may not carry, so on Gold
+  the guard around it made the whole feature a silent no-op. The Gen 2 path is
+  `HealParty`'s own recipe read off `game.data.moves`.
+
+- **MAIL is respected.** Gold keeps letters in `sPartyMail`, a sparse array
+  keyed by *party slot*. This screen moves mons with its own table operations,
+  so on a Gen 2 boot it now refuses to pick up or displace a party Pokémon
+  holding mail — `Remove MAIL.`, the vanilla PC's own one-liner — and keeps
+  every other letter aligned with its owner across the party changes it makes.
+
+- **The BOXES row lands in the right PC.** On Gold the `ui.pc.items` hook fires
+  at two menus: the storage system and the player's own ITEM PC. The row is
+  added to the first and not the second, told apart by the `CHANGE BOX` row
+  only the storage menu has.
+
+- **`GRID BIG` is CLASSIC on Gold.** `BIG` is built on two Gen 1 seams Gold's
+  boot does not have: `Game:draw` asking the top state for a `uiSize()` and
+  then for its `sgbPalettes()` zones. `src/core/Game2.lua` does neither — it
+  scales one Game Boy canvas — so a 320×288 layout would have been drawn into
+  a 160×144 frame and fallen off the edge of it. On a Gold boot the option is
+  read as `CLASSIC` whatever it is set to, and the OPTIONS row says so. Nothing
+  changes for a Gen 1 save, including one whose option is set to `BIG`.
+
+  The same seam is why a wallpaper's four colours do not reach the surround on
+  Gold: the palette zones are a Super Game Boy trick, and Gold draws in colour
+  of its own. The pattern is drawn as it always was.
+
 ## 1.7.0 — overworld sprites, when you have them
 
 - **OW SPRITES** — when [Wilds of Kanto](https://github.com/YoDrehDenSwagAuf/overworld-spawn-mod)
