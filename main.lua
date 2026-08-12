@@ -99,6 +99,11 @@ return function(mod)
     -- default: it changes nothing but sound, which is the line BOX HEALS
     -- is on the wrong side of.
     { key = "placeCry", label = "PLACE CRY", type = "toggle", default = true },
+    -- See "overworld sprites from Wilds of Kanto" below. Off by default --
+    -- unlike PLACE CRY, this is an experimental prerelease feature reaching
+    -- into another mod's code, not a change to this mod's own behaviour,
+    -- and it does nothing at all unless that mod is installed.
+    { key = "owSprites", label = "OW SPRITES", type = "toggle", default = false },
   })
 
   local function layout()
@@ -140,6 +145,14 @@ return function(mod)
     local ok, value = pcall(function() return mod.options:get("placeCry") end)
     if not ok then return true end
     if value == nil then return true end
+    return value and true or false
+  end
+
+  -- OW SPRITES, guarded the same way. See "overworld sprites from Wilds of
+  -- Kanto" further down for what it does and why it defaults off.
+  local function owSpritesOn()
+    local ok, value = pcall(function() return mod.options:get("owSprites") end)
+    if not ok then return false end
     return value and true or false
   end
 
@@ -295,6 +308,11 @@ return function(mod)
       -- the mode rather than the screen.
       markMode = false,
       markWindow = nil,  -- { mon = ..., cursor = 1 } while the window is open
+      -- Wilds of Kanto's resolve() per species id, for the life of this
+      -- screen (see "overworld sprites from Wilds of Kanto" below). A
+      -- sprite table, or `false` for a cached miss -- never nil, so a miss
+      -- is remembered rather than re-asked every draw.
+      owSpriteCache = {},
     }
 
     -- ------- the surface this screen wants
@@ -1079,26 +1097,145 @@ return function(mod)
     -- Integer factors both ways. Two-bit pixel art survives being halved
     -- or doubled and smears at 0.6, so this picks the nearest whole step
     -- that fits rather than the one that fills the cell exactly.
-    local function picScale(img, cell)
-      local m = math.max(img:getWidth(), img:getHeight())
+    local function scaleFor(w, h, cell)
+      local m = math.max(w, h)
       if m <= 0 then return 1 end
       if m <= cell then return math.max(1, math.floor(cell / m)) end
       return 1 / math.ceil(m / cell)
     end
 
-    local function drawPic(mon, x, y)
-      local img = picOf(game, mon)
-      if not img then return end
-      local L = layout()
-      local k = picScale(img, L.cell)
-      local w, h = img:getWidth() * k, img:getHeight() * k
-      love.graphics.draw(img, x + (L.cell - w) / 2, y + (L.cell - h) / 2,
-        0, k, k)
+    local function picScale(img, cell)
+      return scaleFor(img:getWidth(), img:getHeight(), cell)
     end
 
     -- exposed so the suite can check the arithmetic without a graphics
     -- context, which is where the overflow above was found
     self.picScale = picScale
+
+    -- ------- overworld sprites from Wilds of Kanto
+    --
+    -- CLASSIC halves a battle pic into its cell (see the header above); a
+    -- species that fits a whole sprite into that cell instead of a halved
+    -- one is strictly better, and Wilds of Kanto
+    -- (github.com/YoDrehDenSwagAuf/overworld-spawn-mod, id
+    -- "overworld_wild_spawns") builds exactly that -- a per-species
+    -- overworld sprite for its wilds and its followers, sized for a
+    -- 28-pixel cell with room to spare. Nothing of that mod's art is
+    -- copied into this repo: this asks it, at runtime, for a path and
+    -- draws it, the same seam a sprite mod already shadows the battle
+    -- pics through in picOf above.
+    --
+    -- Reached through the engine's own api.find (src/mods/Loader.lua:1002),
+    -- not a manifest dependency, so this stays an optional enhancement: a
+    -- handle is nil in every case the other mod is not really there --
+    -- absent, disabled, failed, or not yet run -- and that one check is
+    -- the whole absence path.
+    --
+    -- The sprite comes from that mod's own resolve() (its main.lua:374
+    -- publishes render.spriteProviders; lib/sprite_providers.lua:1253 is
+    -- the call). resolve() always answers with a table, never nil, and
+    -- falls back to a black silhouette when every real provider fails --
+    -- worse than the halved battle picture, which at least shows which
+    -- Pokemon it is, so that provider id (lib/sprite_providers.lua:34) is
+    -- treated as a miss exactly like a missing handle.
+    --
+    -- The def follows SpriteRenderer's own contract
+    -- (src/render/SpriteRenderer.lua:140-149): one image, frames stacked
+    -- vertically, and frame 0 -- the idle/down frame -- is the one this
+    -- grid wants. Neither the frame size nor the sheet height is assumed;
+    -- both come out of the image and def.frames, because other providers
+    -- and that mod's own "true size" feature answer with other sizes.
+    --
+    -- BIG is untouched: its cell is 56, a battle pic already draws there
+    -- at scale 1, and a 16-pixel sprite would have to be blown up four
+    -- times to fill it -- the trade this feature makes does not exist in
+    -- that layout.
+    --
+    -- Every call into the other mod's code is pcalled -- it is someone
+    -- else's release cycle, and a throw in a draw loop takes the frame
+    -- down -- and cached per species on self.owSpriteCache for the life of
+    -- this screen, because resolve() walks a provider chain and calling it
+    -- twenty times a frame is not free.
+    local OW_MOD_ID = "overworld_wild_spawns"
+    local OW_BLACK_PROVIDER_ID = "black" -- SpriteProviders.ID.BLACK
+
+    local function owSpriteFor(mon)
+      local cache = self.owSpriteCache
+      local key = mon.species
+      local cached = cache[key]
+      if cached ~= nil then return cached or nil end
+
+      local function miss()
+        cache[key] = false
+        return nil
+      end
+
+      local ok, handle = pcall(mod.find, OW_MOD_ID)
+      if not ok or not handle then return miss() end
+      local providers = handle.exports and handle.exports.spriteProviders
+      if not providers then return miss() end
+
+      -- style nil: the player's own Sprite Style setting, the respectful
+      -- default -- whatever they picked for their followers is what they
+      -- should see here too. variant nil: "normal", never shiny.
+      local okResolve, result = pcall(function()
+        return providers:resolve(nil, key, nil, game)
+      end)
+      if not okResolve or type(result) ~= "table" or not result.def
+          or result.error or result.providerId == OW_BLACK_PROVIDER_ID then
+        return miss()
+      end
+
+      local def = result.def
+      local okImg, img = pcall(Assets.image, def.image)
+      if not okImg or not img then return miss() end
+      local okDim, iw, ih = pcall(function() return img:getWidth(), img:getHeight() end)
+      if not okDim or not iw or not ih or iw <= 0 or ih <= 0 then return miss() end
+
+      local frames = def.frames
+      if type(frames) ~= "number" or frames < 1 then frames = 1 end
+      local fh = ih / frames
+      local okQuad, quad = pcall(love.graphics.newQuad, 0, 0, iw, fh, iw, ih)
+      if not okQuad or not quad then return miss() end
+
+      local sprite = { image = img, quad = quad, w = iw, h = fh }
+      cache[key] = sprite
+      return sprite
+    end
+
+    -- Which picture drawPic below draws for a cell -- the option, the
+    -- CLASSIC-only gate, the cache and every fallback, all decided in one
+    -- place. Exposed so the suite can check the seam without a graphics
+    -- context, the same reason self.picScale is exposed above.
+    local function spriteToDraw(mon)
+      if owSpritesOn() and layout().cell == LAYOUT.classic.cell then
+        local sprite = owSpriteFor(mon)
+        if sprite then return { kind = "ow", sprite = sprite } end
+      end
+      local img = picOf(game, mon)
+      if img then return { kind = "battle", img = img } end
+      return nil
+    end
+    self.spriteToDraw = spriteToDraw
+
+    local function drawPic(mon, x, y)
+      local L = layout()
+      local chosen = spriteToDraw(mon)
+      if not chosen then return end
+      if chosen.kind == "ow" then
+        local sprite = chosen.sprite
+        local k = scaleFor(sprite.w, sprite.h, L.cell)
+        local w, h = sprite.w * k, sprite.h * k
+        love.graphics.draw(sprite.image, sprite.quad,
+          x + (L.cell - w) / 2, y + (L.cell - h) / 2, 0, k, k)
+        return
+      end
+      local img = chosen.img
+      local k = picScale(img, L.cell)
+      local w, h = img:getWidth() * k, img:getHeight() * k
+      love.graphics.draw(img, x + (L.cell - w) / 2, y + (L.cell - h) / 2,
+        0, k, k)
+    end
 
     -- ------- the marks
     --

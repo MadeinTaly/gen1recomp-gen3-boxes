@@ -1649,6 +1649,150 @@ do
   end
 end
 
+-- ------- overworld sprites from Wilds of Kanto (the seam)
+--
+-- No graphics context, and that mod is never actually installed in CI, so
+-- this stubs the seam rather than the pixels: a fake mod record dropped
+-- straight into loader.mods/loader.exports is what mod.find(id) itself
+-- reads (src/mods/Loader.lua:1002), so it stands in for the other mod
+-- exactly the way isActive() and the exports table would see a real one.
+-- screen.spriteToDraw is exposed for the same reason self.picScale is:
+-- checking the seam does not need love.graphics.draw to exist.
+
+do
+  local loader = run.loader
+  loader.modOptions = loader.modOptions or {}
+  loader.modOptions.gen3_box = loader.modOptions.gen3_box or {}
+  local store = loader.modOptions.gen3_box
+
+  local OW_ID = "overworld_wild_spawns"
+  local anySpecies = next(Data.pokemon)
+
+  local function installOw(resolveFn)
+    loader.mods[OW_ID] = { enabled = true, failed = false,
+                            manifest = { version = "1.14.0" } }
+    loader.exports[OW_ID] = {
+      spriteProviders = { resolve = function(_, style, speciesId, variant, game)
+        return resolveFn(style, speciesId, variant, game)
+      end },
+    }
+  end
+  local function removeOw()
+    loader.mods[OW_ID] = nil
+    loader.exports[OW_ID] = nil
+  end
+
+  -- the option off: the seam is never consulted at all, even with a
+  -- perfectly good handle sitting there
+  do
+    store.owSprites = false
+    local calls = 0
+    installOw(function()
+      calls = calls + 1
+      return { def = { image = "ow.png", frames = 1 }, providerId = "gold" }
+    end)
+    store.grid = "classic"
+    local game = fakeGame({ mon(anySpecies, 5) })
+    local screen = factory.new(game)
+    local chosen = screen.spriteToDraw(game.save.boxes[1][1])
+    T.eq(calls, 0, "OW SPRITES off never calls resolve")
+    T.eq(chosen and chosen.kind, "battle",
+      "and the screen draws exactly what it drew before")
+    removeOw()
+  end
+
+  -- no handle at all (the option on, the other mod simply absent): draws
+  -- exactly what it drew before -- every existing invariant still holds,
+  -- because nothing here changed the picture path
+  do
+    store.owSprites = true
+    store.grid = "classic"
+    local game = fakeGame({ mon(anySpecies, 5) })
+    local screen = factory.new(game)
+    local chosen = screen.spriteToDraw(game.save.boxes[1][1])
+    T.eq(chosen and chosen.kind, "battle",
+      "no handle falls back to the battle picture")
+  end
+
+  -- a handle with a real def: CLASSIC draws it, BIG does not
+  do
+    store.owSprites = true
+    installOw(function(style, speciesId)
+      T.eq(style, nil, "style is passed through nil -- the player's own Sprite Style")
+      T.eq(speciesId, anySpecies, "and the species id is the mon's own")
+      return { def = { image = "ow.png", frames = 3 }, providerId = "gold" }
+    end)
+
+    store.grid = "classic"
+    local game = fakeGame({ mon(anySpecies, 5) })
+    local screen = factory.new(game)
+    local chosen = screen.spriteToDraw(game.save.boxes[1][1])
+    T.eq(chosen and chosen.kind, "ow", "CLASSIC draws the overworld sprite")
+
+    store.grid = "big"
+    local gameBig = fakeGame({ mon(anySpecies, 5) })
+    local screenBig = factory.new(gameBig)
+    local chosenBig = screenBig.spriteToDraw(gameBig.save.boxes[1][1])
+    T.eq(chosenBig and chosenBig.kind, "battle",
+      "BIG keeps the battle picture even with a good handle -- a 16px sprite "
+      .. "would have to be blown up to fill a 56px cell")
+
+    removeOw()
+    store.grid = "classic"
+  end
+
+  -- a black-fallback result is treated as a miss, the same as no handle
+  do
+    store.owSprites = true
+    installOw(function()
+      return { def = nil, providerId = "black", error = "all providers failed" }
+    end)
+    store.grid = "classic"
+    local game = fakeGame({ mon(anySpecies, 5) })
+    local screen = factory.new(game)
+    local chosen = screen.spriteToDraw(game.save.boxes[1][1])
+    T.eq(chosen and chosen.kind, "battle",
+      "a black-fallback result falls back to the battle picture")
+    removeOw()
+  end
+
+  -- resolve throwing is caught, not propagated, and still falls back
+  do
+    store.owSprites = true
+    installOw(function() error("boom") end)
+    store.grid = "classic"
+    local game = fakeGame({ mon(anySpecies, 5) })
+    local screen = factory.new(game)
+    local ok, chosen = pcall(screen.spriteToDraw, game.save.boxes[1][1])
+    T.check(ok, "a throwing resolve does not propagate out of spriteToDraw")
+    T.eq(ok and chosen and chosen.kind, "battle",
+      "and the cell falls back to the battle picture rather than staying blank")
+    removeOw()
+  end
+
+  -- cached per species for the life of the screen: resolve walks a
+  -- provider chain, so it must not be called once per cell or once per draw
+  do
+    store.owSprites = true
+    local calls = 0
+    installOw(function()
+      calls = calls + 1
+      return { def = { image = "ow.png", frames = 1 }, providerId = "gold" }
+    end)
+    store.grid = "classic"
+    local game = fakeGame({ mon(anySpecies, 5), mon(anySpecies, 9) })
+    local screen = factory.new(game)
+    screen.spriteToDraw(game.save.boxes[1][1])
+    screen.spriteToDraw(game.save.boxes[1][1])
+    screen.spriteToDraw(game.save.boxes[1][2])
+    T.eq(calls, 1, "resolve runs once per species, not once per cell or per draw")
+    removeOw()
+  end
+
+  store.owSprites = false
+  store.grid = "classic"
+end
+
 -- ------- the MENU button, and saying where the menu is
 --
 -- 1.6.0's whole surface hung off a move nothing on screen mentioned: the

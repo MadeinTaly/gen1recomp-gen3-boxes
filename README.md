@@ -58,6 +58,7 @@ in 1.5.2.
 | `BOX HEALS` | on / off | rest everything in storage when the screen closes |
 | `PLACE CRY` | on / off | play the Pokémon's cry every time one lands in a slot |
 | `GRID` | `CLASSIC` / `BIG` | a 320×288 surface, full-size pics, and a palette per Pokémon |
+| `OW SPRITES` | on / off | draw Wilds of Kanto's overworld sprites in the `CLASSIC` grid instead of the half-scale battle pics (experimental, off by default — see below) |
 
 `OPEN FROM` is read each time a menu opens, so changing it takes effect
 immediately rather than on the next boot. `PLACE CRY` is on by default, because
@@ -217,27 +218,41 @@ still understands.
 - It touches nothing but `save.boxes` and `save.party`, which are the
   engine's own storage arrays.
 
-## What is coming next
+## OW SPRITES (experimental prerelease)
 
-**Overworld sprites in the CLASSIC grid.** CLASSIC draws a battle pic at half
-scale into a 28-pixel cell, which is the best Gen 1 has on its own: the four
-generic party icons are unreadable in a grid, so there was never a third
-option. [Wilds of Kanto](https://github.com/YoDrehDenSwagAuf/overworld-spawn-mod)
-(`overworld_wild_spawns`) changes that — it builds a per-species 16×16
-overworld sprite for its wilds and its followers, which is a whole sprite
-rather than a halved one and fits a 28-pixel cell with room to spare.
+**Off by default, and it does nothing at all unless you also have
+[Wilds of Kanto](https://github.com/YoDrehDenSwagAuf/overworld-spawn-mod)
+(`overworld_wild_spawns`) installed and enabled.**
 
-The intent is that when that mod is installed and enabled, and the layout is
-CLASSIC, the grid draws those sprites instead of the half-scale pics; BIG
-keeps the battle pics, because at 56 pixels a pic already draws at scale 1
-and a 16-pixel sprite would have to be enlarged to fill the cell. Without
-that mod, nothing changes.
+CLASSIC draws a battle pic at half scale into a 28-pixel cell, which is the
+best Gen 1 has on its own: the four generic party icons are unreadable in a
+grid, so there was never a third option. Wilds of Kanto builds a per-species
+overworld sprite for its wilds and its followers, sized for that mod's own
+use — a whole sprite rather than a halved one, and it fits a 28-pixel cell
+with room to spare.
 
-It is not built yet, and it depends on that mod exposing a supported way to
-ask for a species' sprite rather than this one reaching into its files. If it
-turns out there is no such seam, this gets dropped rather than bodged: a
-cross-mod hack that breaks on someone else's next release is worse than the
-half-scale pic that has always worked.
+Turn `OW SPRITES` on with both mods installed and, in the `CLASSIC` grid,
+every occupied cell in the box and the party pane draws that sprite instead
+of the half-scale battle pic, at an integer scale — the same rule a
+replaced battle pic already follows. `GRID BIG` is untouched: its cell is
+56, a battle pic already draws there at scale 1, and a 16-pixel overworld
+sprite would have to be blown up four times to fill it.
+
+This reaches the other mod through the engine's own `mod.find`, never a
+manifest dependency, so it stays an optional enhancement rather than a
+requirement — nobody without Wilds of Kanto installed is affected by it
+existing. Nothing of that mod's art is copied into this repository; this
+only ever asks it, at runtime, for a path and draws it, the same seam a
+sprite-replacement mod already uses to shadow the battle pics above. If
+anything about that call is missing or fails — the mod absent, no sprite
+resolved, a black-silhouette fallback, or an error — the cell falls back
+silently to the battle picture that has always worked.
+
+**Why off by default and marked experimental:** this is the first release
+of a feature that reaches into another mod's code on its own release
+cycle, and it ships to get real use before defaulting on. If it turns out
+to misbehave against a future Wilds of Kanto release, it can be turned back
+off without anything else here changing.
 
 ## Ideas, and help building them
 
