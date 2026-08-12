@@ -88,9 +88,20 @@ jobs:
         if: steps.check.outputs.exists == 'false'
         run: |
           notes=$(awk '/^## /{ if (seen) exit; seen=1; next } seen' CHANGELOG.md)
+          # A semver pre-release -- 1.7.0-beta.1 -- ships as a GitHub
+          # pre-release, and that is not cosmetic: ModUpdate.pickRelease
+          # returns the newest NON-prerelease and only falls back to the
+          # newest overall when there is no stable one (src/mods/ModUpdate.lua).
+          # So the flag is the whole difference between "anyone can try this"
+          # and "everyone is updated into it".
+          case "${{ steps.mod.outputs.version }}" in
+            *-*) pre="--prerelease" ;;
+            *)   pre="" ;;
+          esac
           gh release create "v${{ steps.mod.outputs.version }}" \
             "${{ steps.mod.outputs.asset }}" \
             --title "${{ steps.mod.outputs.id }} ${{ steps.mod.outputs.version }}" \
-            --notes "${notes:-See CHANGELOG.md}"
+            --notes "${notes:-See CHANGELOG.md}" \
+            $pre
         env:
           GH_TOKEN: ${{ github.token }}

@@ -1,5 +1,35 @@
 # Changelog
 
+## 1.7.0-beta.1 — overworld sprites (experimental prerelease)
+
+**This is a prerelease, not a stable release.** It ships one experimental
+feature, off by default, so nothing changes for anyone who does not turn it
+on.
+
+- **OW SPRITES** — when [Wilds of Kanto](https://github.com/YoDrehDenSwagAuf/overworld-spawn-mod)
+  (`overworld_wild_spawns`) is installed and enabled, and `GRID` is `CLASSIC`,
+  the box grid and the party pane draw that mod's own per-species overworld
+  sprite in each occupied cell instead of the half-scale battle picture. It
+  is a whole sprite rather than a halved one, at an integer scale, the same
+  rule `picScale` already follows for a replaced battle pic.
+
+  It does **nothing at all** unless that mod is installed: reached through
+  the engine's own `mod.find`, not a manifest dependency, so this stays an
+  optional enhancement rather than a requirement. `GRID BIG` is untouched --
+  its cell is 56, a battle pic already draws there at scale 1, and a
+  16-pixel overworld sprite would have to be blown up four times to fill it.
+
+  Every call into the other mod's code is guarded: a missing handle, a
+  black-fallback silhouette, or a `resolve` that throws all fall back
+  silently to the battle picture that has always worked, rather than a
+  half-drawn cell or a crashed frame. Nothing of that mod's art is copied
+  into this repo -- this only ever asks it, at runtime, for a path.
+
+  **Off by default.** This is an experimental prerelease reaching into
+  another mod's code on its own release cycle, not a settled change to this
+  mod's own behaviour -- turn it on once you have that other mod installed
+  and want to try it.
+
 ## 1.6.0 — search, sort, marks, names, and a cry when it lands
 
 - **FIND and FIND NEXT** — search every box by species, type, or mark. Open
