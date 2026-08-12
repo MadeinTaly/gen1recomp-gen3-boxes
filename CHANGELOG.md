@@ -1,10 +1,6 @@
 # Changelog
 
-## 1.7.0-beta.1 — overworld sprites (experimental prerelease)
-
-**This is a prerelease, not a stable release.** It ships one experimental
-feature, off by default, so nothing changes for anyone who does not turn it
-on.
+## 1.7.0 — overworld sprites, when you have them
 
 - **OW SPRITES** — when [Wilds of Kanto](https://github.com/YoDrehDenSwagAuf/overworld-spawn-mod)
   (`overworld_wild_spawns`) is installed and enabled, and `GRID` is `CLASSIC`,
@@ -13,6 +9,12 @@ on.
   is a whole sprite rather than a halved one, at an integer scale, the same
   rule `picScale` already follows for a replaced battle pic.
 
+  It is asked the way that mod is already proven to answer: through the
+  follower sprite service behind the icons it draws in the vanilla party
+  menu, which honours the **Sprite Style** chosen over there. Its general
+  `spriteProviders` seam is tried second, so the feature survives if that
+  party-menu path is ever retired.
+
   It does **nothing at all** unless that mod is installed: reached through
   the engine's own `mod.find`, not a manifest dependency, so this stays an
   optional enhancement rather than a requirement. `GRID BIG` is untouched --
@@ -20,15 +22,13 @@ on.
   16-pixel overworld sprite would have to be blown up four times to fill it.
 
   Every call into the other mod's code is guarded: a missing handle, a
-  black-fallback silhouette, or a `resolve` that throws all fall back
+  black-fallback silhouette, or a resolver that throws all fall back
   silently to the battle picture that has always worked, rather than a
   half-drawn cell or a crashed frame. Nothing of that mod's art is copied
   into this repo -- this only ever asks it, at runtime, for a path.
 
-  **Off by default.** This is an experimental prerelease reaching into
-  another mod's code on its own release cycle, not a settled change to this
-  mod's own behaviour -- turn it on once you have that other mod installed
-  and want to try it.
+  **On by default**, because with that mod absent the feature is one `nil`
+  check and the picture this screen always drew.
 
 ## 1.6.1 — the menu you could not see
 

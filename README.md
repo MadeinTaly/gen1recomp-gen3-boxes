@@ -58,7 +58,7 @@ in 1.5.2.
 | `BOX HEALS` | on / off | rest everything in storage when the screen closes |
 | `PLACE CRY` | on / off | play the Pokémon's cry every time one lands in a slot |
 | `GRID` | `CLASSIC` / `BIG` | a 320×288 surface, full-size pics, and a palette per Pokémon |
-| `OW SPRITES` | on / off | draw Wilds of Kanto's overworld sprites in the `CLASSIC` grid instead of the half-scale battle pics (experimental, off by default — see below) |
+| `OW SPRITES` | on / off | draw Wilds of Kanto's overworld sprites in the `CLASSIC` grid instead of the half-scale battle pics (on by default; does nothing without that mod — see below) |
 
 `OPEN FROM` is read each time a menu opens, so changing it takes effect
 immediately rather than on the next boot. `PLACE CRY` is on by default, because
@@ -218,9 +218,9 @@ still understands.
 - It touches nothing but `save.boxes` and `save.party`, which are the
   engine's own storage arrays.
 
-## OW SPRITES (experimental prerelease)
+## OW SPRITES
 
-**Off by default, and it does nothing at all unless you also have
+**On by default, and it does nothing at all unless you also have
 [Wilds of Kanto](https://github.com/YoDrehDenSwagAuf/overworld-spawn-mod)
 (`overworld_wild_spawns`) installed and enabled.**
 
@@ -231,7 +231,7 @@ overworld sprite for its wilds and its followers, sized for that mod's own
 use — a whole sprite rather than a halved one, and it fits a 28-pixel cell
 with room to spare.
 
-Turn `OW SPRITES` on with both mods installed and, in the `CLASSIC` grid,
+With both mods installed, in the `CLASSIC` grid,
 every occupied cell in the box and the party pane draws that sprite instead
 of the half-scale battle pic, at an integer scale — the same rule a
 replaced battle pic already follows. `GRID BIG` is untouched: its cell is
@@ -248,11 +248,16 @@ anything about that call is missing or fails — the mod absent, no sprite
 resolved, a black-silhouette fallback, or an error — the cell falls back
 silently to the battle picture that has always worked.
 
-**Why off by default and marked experimental:** this is the first release
-of a feature that reaches into another mod's code on its own release
-cycle, and it ships to get real use before defaulting on. If it turns out
-to misbehave against a future Wilds of Kanto release, it can be turned back
-off without anything else here changing.
+**Which of that mod's sprites you get.** It is asked the same way that mod
+already draws the icons you see in the vanilla party menu: through its
+follower sprite service, which honours whatever **Sprite Style** you picked
+over there. Its general `spriteProviders` seam is tried second, so the
+feature survives if that party-menu path ever goes away.
+
+**On by default** because it cannot change anything for anyone who does not
+have Wilds of Kanto installed — without it the whole feature is one `nil`
+check and the battle pic. If it ever misbehaves against a future release of
+that mod, turning it off restores exactly the old drawing.
 
 ## Ideas, and help building them
 

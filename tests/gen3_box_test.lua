@@ -1793,6 +1793,103 @@ do
   store.grid = "classic"
 end
 
+-- ------- the party-menu resolver is preferred over spriteProviders
+--
+-- Wilds of Kanto draws the sprites the player can already see by patching
+-- PartyMenu.drawIcon and resolving through its follower sprite service
+-- (lib/follower/sprite_service.lua:222,384). spriteProviders is the tidier
+-- seam; the party resolver is the one with a screenshot behind it. So it is
+-- asked first, and these assert that rather than trusting it.
+
+do
+  local loader = run.loader
+  local store = loader.modOptions.gen3_box
+  local OW_ID = "overworld_wild_spawns"
+  local anySpecies = next(Data.pokemon)
+
+  local function install(partyFn, providerFn)
+    loader.mods[OW_ID] = { enabled = true, failed = false,
+                            manifest = { version = "1.14.0" } }
+    loader.exports[OW_ID] = {
+      follower = { spriteService = {
+        resolvePartyIconDef = function(_, m, g) return partyFn(m, g) end,
+      } },
+      spriteProviders = providerFn and { resolve = function(_, st, id, v, g)
+        return providerFn(st, id, v, g)
+      end } or nil,
+    }
+  end
+  local function remove()
+    loader.mods[OW_ID] = nil
+    loader.exports[OW_ID] = nil
+  end
+
+  store.owSprites = true
+  store.grid = "classic"
+
+  -- both available: the party resolver answers and the provider is never
+  -- reached
+  do
+    local partyCalls, providerCalls = 0, 0
+    install(function()
+      partyCalls = partyCalls + 1
+      return { image = "party.png", frames = 1 }
+    end, function()
+      providerCalls = providerCalls + 1
+      return { def = { image = "provider.png", frames = 1 }, providerId = "gold" }
+    end)
+    local game = fakeGame({ mon(anySpecies, 5) })
+    local screen = factory.new(game)
+    local chosen = screen.spriteToDraw(game.save.boxes[1][1])
+    T.eq(chosen and chosen.kind, "ow", "the party resolver's sprite is drawn")
+    T.eq(partyCalls, 1, "the party resolver is asked")
+    T.eq(providerCalls, 0, "and spriteProviders is not reached behind it")
+    remove()
+  end
+
+  -- it is handed the Pokemon itself, not a species id: the resolver reads
+  -- form and shininess off the mon
+  do
+    local got
+    install(function(m) got = m; return { image = "party.png", frames = 1 } end)
+    local game = fakeGame({ mon(anySpecies, 5) })
+    local screen = factory.new(game)
+    screen.spriteToDraw(game.save.boxes[1][1])
+    T.eq(got, game.save.boxes[1][1], "the resolver is handed the mon itself")
+    remove()
+  end
+
+  -- the party resolver missing, or answering with nothing, falls through to
+  -- spriteProviders rather than giving up on the feature
+  do
+    local providerCalls = 0
+    install(function() return nil end, function()
+      providerCalls = providerCalls + 1
+      return { def = { image = "provider.png", frames = 1 }, providerId = "gold" }
+    end)
+    local game = fakeGame({ mon(anySpecies, 5) })
+    local screen = factory.new(game)
+    local chosen = screen.spriteToDraw(game.save.boxes[1][1])
+    T.eq(chosen and chosen.kind, "ow", "a party-resolver miss still reaches a sprite")
+    T.eq(providerCalls, 1, "by falling through to spriteProviders")
+    remove()
+  end
+
+  -- a party resolver that throws is caught, exactly like the provider one
+  do
+    install(function() error("boom") end)
+    local game = fakeGame({ mon(anySpecies, 5) })
+    local screen = factory.new(game)
+    local chosen = screen.spriteToDraw(game.save.boxes[1][1])
+    T.eq(chosen and chosen.kind, "battle",
+      "a throwing party resolver falls back to the battle picture")
+    remove()
+  end
+
+  store.owSprites = false
+  store.grid = "classic"
+end
+
 -- ------- the MENU button, and saying where the menu is
 --
 -- 1.6.0's whole surface hung off a move nothing on screen mentioned: the

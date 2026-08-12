@@ -103,7 +103,7 @@ return function(mod)
     -- unlike PLACE CRY, this is an experimental prerelease feature reaching
     -- into another mod's code, not a change to this mod's own behaviour,
     -- and it does nothing at all unless that mod is installed.
-    { key = "owSprites", label = "OW SPRITES", type = "toggle", default = false },
+    { key = "owSprites", label = "OW SPRITES", type = "toggle", default = true },
   })
 
   local function layout()
@@ -1171,24 +1171,79 @@ return function(mod)
       end
 
       local ok, handle = pcall(mod.find, OW_MOD_ID)
-      if not ok or not handle then return miss() end
-      local providers = handle.exports and handle.exports.spriteProviders
-      if not providers then return miss() end
+      if not ok or not handle or not handle.exports then return miss() end
+      local ex = handle.exports
 
+      -- ------- two ways to ask, in the order they are known to work
+      --
+      -- The FIRST is the one that matters. That mod already draws these
+      -- sprites in the vanilla party menu, and it does it by monkeypatching
+      -- PartyMenu.drawIcon and resolving through its follower sprite
+      -- service (lib/follower/sprite_service.lua:222,384) -- not through
+      -- spriteProviders. So the party-menu resolver is the code path with
+      -- a screenshot behind it, and asking anything else first would be
+      -- preferring the tidier seam to the working one.
+      --
+      -- It takes the Pokemon rather than a species id, which is why it is
+      -- handed the real mon: it reads form and shininess off it. The cache
+      -- is still keyed by species, which is right for Gen 1 -- there are no
+      -- shinies and no forms here -- and would be the thing to widen first
+      -- if a mod ever added either.
+      local function viaPartyIcon()
+        local service = ex.follower and ex.follower.spriteService
+        if not service or type(service.resolvePartyIconDef) ~= "function" then
+          return nil
+        end
+        local okDef, def = pcall(function()
+          return service:resolvePartyIconDef(mon, game)
+        end)
+        if not okDef or type(def) ~= "table" or not def.image then return nil end
+        return def, service
+      end
+
+      -- The SECOND is spriteProviders, the documented general seam. It is
+      -- kept because it answers for the wild/overworld styles the party
+      -- resolver has no opinion on, and because it is the one that survives
+      -- if that mod ever retires its party-menu patch.
+      --
       -- style nil: the player's own Sprite Style setting, the respectful
       -- default -- whatever they picked for their followers is what they
       -- should see here too. variant nil: "normal", never shiny.
-      local okResolve, result = pcall(function()
-        return providers:resolve(nil, key, nil, game)
-      end)
-      if not okResolve or type(result) ~= "table" or not result.def
-          or result.error or result.providerId == OW_BLACK_PROVIDER_ID then
-        return miss()
+      local function viaProviders()
+        local providers = ex.spriteProviders
+        if not providers or type(providers.resolve) ~= "function" then
+          return nil
+        end
+        local okResolve, result = pcall(function()
+          return providers:resolve(nil, key, nil, game)
+        end)
+        if not okResolve or type(result) ~= "table" or not result.def
+            or result.error or result.providerId == OW_BLACK_PROVIDER_ID then
+          return nil
+        end
+        if not result.def.image then return nil end
+        return result.def
       end
 
-      local def = result.def
-      local okImg, img = pcall(Assets.image, def.image)
-      if not okImg or not img then return miss() end
+      local def, service = viaPartyIcon()
+      if not def then def = viaProviders() end
+      if not def then return miss() end
+
+      -- The service's own loader when it answered, because it caches and it
+      -- knows about that mod's true-colour handling; Assets.image otherwise,
+      -- which is the engine's cache and the seam a sprite mod shadows.
+      local img
+      if service and type(service.getPartyIconImage) == "function" then
+        local okOwn, own = pcall(function()
+          return service:getPartyIconImage(def.image)
+        end)
+        if okOwn then img = own end
+      end
+      if not img then
+        local okImg, loaded = pcall(Assets.image, def.image)
+        if okImg then img = loaded end
+      end
+      if not img then return miss() end
       local okDim, iw, ih = pcall(function() return img:getWidth(), img:getHeight() end)
       if not okDim or not iw or not ih or iw <= 0 or ih <= 0 then return miss() end
 

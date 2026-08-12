@@ -24,7 +24,7 @@ return {
       "NAME BOX: eight glyphs through the engine's own naming screen, stored in the save rather than the install",
       "WALLPAPER: a pattern and a four-colour palette per box, including NIGHT, which is the greys in reverse and therefore a real dark mode",
       "PLACE CRY (on by default): the cry of whichever Pokemon just landed in a slot",
-      "OW SPRITES (experimental prerelease, off by default): when Wilds of Kanto (overworld_wild_spawns) is installed and enabled, draws its per-species overworld sprite in each occupied CLASSIC cell instead of the half-scale battle picture, reached through mod.find rather than a manifest dependency, so it changes nothing for anyone without that mod",
+      "OW SPRITES (on by default): when Wilds of Kanto (overworld_wild_spawns) is installed and enabled, draws its per-species overworld sprite in each occupied CLASSIC cell instead of the half-scale battle picture, asked through the same follower sprite service that mod already draws the vanilla party menu icons with, and reached via mod.find rather than a manifest dependency, so it changes nothing for anyone without that mod",
     },
     changed = {
       "the grid draws each Pokemon's battle pic at half scale, because Gen 1 has only four generic party icons and a grid of those is unreadable",
