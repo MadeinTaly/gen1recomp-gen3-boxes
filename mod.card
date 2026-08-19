@@ -8,6 +8,8 @@ return {
   compat = { modApi = 2, games = { "gen1", "gen2" } },
   differences = {
     added = {
+      "SLOTS: how opaque each cell is over the wallpaper -- CLEAR, 25%, 40%, 60%, 80% -- because how much scene you want behind your Pokemon is a taste with no right answer",
+      "ANIMATE (on by default): the wallpaper drifts; off pins every scene at phase zero, which is pixel-for-pixel a still wallpaper for anyone who cannot look at motion",
       "GRID BIG: a 320x288 surface through the engine's own uiSize hook -- battle pics at scale 1 instead of half, and a palette zone per cell so every Pokemon in the grid wears its own species colours, twenty-one at once where the Game Boy could show four",
       "BOX HEALS (off by default): closing the screen rests everything in storage -- full HP, status cleared, PP restored -- through Pokemon.heal, the same routine the Pokemon Centre nurse calls",
       "a BOXES row on the start menu and under the Pokemon Center PC's own box row, opening a 5x4 grid of the current box",
@@ -22,7 +24,7 @@ return {
       "SORT: BY DEX, BY LEVEL (strongest first), BY NAME or BY TYPE, stable, in place, and UNDO for the last one while the screen is open",
       "MARKS: Gen 3's circle, square, triangle and heart, stored on the Pokemon and drawn in the corner of its cell; MARK MODE is how they are set",
       "NAME BOX: eight glyphs through the engine's own naming screen, stored in the save rather than the install",
-      "WALLPAPER: a pattern and a four-colour palette per box, including NIGHT, which is the greys in reverse and therefore a real dark mode",
+      "WALLPAPER: a SCENE per box -- SEA, FOREST, SKY, CAVE, CITY, SNOW, NIGHT -- covering the whole screen and drifting slowly, with the grid's slots laid over it; NIGHT runs the ramp in reverse and is therefore a real dark mode",
       "PLACE CRY (on by default): the cry of whichever Pokemon just landed in a slot",
       "runs on Pokemon Gold as well as Red, Blue and Yellow: fourteen boxes instead of twelve, Gen 2's own summary screen and stat block, Gold's PP table behind BOX HEALS, the BOXES row in the storage PC rather than the ITEM PC, and MAIL refused out of a box exactly as the vanilla PC refuses it",
       "OW SPRITES (on by default): when Wilds of Kanto (overworld_wild_spawns) is installed and enabled, draws its per-species overworld sprite in each occupied CLASSIC cell instead of the half-scale battle picture, asked through the same follower sprite service that mod already draws the vanilla party menu icons with, and reached via mod.find rather than a manifest dependency, so it changes nothing for anyone without that mod",
@@ -33,6 +35,9 @@ return {
       "a Pokemon withdrawn from a box into the party has its stat block recalculated, which the vanilla PC always did and this screen did not -- a mon decoded out of an imported .sav could reach the party menu with no stats at all",
     },
     known = {
+      "the wallpaper covers the whole screen and the slots are laid ON it, which is the Gen 3 layering; only the title row and the footer are painted back to white, because they are black text",
+      "art for a PARTICULAR Pokemon is asked for through Sprites.path, which raises pokemon.sprite with the live mon -- that is how a shiny tells itself apart from an ordinary one of the same species (issue #2)",
+      "a per-instance answer that yields no loadable image falls back to the species record rather than drawing an empty cell: a mod rendering a Pokemon as voxels answers with a path Assets.image cannot load",
       "BOX HEALS runs once on close rather than per placement, because a swap is a deposit and a withdrawal at the same time and a move between two box slots is neither; and it covers every box, not only the open one",
       "BOX HEALS leaves the party alone -- you can still deposit six and take them straight back, but the party is the half of this screen that is not storage",
       "a box stays a COMPACT array, the shape src/pokemon/Boxes.lua and the save format use, so dropping into an empty cell appends to the end instead of leaving a hole -- Ruby's sparse grid is the one thing not reproduced",

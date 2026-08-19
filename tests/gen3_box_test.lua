@@ -1505,16 +1505,17 @@ do
   local boxMenu = openBoxMenu(game, screen)
   choose(boxMenu, game, "WALLPAPER")
   local wallMenu = game.stack:top()
-  T.eq(labels(wallMenu.items), "PLAIN|STRIPES|CHECKS|DOTS|WAVES|NIGHT",
-    "WALLPAPER lists the five patterns plus NIGHT")
-  choose(wallMenu, game, "STRIPES")
-  T.eq(store.boxPapers and store.boxPapers[1], "STRIPES",
+  -- Gen 3 named its wallpapers after places, and so do these.
+  T.eq(labels(wallMenu.items), "PLAIN|SEA|FOREST|SKY|CAVE|CITY|SNOW|NIGHT",
+    "WALLPAPER lists the seven scenes plus PLAIN")
+  choose(wallMenu, game, "SEA")
+  T.eq(store.boxPapers and store.boxPapers[1], "SEA",
     "choosing a wallpaper stores it in mod.save boxPapers, keyed by box number")
   T.check(game.stack:top() == nil, "and lands back on the grid")
 
   local zonesAfter = screen:sgbPalettes(game)
   T.check(zonesAfter[1].colors ~= PaletteFX.GRAYS,
-    "STRIPES changes the base zone's colours")
+    "SEA changes the base zone's colours")
   T.eq(#zonesAfter, beforeCount,
     "and only the base zone -- the zone count is unchanged")
   local drifted = false
@@ -1534,13 +1535,19 @@ do
     "CLASSIC still asks for no zones with a wallpaper set")
   optStore.grid = "big"
 
-  -- NIGHT is a palette in reverse, not a tint: its lightest-mapped entry is
-  -- black and its darkest-mapped entry is white
+  -- NIGHT is still the one scene that runs the ramp backwards: its
+  -- lightest-mapped entry is the DARKEST colour and its darkest-mapped entry
+  -- is the lightest, which is what makes it a real dark mode rather than a
+  -- blue tint. The exact values are the theme's own now that every wallpaper
+  -- carries a scene palette, so what is asserted is the ORDER.
   choose(openBoxMenu(game, screen), game, "WALLPAPER")
   choose(game.stack:top(), game, "NIGHT")
   local night = screen:sgbPalettes(game)[1].colors
-  T.same(night[1], { 0, 0, 0 }, "NIGHT's lightest-mapped shade is black")
-  T.same(night[4], { 255, 255, 255 }, "and its darkest-mapped shade is white")
+  local function luma(c) return 0.299 * c[1] + 0.587 * c[2] + 0.114 * c[3] end
+  T.check(luma(night[1]) < 60, "NIGHT's lightest-mapped shade is dark")
+  T.check(luma(night[4]) > 200, "and its darkest-mapped shade is light")
+  T.check(luma(night[1]) < luma(night[4]),
+    "so the ramp really is reversed, which is the whole point of NIGHT")
 
   store.boxPapers = nil
   optStore.grid = "classic"
@@ -2167,6 +2174,127 @@ do
     .. "rather than leaving the cell empty")
   T.eq(chosen and chosen.kind, "battle", "and it is the battle picture")
   T.eq(chosen and chosen.img, vanillaImage, "drawn from the species record")
+end
+
+-- ------- the wallpaper moves, and the cells sit on a shelf
+--
+-- Two things are asserted through love.graphics itself, because both are
+-- purely about what gets drawn and there is nothing else to ask.
+--
+-- 1. ANIMATE on: the same box drawn at two different ticks does not draw the
+--    same geometry. Off: it draws exactly the same geometry, which is the
+--    promise that the option gives the still wallpaper back pixel for pixel.
+-- 2. Every cell is washed with 15% white before its outline -- the thing that
+--    makes the grid read as a shelf of slots rather than as pictures lying on
+--    a pattern.
+do
+  local loader = run.loader
+  loader.modOptions = loader.modOptions or {}
+  loader.modOptions.gen3_box = loader.modOptions.gen3_box or {}
+  local opts = loader.modOptions.gen3_box
+  opts.grid = "classic"
+  opts.owSprites = false
+
+  loader.modSave = loader.modSave or {}
+  loader.modSave.gen3_box = loader.modSave.gen3_box or {}
+  -- SEA: its swell is drawn with lines, so the recorder below sees it move.
+  loader.modSave.gen3_box.boxPapers = { [1] = "SEA" }
+
+  local G = love.graphics
+  local realLine, realRect, realColor = G.line, G.rectangle, G.setColor
+  local lines, washes, colour = {}, 0, { 0, 0, 0, 1 }
+  local fullScreenFills = 0
+  G.setColor = function(r, g, b, a) colour = { r, g, b, a or 1 }; return realColor(r, g, b, a) end
+  G.line = function(...) lines[#lines + 1] = table.concat({ ... }, ",") end
+  G.rectangle = function(mode, x, y, w, h)
+    -- The wallpaper's ground colour: the WHOLE surface, in a scene colour
+    -- rather than white. This is the layering the box screen is built on --
+    -- the scene covers everything and the slots are laid on top of it -- and
+    -- 1.9.0-beta.1 got it inside out, painting the pattern only inside the
+    -- grid so the box read as a panel on a white page.
+    if mode == "fill" and x == 0 and y == 0 and w == 160 and h == 144
+        and not (colour[1] == 1 and colour[2] == 1 and colour[3] == 1) then
+      fullScreenFills = fullScreenFills + 1
+    end
+    -- A filled square in white at 15%: the cell wash, and nothing else in
+    -- this screen draws that.
+    -- A filled white square at the slot alpha: the cell wash. Nothing else
+    -- on this screen draws a white square at that opacity.
+    if mode == "fill" and colour[1] == 1 and colour[2] == 1 and colour[3] == 1
+        and colour[4] and math.abs(colour[4] - 0.40) < 0.001 and w == h then
+      washes = washes + 1
+    end
+  end
+
+  local function frame(screen, ticks)
+    for _ = 1, ticks do screen:update() end
+    lines = {}
+    washes = 0
+    fullScreenFills = 0
+    screen:draw()
+    return table.concat(lines, ";"), washes
+  end
+
+  local game = fakeGame({})
+  game.save.currentBox = 1
+  local screen = factory.new(game)
+  opts.slots = "40"
+
+  opts.animate = true
+  local early = frame(screen, 1)
+  local later = frame(screen, 40)
+  T.check(early ~= later,
+    "ANIMATE on: the wallpaper is somewhere else forty ticks later")
+
+  opts.animate = false
+  local stillA = frame(screen, 1)
+  local stillB = frame(screen, 40)
+  T.eq(stillA, stillB,
+    "ANIMATE off: the same wallpaper, tick after tick, pinned at phase zero")
+
+  opts.animate = true
+  frame(screen, 1)
+  T.check(fullScreenFills >= 1,
+    "the wallpaper covers the whole screen, not just the grid rect")
+
+  local _, cellWashes = frame(screen, 1)
+  T.eq(cellWashes, 20,
+    "every cell in the box is a pale slot laid over the wallpaper")
+
+  -- SLOTS is a ladder, and both of its ends have to mean what they say.
+  -- CLEAR draws no slot at all -- the wallpaper straight through -- and a
+  -- heavier setting draws the same twenty squares at its own opacity.
+  local function washesAt(setting, alpha)
+    opts.slots = setting
+    local found = 0
+    local realRect2 = G.rectangle
+    G.rectangle = function(mode, x, y, w, h)
+      if mode == "fill" and colour[1] == 1 and colour[2] == 1 and colour[3] == 1
+          and colour[4] and math.abs(colour[4] - alpha) < 0.001 and w == h then
+        found = found + 1
+      end
+    end
+    screen:update()
+    screen:draw()
+    G.rectangle = realRect2
+    return found
+  end
+
+  T.eq(washesAt("80", 0.80), 20, "SLOTS 80% draws every slot at 80%")
+  T.eq(washesAt("25", 0.25), 20, "SLOTS 25% draws every slot at 25%")
+  local anyAtAll = 0
+  opts.slots = "0"
+  G.rectangle = function(mode, x, y, w, h)
+    if mode == "fill" and colour[1] == 1 and colour[2] == 1 and colour[3] == 1
+        and w == h and w == 28 then
+      anyAtAll = anyAtAll + 1
+    end
+  end
+  screen:update(); screen:draw()
+  T.eq(anyAtAll, 0, "SLOTS CLEAR draws no slot at all: the scene, straight through")
+  opts.slots = "40"
+
+  G.line, G.rectangle, G.setColor = realLine, realRect, realColor
 end
 
 T.finish("gen3_box")

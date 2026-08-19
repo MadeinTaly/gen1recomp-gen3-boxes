@@ -143,6 +143,30 @@ return function(mod)
     -- into another mod's code, not a change to this mod's own behaviour,
     -- and it does nothing at all unless that mod is installed.
     { key = "owSprites", label = "OW SPRITES", type = "toggle", default = true },
+    -- The wallpaper drifts instead of sitting still (see
+    -- drawWallpaperPattern). On by default, because it is the same rule
+    -- PLACE CRY is on the right side of: it changes how the screen LOOKS
+    -- and nothing about what it does, and a Gen 3 box wallpaper moves. Off
+    -- pins every pattern at phase zero, which is pixel-for-pixel the still
+    -- wallpaper 1.6.0 drew -- so anyone who finds motion distracting, or is
+    -- sensitive to it, gets the old screen back exactly.
+    { key = "animate", label = "ANIMATE", type = "toggle", default = true },
+    -- How opaque each slot is over the wallpaper. This is a taste with no
+    -- right answer -- how much scene you want behind your Pokemon -- so it
+    -- is a row rather than a number picked here on everyone's behalf.
+    --
+    -- 40% is the default: enough to lift a Pokemon off a busy scene, light
+    -- enough that SEA still reads as water underneath. CLEAR is the honest
+    -- end of the ladder: no slot at all, the wallpaper straight through, for
+    -- anyone who wants the scene and nothing over it.
+    { key = "slots", label = "SLOTS", type = "choice", default = "40",
+      choices = {
+        { "CLEAR", "0" },
+        { "25%", "25" },
+        { "40%", "40" },
+        { "60%", "60" },
+        { "80%", "80" },
+      } },
   })
 
   -- GRID BIG asks the renderer for a 320x288 surface, and that ask only
@@ -202,6 +226,23 @@ return function(mod)
 
   -- OW SPRITES, guarded the same way. See "overworld sprites from Wilds of
   -- Kanto" further down for what it does and why it defaults off.
+  -- The slot opacity the player asked for, 0..1. An unreadable or missing
+  -- value falls to the default rather than to invisible: a box whose slots
+  -- vanished because an option failed to load would look broken.
+  local function slotAlpha()
+    local ok, value = pcall(function() return mod.options:get("slots") end)
+    if not ok then return 0.40 end
+    local n = tonumber(value)
+    if not n then return 0.40 end
+    return math.max(0, math.min(100, n)) / 100
+  end
+
+  local function animateOn()
+    local ok, value = pcall(function() return mod.options:get("animate") end)
+    if not ok then return true end
+    return value ~= false
+  end
+
   local function owSpritesOn()
     local ok, value = pcall(function() return mod.options:get("owSprites") end)
     if not ok then return false end
@@ -264,17 +305,27 @@ return function(mod)
   -- (white background, black text) turned end-for-end, so the background
   -- maps to the dark end and the text to the light end -- a real dark mode.
   local WALLPAPERS = {
-    { id = "PLAIN",   pattern = "PLAIN",   palette = nil },
-    { id = "STRIPES", pattern = "STRIPES",
-      palette = { { 216, 224, 255 }, { 144, 168, 232 }, { 64, 88, 168 }, { 8, 16, 72 } } },
-    { id = "CHECKS",  pattern = "CHECKS",
-      palette = { { 224, 255, 224 }, { 152, 224, 152 }, { 64, 160, 64 }, { 8, 72, 8 } } },
-    { id = "DOTS",    pattern = "DOTS",
-      palette = { { 255, 224, 232 }, { 232, 152, 176 }, { 176, 64, 96 }, { 72, 8, 24 } } },
-    { id = "WAVES",   pattern = "WAVES",
-      palette = { { 216, 255, 255 }, { 136, 216, 224 }, { 40, 144, 160 }, { 8, 56, 64 } } },
-    { id = "NIGHT",   pattern = "PLAIN",
-      palette = { { 0, 0, 0 }, { 64, 64, 64 }, { 160, 160, 160 }, { 255, 255, 255 } } },
+    -- Gen 3 named its wallpapers after PLACES -- FOREST, CITY, DESERT, SNOW,
+    -- BEACH, SEAFLOOR -- rather than after shapes, and that is the whole
+    -- difference in feel: you are choosing where the box IS, not which
+    -- texture is behind it. These are drawn in code (see drawWallpaper), so
+    -- no art is copied from anywhere; the four colours of each are authored
+    -- here the same way the old ones were.
+    { id = "PLAIN",  pattern = "PLAIN",  palette = nil },
+    { id = "SEA",    pattern = "SEA",
+      palette = { { 232, 246, 252 }, { 150, 205, 232 }, { 70, 140, 190 }, { 20, 60, 100 } } },
+    { id = "FOREST", pattern = "FOREST",
+      palette = { { 236, 248, 232 }, { 168, 214, 150 }, { 88, 150, 84 }, { 30, 70, 40 } } },
+    { id = "SKY",    pattern = "SKY",
+      palette = { { 240, 250, 255 }, { 186, 224, 248 }, { 120, 178, 226 }, { 50, 96, 150 } } },
+    { id = "CAVE",   pattern = "CAVE",
+      palette = { { 238, 234, 228 }, { 190, 180, 168 }, { 128, 116, 104 }, { 52, 46, 42 } } },
+    { id = "CITY",   pattern = "CITY",
+      palette = { { 240, 238, 246 }, { 196, 192, 214 }, { 132, 128, 158 }, { 48, 46, 66 } } },
+    { id = "SNOW",   pattern = "SNOW",
+      palette = { { 250, 252, 255 }, { 216, 230, 244 }, { 158, 184, 212 }, { 70, 96, 130 } } },
+    { id = "NIGHT",  pattern = "NIGHT",
+      palette = { { 30, 30, 40 }, { 70, 70, 92 }, { 140, 140, 168 }, { 226, 226, 240 } } },
   }
   local WALLPAPER_BY_ID = {}
   for _, w in ipairs(WALLPAPERS) do WALLPAPER_BY_ID[w.id] = w end
@@ -1286,6 +1337,16 @@ return function(mod)
     end
 
     function self:update()
+      -- The wallpaper clock. Ticked here rather than in draw() because draw
+      -- can run more than once for a logic frame (and not at all when the
+      -- screen is covered), and a pattern that drifted at the frame rate
+      -- would run at a different speed on a different machine. One tick per
+      -- logic step is the same cadence the rest of this screen moves at.
+      --
+      -- Before the early returns below: the box behind an open menu keeps
+      -- breathing rather than freezing the moment you press A.
+      self.paperTick = (self.paperTick or 0) + 1
+
       if self.markWindow then
         updateMarkWindow()
         return
@@ -1773,52 +1834,190 @@ return function(mod)
     -- pics and marks all draw on top of it. PLAIN draws nothing at all, so
     -- a box nobody has touched looks exactly like 1.5.2 did. Scissored to
     -- the grid rect so nothing here can bleed into the header or footer.
-    local function drawWallpaperPattern(pattern, x, y, w, h)
-      if pattern == "PLAIN" then return end
-      love.graphics.setScissor(x, y, w, h)
-      love.graphics.setColor(0, 0, 0, 0.12)
-      local step = 8
-      if pattern == "STRIPES" then
-        for dx = -h, w, step do
-          love.graphics.line(x + dx, y, x + dx + h, y + h)
+    -- ------- the wallpaper: the whole screen, not a panel
+    --
+    -- Gen 3's wallpaper IS the screen. The grid sits ON it: each slot is a
+    -- pale square laid over the scene, and the scene carries on around and
+    -- between the slots. 1.9.0-beta.1 had this inside out -- it drew the
+    -- pattern only inside the grid rect, so the box looked like a textured
+    -- panel on a white page, which is the one thing it should not look like.
+    --
+    -- Everything here is drawn from code: shapes and the four authored
+    -- colours per theme, no art copied from anywhere (`modkit lint` stays
+    -- green, and it would not if a single ROM pixel were involved).
+    --
+    -- The motion is slow and small on purpose -- this is behind twenty
+    -- Pokemon -- and its phase is taken modulo each theme's own period, so a
+    -- box left open for an hour draws what it drew in the first minute.
+    -- ANIMATE off pins every phase at zero.
+    local function shade(paper, n, alpha)
+      local c = paper.palette and paper.palette[n]
+      if not c then return end
+      love.graphics.setColor(c[1] / 255, c[2] / 255, c[3] / 255, alpha or 1)
+    end
+
+    local function drawWallpaper(paper, w, h)
+      local pattern = paper.pattern
+      if pattern == "PLAIN" or not paper.palette then return end
+      local t = animateOn() and (self.paperTick or 0) or 0
+
+      -- The ground colour first: the whole surface, so nothing shows white
+      -- except what this screen deliberately paints white on top.
+      shade(paper, 1)
+      love.graphics.rectangle("fill", 0, 0, w, h)
+
+      if pattern == "SEA" then
+        -- Bands of water, each rolling the opposite way to the one above, and
+        -- bubbles rising through them.
+        for i = 0, math.ceil(h / 10) do
+          local y = i * 10
+          local dir = (i % 2 == 0) and 1 or -1
+          shade(paper, 2, 0.55)
+          local prevX, prevY
+          for x = 0, w, 4 do
+            local wy = y + 3 * math.sin((x + dir * t * 0.5) / 11)
+            if prevX then love.graphics.line(prevX, prevY, x, wy) end
+            prevX, prevY = x, wy
+          end
         end
-      elseif pattern == "CHECKS" then
-        for cy = 0, h - 1, step do
-          for cx = 0, w - 1, step do
-            if (math.floor(cx / step) + math.floor(cy / step)) % 2 == 0 then
-              love.graphics.rectangle("fill", x + cx, y + cy, step, step)
+        shade(paper, 3, 0.5)
+        for i = 0, 11 do
+          local bx = (i * 37 % w)
+          local by = h - ((t * 0.35 + i * 23) % (h + 12))
+          love.graphics.circle("line", bx, by, 2 + (i % 2))
+        end
+      elseif pattern == "FOREST" then
+        -- A canopy: overlapping round crowns in two depths, swaying.
+        for row = 0, math.ceil(h / 22) do
+          for col = -1, math.ceil(w / 26) do
+            local sway = 2 * math.sin((t + row * 30 + col * 17) / 40)
+            local cx = col * 26 + (row % 2) * 13 + sway
+            local cy = row * 22 + 8
+            shade(paper, 3, 0.45)
+            love.graphics.circle("fill", cx, cy, 9)
+            shade(paper, 2, 0.75)
+            love.graphics.circle("fill", cx - 2, cy - 2, 6)
+          end
+        end
+      elseif pattern == "SKY" then
+        -- Clouds drifting right, two layers at different speeds so the sky
+        -- has depth rather than a single sliding sheet.
+        local function cloud(cx, cy, r, tone, alpha)
+          shade(paper, tone, alpha)
+          love.graphics.circle("fill", cx, cy, r)
+          love.graphics.circle("fill", cx + r, cy + 1, r * 0.8)
+          love.graphics.circle("fill", cx - r, cy + 1, r * 0.7)
+        end
+        for i = 0, 5 do
+          local y = 12 + i * 26
+          local x = ((t * 0.20 + i * 47) % (w + 60)) - 30
+          cloud(x, y, 8, 2, 0.55)
+        end
+        for i = 0, 3 do
+          local y = 26 + i * 34
+          local x = ((t * 0.35 + i * 71) % (w + 80)) - 40
+          cloud(x, y, 11, 3, 0.35)
+        end
+      elseif pattern == "CAVE" then
+        -- Stalactites from the ceiling, stalagmites from the floor, and a
+        -- drip that falls and starts again. The rock does not move: caves do
+        -- not, and a wall that drifted would read as the room tilting.
+        shade(paper, 2, 0.6)
+        for i = 0, math.ceil(w / 18) do
+          local x = i * 18
+          local d = 10 + ((i * 7) % 9)
+          love.graphics.polygon("fill", x, 0, x + 9, 0, x + 4, d)
+          love.graphics.polygon("fill", x + 4, h, x + 13, h, x + 9, h - d + 2)
+        end
+        shade(paper, 3, 0.5)
+        for i = 0, 3 do
+          local x = 20 + i * 41
+          local y = (t * 0.8 + i * 33) % h
+          love.graphics.circle("fill", x, y, 1.5)
+        end
+      elseif pattern == "CITY" then
+        -- A skyline with lit windows, and the lights come on and go off.
+        shade(paper, 2, 0.65)
+        local base = h
+        for i = 0, math.ceil(w / 16) do
+          local x = i * 16
+          local bh = 26 + ((i * 13) % 34)
+          love.graphics.rectangle("fill", x, base - bh, 14, bh)
+        end
+        for i = 0, math.ceil(w / 16) do
+          local x = i * 16
+          local bh = 26 + ((i * 13) % 34)
+          for wy = base - bh + 5, base - 6, 8 do
+            for wx = x + 3, x + 10, 5 do
+              local lit = math.sin((t + wx * 13 + wy * 7) / 55) > 0.2
+              shade(paper, lit and 1 or 4, lit and 0.85 or 0.5)
+              love.graphics.rectangle("fill", wx, wy, 3, 4)
             end
           end
         end
-      elseif pattern == "DOTS" then
-        for cy = step / 2, h, step do
-          for cx = step / 2, w, step do
-            love.graphics.circle("fill", x + cx, y + cy, 2)
-          end
+      elseif pattern == "SNOW" then
+        -- Flakes falling and drifting sideways as they fall.
+        shade(paper, 2, 0.7)
+        for i = 0, 39 do
+          local x = (i * 29 + 6 * math.sin((t + i * 40) / 45)) % w
+          local y = (t * 0.30 + i * 17) % (h + 8)
+          love.graphics.circle("fill", x, y, 1 + (i % 3) * 0.5)
         end
-      elseif pattern == "WAVES" then
-        for cy = step / 2, h, step do
-          local prevX, prevY
-          for cx = 0, w, 4 do
-            local wy = cy + 3 * math.sin(cx / 8)
-            if prevX then love.graphics.line(x + prevX, y + prevY, x + cx, y + wy) end
-            prevX, prevY = cx, wy
-          end
+      elseif pattern == "NIGHT" then
+        -- Stars, a few of them twinkling out of phase with each other.
+        for i = 0, 47 do
+          local x = (i * 53) % w
+          local y = (i * 37) % h
+          local tw = 0.45 + 0.45 * math.sin((t + i * 61) / 30)
+          shade(paper, 4, tw)
+          love.graphics.circle("fill", x, y, (i % 7 == 0) and 1.5 or 1)
         end
       end
+
       love.graphics.setColor(0, 0, 0, 1)
-      love.graphics.setScissor()
+    end
+
+    -- ------- the slots, laid ON the wallpaper
+    --
+    -- This is the layer that makes it read as Gen 3: each cell is a pale
+    -- square over the scene, so the wallpaper carries on around and between
+    -- the slots while every Pokemon still sits on something light enough to
+    -- be seen against.
+    --
+    -- Opaque enough to be a slot rather than a tint -- the wallpaper reads
+    -- through it as a hint of what is behind, not as a pattern the Pokemon
+    -- has to compete with. On PLAIN there is no wallpaper at all, so white
+    -- on white draws nothing and the plain box looks exactly as it always
+    -- did.
+    local function drawCellWash(x, y, size)
+      local alpha = slotAlpha()
+      if alpha <= 0 then return end
+      love.graphics.setColor(1, 1, 1, alpha)
+      love.graphics.rectangle("fill", x, y, size, size)
+      love.graphics.setColor(0, 0, 0, 1)
     end
 
     function self:draw()
       love.graphics.clear(1, 1, 1, 1)
       love.graphics.setColor(0, 0, 0, 1)
 
+      -- The wallpaper covers the WHOLE surface, and everything else is drawn
+      -- on top of it -- that is what makes this a box that is somewhere,
+      -- rather than a panel of texture on a white page.
+      --
+      -- Then the title row and the footer are painted back to white, because
+      -- they are black text: a sky or a night sky behind a caption is a
+      -- caption nobody can read, and Gen 3 keeps its own header on a solid
+      -- band for exactly this reason. Between those two bands the wallpaper
+      -- runs edge to edge, including the margins around the grid.
+      local L = layout(game)
       if self.mode == "box" then
-        local L = layout(game)
         local paper = paperOf(game.save.currentBox)
-        drawWallpaperPattern(paper.pattern, L.gridX, L.gridY,
-          COLS * L.cell, ROWS * L.cell)
+        drawWallpaper(paper, L.w, L.h)
+        love.graphics.setColor(1, 1, 1, 1)
+        love.graphics.rectangle("fill", 0, 0, L.w, L.gridY - 2)
+        love.graphics.rectangle("fill", 0, footerY() - 2, L.w, L.h - footerY() + 2)
+        love.graphics.setColor(0, 0, 0, 1)
       end
 
       local set = list()
@@ -1879,6 +2078,7 @@ return function(mod)
       for i0 = 0, total - 1 do
         local x, y = cellRect(i0)
         local mon = set[i0 + 1]
+        drawCellWash(x, y, layout(game).cell)
         love.graphics.setColor(0, 0, 0, 0.25)
         outline(x, y, layout(game).cell, layout(game).cell)
         love.graphics.setColor(1, 1, 1, 1)

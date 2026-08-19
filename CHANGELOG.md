@@ -1,63 +1,57 @@
 # Changelog
 
-## 1.8.1-beta.2 — the fix, without the empty box
+## 1.9.0 — the box is somewhere, and a shiny is not its species
 
-`1.8.1-beta.1` fixed issue #2 and broke something worse on the way: with a
-renderer mod installed the grid drew **no sprites at all**.
+Two things: the wallpaper became a place, and issue #2 is fixed.
 
-The cause is the shape of the first fix. It asked the art seam for this
-Pokemon's own picture and then drew whatever came back — but a mod that
-renders a Pokemon some other way (voxels, 3D, its own atlas) legitimately
-answers `pokemon.sprite` with a path that is not a plain 2D image. `Assets`
-loads nothing from it, and beta.1 read that as "this Pokemon has no picture"
-and drew an empty cell. A wrong picture at least tells you which Pokemon is in
-the slot; an empty one tells you nothing.
-
-So the per-instance answer is now a *candidate*, not a verdict. If it yields
-no image, the species record is tried next and the cell draws as it always
-did. The order is the point: the specific answer first, the general one as the
-floor, never nothing. `Assets.image` can also answer nil without throwing, so
-the image itself is tested rather than just the call.
-
-The suite now stubs BOTH seams, because the real `Assets.image` answers for
-any path in a headless run — a test that only swapped the resolver passed with
-or without the fallback, which is to say it tested nothing. With the fallback
-removed the four new checks go red, which is what makes them worth having.
-
-## 1.8.1-beta.1 — a shiny is not its species
-
-**A pre-release, for the reporter of issue #2 to try before it goes out to
-everyone.** `ModUpdate.pickRelease` returns the newest non-prerelease, so
-nobody is updated into this by accident.
+### The shiny fix (issue #2)
 
 Two Pokémon of the same species — one shiny, one ordinary — drew the SAME
-picture in the box: both shiny or both ordinary, depending on which of the two
-happened to be resolved first (issue #2, reported with Dramatic Shape Voxel
-Mod and Wilds of Kanto installed).
+picture, whichever of the two was resolved first.
 
-The screen was asking the wrong question. It read `spriteFront` straight off
-the species record, and a species has one record and one path — so there was
-nothing in the question that could tell two Pokémon apart, and a mod supplying
-shiny art was never consulted at all. Same mistake twice, in two places:
+The screen was asking the wrong question: it read `spriteFront` off the
+species record, and a species has one record and one path, so nothing in the
+question could tell two Pokémon apart and a mod supplying shiny art was never
+consulted at all. The picture now goes through `src/pokemon/Sprites.lua`,
+which raises `pokemon.sprite` with the live mon in its ctx — the field the
+engine itself calls "per-instance skins". The overworld-sprite cache was keyed
+by species for the same reason and is keyed by the mon now, with weak keys.
 
-- **The battle picture** now goes through `src/pokemon/Sprites.lua`, which is
-  the sanctioned seam for exactly this: it raises the `pokemon.sprite` hook
-  with the live mon in its ctx, a field its own header calls "per-instance
-  skins". Content registries freeze after load, which is *why* that hook
-  exists — a mod giving one particular Pokémon its own art cannot patch
-  `pokemon.spriteFront`, it answers the hook. Now this screen asks it. If the
-  seam is missing or a wrapper throws, the species record still draws the
-  right species.
+Crucially, the per-instance answer is a **candidate, not a verdict**: a mod
+that renders a Pokémon some other way (voxels, 3D) answers with something
+`Assets.image` cannot load, and treating that as "no picture" drew an empty
+grid. If it yields no image, the species record is used and the cell still
+draws.
 
-- **The overworld-sprite cache** was keyed by species, so even where the other
-  mod could tell the two apart, the first answer was reused for both. It is
-  keyed by the mon itself now, with weak keys so a Pokémon released or
-  withdrawn mid-screen is not held alive by its own cache row. That costs one
-  resolve per Pokémon instead of one per species, which is the price of the
-  bug being fixed rather than moved.
+### The wallpaper
 
-The suite grew a test that fails on the old code for the right reason: with the
-fix reverted, the art seam is asked zero times instead of twice.
+- **It covers the whole screen.** The scene runs edge to edge, margins and the
+  gaps between slots included; only the title row and footer are painted back
+  to white, because they are black text.
+
+- **Scenes instead of shapes**, the way Gen 3 named its wallpapers after
+  places: **SEA** (swell rolling opposite ways, bubbles rising), **FOREST** (a
+  swaying canopy), **SKY** (two cloud layers at different speeds), **CAVE**
+  (still rock, with a drip), **CITY** (a skyline whose windows light and go
+  dark), **SNOW** (flakes drifting sideways as they fall) and **NIGHT** (stars
+  twinkling out of phase, on the reversed ramp that makes it a real dark
+  mode). PLAIN still draws nothing.
+
+- **The grid's slots are laid over the scene**, and **`SLOTS`** chooses how
+  opaque they are: CLEAR, 25%, 40% (the default), 60%, 80%. CLEAR is no slot
+  at all — the scene straight through.
+
+- **`ANIMATE`** (on by default) turns all motion off, and off is phase zero:
+  pixel-for-pixel a still wallpaper, for anyone who finds movement
+  distracting or cannot look at it.
+
+Everything is drawn in code from colours authored in this repo. No art is
+copied from anywhere and `modkit lint` reports no ROM-derived content.
+
+The motion clock ticks once per **logic** step rather than per drawn frame, so
+it runs at the same speed on any machine, and every scene's phase is taken
+modulo its own period — a box left open for an hour draws what it drew in the
+first minute.
 
 ## 1.8.0 — it runs on Gold
 
