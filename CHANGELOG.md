@@ -1,5 +1,40 @@
 # Changelog
 
+## 1.8.1-beta.1 — a shiny is not its species
+
+**A pre-release, for the reporter of issue #2 to try before it goes out to
+everyone.** `ModUpdate.pickRelease` returns the newest non-prerelease, so
+nobody is updated into this by accident.
+
+Two Pokémon of the same species — one shiny, one ordinary — drew the SAME
+picture in the box: both shiny or both ordinary, depending on which of the two
+happened to be resolved first (issue #2, reported with Dramatic Shape Voxel
+Mod and Wilds of Kanto installed).
+
+The screen was asking the wrong question. It read `spriteFront` straight off
+the species record, and a species has one record and one path — so there was
+nothing in the question that could tell two Pokémon apart, and a mod supplying
+shiny art was never consulted at all. Same mistake twice, in two places:
+
+- **The battle picture** now goes through `src/pokemon/Sprites.lua`, which is
+  the sanctioned seam for exactly this: it raises the `pokemon.sprite` hook
+  with the live mon in its ctx, a field its own header calls "per-instance
+  skins". Content registries freeze after load, which is *why* that hook
+  exists — a mod giving one particular Pokémon its own art cannot patch
+  `pokemon.spriteFront`, it answers the hook. Now this screen asks it. If the
+  seam is missing or a wrapper throws, the species record still draws the
+  right species.
+
+- **The overworld-sprite cache** was keyed by species, so even where the other
+  mod could tell the two apart, the first answer was reused for both. It is
+  keyed by the mon itself now, with weak keys so a Pokémon released or
+  withdrawn mid-screen is not held alive by its own cache row. That costs one
+  resolve per Pokémon instead of one per species, which is the price of the
+  bug being fixed rather than moved.
+
+The suite grew a test that fails on the old code for the right reason: with the
+fix reverted, the art seam is asked zero times instead of twice.
+
 ## 1.8.0 — it runs on Gold
 
 Same release as `1.8.0-beta.1`, shipped stable: Gold plays, so a Gen 2 player

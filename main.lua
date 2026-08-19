@@ -66,6 +66,10 @@ return function(mod)
   local Party = require("src.pokemon.Party")
   local Font = require("src.render.Font")
   local Assets = require("src.render.Assets")
+  -- The per-instance art seam: Sprites.path raises `pokemon.sprite` with the
+  -- live mon in its ctx, which is how a shiny tells itself apart from an
+  -- ordinary one of the same species (issue #2).
+  local Sprites = require("src.pokemon.Sprites")
   local Screens = require("src.ui.Screens")
   local Strings = require("src.core.Strings")
   local Stats = require("src.pokemon.Stats")
@@ -286,9 +290,39 @@ return function(mod)
     return WALLPAPER_BY_ID[paperIdOf(n)] or WALLPAPER_BY_ID.PLAIN
   end
 
+  -- ------- the pic for ONE Pokemon, not for its species (issue #2)
+  --
+  -- This used to read `def.spriteFront` straight off the species record and
+  -- hand it to Assets.image. That is right about the species and wrong about
+  -- the Pokemon: two of the same species -- one shiny, one not -- are one
+  -- record and one path, so the grid drew them identically and the shiny
+  -- flag went nowhere.
+  --
+  -- src/pokemon/Sprites.lua is the sanctioned seam for exactly this, and its
+  -- own header says why: content registries freeze after load, so a mod that
+  -- gives a PARTICULAR Pokemon its own art cannot patch pokemon.spriteFront
+  -- and instead answers the `pokemon.sprite` hook, which stays live for the
+  -- whole process. `opts.mon` is the field that hook reads to tell one
+  -- Pokemon from another -- it is commented "the live mon when available
+  -- (per-instance skins)" -- so passing the mon is the whole fix. Shiny art
+  -- from another mod, an alternate skin, Gen 2's own shiny flag: all of them
+  -- arrive through that one call.
+  --
+  -- `kind = "summary"` because that is what this screen is to a wrapper: a
+  -- menu showing one Pokemon's own picture, not a battle.
   local function picOf(game, mon)
     local def = defOf(game, mon)
-    local path = def and def.spriteFront
+    if not def then return nil end
+    local path
+    local okPath, resolved = pcall(Sprites.path, game.data, mon.species,
+      "front", { mon = mon, kind = "summary" })
+    if okPath and type(resolved) == "string" and resolved ~= "" then
+      path = resolved
+    else
+      -- An engine build older than the seam, or a throw inside somebody
+      -- else's wrapper: the species record still draws the right species.
+      path = def.spriteFront
+    end
     if not path then return nil end
     -- Assets.image is the engine's cache, and it is also the seam a sprite
     -- mod shadows: going through it means a Crystal-sprites mod's art shows
@@ -441,11 +475,14 @@ return function(mod)
       -- the mode rather than the screen.
       markMode = false,
       markWindow = nil,  -- { mon = ..., cursor = 1 } while the window is open
-      -- Wilds of Kanto's resolve() per species id, for the life of this
+      -- Wilds of Kanto's resolve() per MON (see owSpriteFor), for the life of this
       -- screen (see "overworld sprites from Wilds of Kanto" below). A
       -- sprite table, or `false` for a cached miss -- never nil, so a miss
       -- is remembered rather than re-asked every draw.
-      owSpriteCache = {},
+      -- Weak keys: entries are keyed by the mon table itself (see
+      -- owSpriteFor), so a Pokemon that leaves the box while this screen is
+      -- open must not be kept alive by its own cache row.
+      owSpriteCache = setmetatable({}, { __mode = "k" }),
     }
 
     -- ------- the surface this screen wants
@@ -1342,15 +1379,25 @@ return function(mod)
     --
     -- Every call into the other mod's code is pcalled -- it is someone
     -- else's release cycle, and a throw in a draw loop takes the frame
-    -- down -- and cached per species on self.owSpriteCache for the life of
-    -- this screen, because resolve() walks a provider chain and calling it
-    -- twenty times a frame is not free.
+    -- down -- and cached per MON on self.owSpriteCache for the life of this
+    -- screen, because resolve() walks a provider chain and calling it twenty
+    -- times a frame is not free. Per mon rather than per species is what
+    -- issue #2 cost: see owSpriteFor.
     local OW_MOD_ID = "overworld_wild_spawns"
     local OW_BLACK_PROVIDER_ID = "black" -- SpriteProviders.ID.BLACK
 
+    -- Keyed by the MON, not by its species (issue #2). A species key means
+    -- the first Pokemon of a species to be drawn decides the picture for
+    -- every other one of it in the box -- so a shiny and a normal Ludicolo
+    -- came out identical, whichever of the two was resolved first. The mon
+    -- table is the only thing that tells them apart without this screen
+    -- having to guess which field another mod stores "shiny" in.
+    --
+    -- Weak keys, so a Pokemon released or withdrawn while this screen is
+    -- open does not sit in the cache holding its own table alive.
     local function owSpriteFor(mon)
       local cache = self.owSpriteCache
-      local key = mon.species
+      local key = mon
       local cached = cache[key]
       if cached ~= nil then return cached or nil end
 
@@ -1404,7 +1451,10 @@ return function(mod)
           return nil
         end
         local okResolve, result = pcall(function()
-          return providers:resolve(nil, key, nil, game)
+          -- `mon.species`, not the cache key: the key is the mon itself now
+          -- (issue #2), while this chain still asks by species. The two were
+          -- the same value before and are not any more.
+          return providers:resolve(nil, mon.species, nil, game)
         end)
         if not okResolve or type(result) ~= "table" or not result.def
             or result.error or result.providerId == OW_BLACK_PROVIDER_ID then

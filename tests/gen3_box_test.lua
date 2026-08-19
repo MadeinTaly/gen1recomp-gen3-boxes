@@ -1838,8 +1838,12 @@ do
     removeOw()
   end
 
-  -- cached per species for the life of the screen: resolve walks a
-  -- provider chain, so it must not be called once per cell or once per draw
+  -- Cached per MON for the life of the screen -- not per species (issue #2),
+  -- and not per cell or per draw either. resolve() walks a provider chain, so
+  -- calling it twenty times a frame is not free; but caching it by species is
+  -- what made a shiny and an ordinary one of the same species draw the same
+  -- picture, whichever of the two was resolved first. So: one call per mon,
+  -- however many times that mon is drawn.
   do
     store.owSprites = true
     local calls = 0
@@ -1852,8 +1856,11 @@ do
     local screen = factory.new(game)
     screen.spriteToDraw(game.save.boxes[1][1])
     screen.spriteToDraw(game.save.boxes[1][1])
+    T.eq(calls, 1, "drawing the same mon twice resolves once")
     screen.spriteToDraw(game.save.boxes[1][2])
-    T.eq(calls, 1, "resolve runs once per species, not once per cell or per draw")
+    T.eq(calls, 2,
+      "a SECOND mon of the same species resolves on its own -- one shiny, "
+      .. "one not, must be able to differ (issue #2)")
     removeOw()
   end
 
@@ -2051,6 +2058,63 @@ do
     "runs on gen 2: " .. tostring(gen2Run.mod and gen2Run.mod.skipReason))
   T.eq(#gen2Run.errors, 0, "and loads with no boot errors")
   gen2Run.release()
+end
+
+-- ------- issue #2: a shiny and an ordinary one of the same species
+--
+-- Reported against 1.8.0: two Pokemon of the same species, one shiny and one
+-- not, drew the SAME picture -- both shiny or both ordinary, depending on
+-- which was resolved first.
+--
+-- The cause was that this screen asked the SPECIES for its art (the record's
+-- own `spriteFront`) and never the Pokemon. A species has one record and one
+-- path, so there was nothing in the question that could tell two of them
+-- apart, and a mod supplying shiny art was never consulted at all.
+--
+-- src/pokemon/Sprites.lua is the seam for this: Sprites.path raises
+-- `pokemon.sprite` with the live mon in its ctx, which its own header calls
+-- "per-instance skins". So what is asserted here is the QUESTION, not the
+-- picture -- this suite has no shiny art to compare against, and the answer
+-- belongs to whichever mod supplies it. Sprites.path is swapped on the module
+-- table (which is what the screen indexes on every call) to record what it is
+-- asked.
+do
+  local Sprites = require("src.pokemon.Sprites")
+  local realPath = Sprites.path
+  local asked = {}
+  Sprites.path = function(data, species, side, opts)
+    asked[#asked + 1] = { species = species, mon = opts and opts.mon }
+    -- Answer per INSTANCE, the way a shiny-art mod answers the hook.
+    if opts and opts.mon and opts.mon.shiny then
+      return "shiny/" .. tostring(species) .. ".png", false
+    end
+    return realPath(data, species, side, opts)
+  end
+
+  local loader = run.loader
+  loader.modOptions = loader.modOptions or {}
+  loader.modOptions.gen3_box = loader.modOptions.gen3_box or {}
+  local store = loader.modOptions.gen3_box
+  store.owSprites = false
+  store.grid = "classic"
+  local anySpecies = next(Data.pokemon)
+  local game = fakeGame({ mon(anySpecies, 5), mon(anySpecies, 5) })
+  game.save.boxes[1][2].shiny = true
+  local screen = factory.new(game)
+  screen.spriteToDraw(game.save.boxes[1][1])
+  screen.spriteToDraw(game.save.boxes[1][2])
+
+  Sprites.path = realPath
+
+  T.eq(#asked, 2,
+    "each Pokemon is asked about on its own, not once for the species")
+  T.check(asked[1].mon ~= nil and asked[2].mon ~= nil,
+    "the live mon is handed to the art seam (issue #2: it never was)")
+  T.check(asked[1].mon ~= asked[2].mon,
+    "and the two questions carry the two DIFFERENT mons")
+  T.check(asked[2].mon.shiny == true,
+    "the shiny one arrives as itself, so a shiny-art mod can answer for it")
+  T.eq(asked[1].species, anySpecies, "the species is still passed alongside")
 end
 
 T.finish("gen3_box")
