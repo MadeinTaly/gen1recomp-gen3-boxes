@@ -313,23 +313,46 @@ return function(mod)
   local function picOf(game, mon)
     local def = defOf(game, mon)
     if not def then return nil end
-    local path
+
+    -- Two candidates, tried in order, and the ORDER is the whole lesson of
+    -- 1.8.1-beta.1: the per-instance answer first, the species record second.
+    --
+    -- The seam can hand back a path this screen cannot draw. A mod that
+    -- renders a Pokemon some other way -- voxels, 3D, an atlas of its own --
+    -- legitimately answers `pokemon.sprite` with something that is not a
+    -- plain 2D image file, and Assets.image then loads nothing. The first
+    -- cut of this fix treated that as "no picture" and drew an empty cell,
+    -- which is worse than the bug it was fixing: a wrong picture at least
+    -- tells you which Pokemon is in the slot.
+    --
+    -- So a candidate that does not produce an image is not an answer, and
+    -- the species record is tried next. Assets.image can also return nil
+    -- WITHOUT throwing, which is why the image itself is tested rather than
+    -- just the pcall.
+    local seen = {}
+    local function tryPath(path)
+      if type(path) ~= "string" or path == "" or seen[path] then return nil end
+      seen[path] = true
+      local ok, img = pcall(Assets.image, path)
+      if ok and img then return img end
+      return nil
+    end
+
+    -- 1. What this PARTICULAR Pokemon should look like. Sprites.path raises
+    --    `pokemon.sprite` with the live mon in its ctx, which is how a shiny
+    --    is told apart from an ordinary one of the same species (issue #2).
     local okPath, resolved = pcall(Sprites.path, game.data, mon.species,
       "front", { mon = mon, kind = "summary" })
-    if okPath and type(resolved) == "string" and resolved ~= "" then
-      path = resolved
-    else
-      -- An engine build older than the seam, or a throw inside somebody
-      -- else's wrapper: the species record still draws the right species.
-      path = def.spriteFront
+    if okPath then
+      local img = tryPath(resolved)
+      if img then return img end
     end
-    if not path then return nil end
-    -- Assets.image is the engine's cache, and it is also the seam a sprite
-    -- mod shadows: going through it means a Crystal-sprites mod's art shows
-    -- up in this grid too, rather than this screen pinning the vanilla PNG.
-    local ok, img = pcall(Assets.image, path)
-    if ok then return img end
-    return nil
+
+    -- 2. The species record: an older engine with no seam, a wrapper that
+    --    threw, or art this screen cannot draw. Going through Assets.image
+    --    means a Crystal-sprites mod's replacement art still shows up here,
+    --    rather than this screen pinning the vanilla PNG.
+    return tryPath(def.spriteFront)
   end
 
   -- ------- marks (Gen 3's CIRCLE/SQUARE/TRIANGLE/HEART)

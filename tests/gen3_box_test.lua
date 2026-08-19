@@ -2117,4 +2117,56 @@ do
   T.eq(asked[1].species, anySpecies, "the species is still passed alongside")
 end
 
+-- ------- ...and art this screen cannot draw is not "no art"
+--
+-- The first cut of the issue #2 fix regressed the whole grid to empty cells.
+-- A mod that renders a Pokemon some other way -- voxels, 3D, its own atlas --
+-- legitimately answers `pokemon.sprite` with a path that is not a plain 2D
+-- image, Assets.image then loads nothing, and treating that as "no picture"
+-- draws an empty box. That is worse than the bug being fixed: a wrong picture
+-- at least says which Pokemon is in the slot.
+--
+-- Both seams are stubbed here rather than only the first, because the real
+-- Assets.image answers for any path in a headless run -- so a test that only
+-- swapped Sprites.path could not tell a fallback from its absence, and passed
+-- either way. Loading is what has to fail for this to mean anything.
+do
+  local Sprites = require("src.pokemon.Sprites")
+  local Assets = require("src.render.Assets")
+  local realPath, realImage = Sprites.path, Assets.image
+  local VOXEL = "voxel://no-such-2d-image"
+  local vanillaImage = { fake = "the species record's own PNG" }
+  local askedFor = {}
+
+  Sprites.path = function() return VOXEL, false end
+  Assets.image = function(path)
+    askedFor[#askedFor + 1] = path
+    -- What a voxel answer looks like to a 2D image cache: nothing loadable.
+    if path == VOXEL then return nil end
+    return vanillaImage
+  end
+
+  local loader = run.loader
+  loader.modOptions = loader.modOptions or {}
+  loader.modOptions.gen3_box = loader.modOptions.gen3_box or {}
+  local store = loader.modOptions.gen3_box
+  store.owSprites = false
+  store.grid = "classic"
+  local anySpecies = next(Data.pokemon)
+  local game = fakeGame({ mon(anySpecies, 5) })
+  local screen = factory.new(game)
+  local chosen = screen.spriteToDraw(game.save.boxes[1][1])
+
+  Sprites.path, Assets.image = realPath, realImage
+
+  T.eq(askedFor[1], VOXEL, "the per-instance answer is tried first")
+  T.check(#askedFor >= 2,
+    "and when it loads nothing, a second candidate is tried at all")
+  T.check(chosen ~= nil,
+    "art the screen cannot draw falls back to the species record, "
+    .. "rather than leaving the cell empty")
+  T.eq(chosen and chosen.kind, "battle", "and it is the battle picture")
+  T.eq(chosen and chosen.img, vanillaImage, "drawn from the species record")
+end
+
 T.finish("gen3_box")

@@ -1,5 +1,29 @@
 # Changelog
 
+## 1.8.1-beta.2 — the fix, without the empty box
+
+`1.8.1-beta.1` fixed issue #2 and broke something worse on the way: with a
+renderer mod installed the grid drew **no sprites at all**.
+
+The cause is the shape of the first fix. It asked the art seam for this
+Pokemon's own picture and then drew whatever came back — but a mod that
+renders a Pokemon some other way (voxels, 3D, its own atlas) legitimately
+answers `pokemon.sprite` with a path that is not a plain 2D image. `Assets`
+loads nothing from it, and beta.1 read that as "this Pokemon has no picture"
+and drew an empty cell. A wrong picture at least tells you which Pokemon is in
+the slot; an empty one tells you nothing.
+
+So the per-instance answer is now a *candidate*, not a verdict. If it yields
+no image, the species record is tried next and the cell draws as it always
+did. The order is the point: the specific answer first, the general one as the
+floor, never nothing. `Assets.image` can also answer nil without throwing, so
+the image itself is tested rather than just the call.
+
+The suite now stubs BOTH seams, because the real `Assets.image` answers for
+any path in a headless run — a test that only swapped the resolver passed with
+or without the fallback, which is to say it tested nothing. With the fallback
+removed the four new checks go red, which is what makes them worth having.
+
 ## 1.8.1-beta.1 — a shiny is not its species
 
 **A pre-release, for the reporter of issue #2 to try before it goes out to
