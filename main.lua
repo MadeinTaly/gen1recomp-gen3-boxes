@@ -606,12 +606,44 @@ return function(mod)
     local function refreshFollower()
       local ow = game.overworld or game.world
       if not ow then return end
+
+      -- 1. The ENGINE's own follower (Yellow's Pikachu, and Gold's trailing
+      --    companion). `src.world.PikachuFollower` is one of the fifteen
+      --    names the Gen 2 adapter serves, resolving to
+      --    src/world/gen2/Follower.lua with the same signature, so this one
+      --    call covers both games. viaMapLoad = false is the mid-map
+      --    respawn the engine uses for a bike dismount: the follower lands
+      --    on the cell behind the player rather than under him.
       local ok, Follower = pcall(require, "src.world.PikachuFollower")
-      if not ok or type(Follower) ~= "table" then return end
-      if type(Follower.onMapEntered) ~= "function" then return end
-      -- Every call into it is guarded: this runs while the screen is being
-      -- torn down, and a throw here would take the exit with it.
-      pcall(Follower.onMapEntered, game, ow, nil, false)
+      if ok and type(Follower) == "table"
+          and type(Follower.onMapEntered) == "function" then
+        pcall(Follower.onMapEntered, game, ow, nil, false)
+      end
+
+      -- 2. Wilds of Kanto's follower, which is NOT the engine's.
+      --
+      -- 1.9.1 did only the call above and the report stayed open, for a
+      -- reason worth writing down: that mod does not ride PikachuFollower
+      -- at all. It keeps its own trailing entities and designates the
+      -- follower through save data (`pokepcLeader` / `followerPartyIndex`)
+      -- rather than party order, so respawning the engine's follower
+      -- rebuilt something that was never the thing on screen.
+      --
+      -- Its own exported `syncAll(game, ow)` is the right seam and does
+      -- exactly what a map change does -- which is what the reporter
+      -- noticed fixes it: it removes the trailers, clears the player's
+      -- cached control species, re-syncs the control visual and rebuilds
+      -- the trailers with `mapEnter = true`.
+      --
+      -- Reached through the engine's own `mod.find`, not a manifest
+      -- dependency, and every call guarded: with that mod absent this is
+      -- one nil check, and if it ever renames the export we degrade to the
+      -- engine follower rather than throwing on the way out of a screen.
+      local okHandle, handle = pcall(mod.find, "overworld_wild_spawns")
+      if not okHandle or not handle or not handle.exports then return end
+      local syncAll = handle.exports.syncAll
+      if type(syncAll) ~= "function" then return end
+      pcall(syncAll, game, ow)
     end
 
     -- Whether the party is the one we opened with. Identity, not contents:

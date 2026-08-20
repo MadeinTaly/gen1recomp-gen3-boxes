@@ -1,5 +1,36 @@
 # Changelog
 
+## 1.9.2 — the other follower, the one that was actually on screen
+
+1.9.1 respawned the **engine's** follower when the party changed, and the
+report stayed open. The reason is worth writing down: Wilds of Kanto does not
+ride `PikachuFollower` at all. It keeps its own trailing entities and
+designates the follower through save data (`pokepcLeader` /
+`followerPartyIndex`) rather than party order — so 1.9.1 was rebuilding
+something that was never the thing on screen.
+
+That mod exports `syncAll(game, ow)`, and it does precisely what a map change
+does, which is exactly what the reporter noticed fixes it: removes the
+trailers, clears the player's cached control species, re-syncs the control
+visual, and rebuilds the trailers with `mapEnter = true`. So the screen calls
+it on the way out, next to the engine respawn, when the party changed.
+
+Neither call is required for the other to work, and every path is guarded:
+
+- **Wilds of Kanto absent** — `mod.find` answers nil, and only the engine
+  follower is respawned.
+- **Installed but switched off** — `mod.find` calls `isActive`
+  (`src/mods/Loader.lua:1239`) and answers nil for a disabled or failed mod,
+  so a player who turned it off does not have this screen reaching into it.
+- **An older version without `syncAll`** — the export is type-checked and the
+  screen degrades to the engine follower.
+- **Gen 1 and Gold alike** — `src.world.PikachuFollower` is one of the fifteen
+  names the Gen 2 adapter serves, and the live overworld is handed over under
+  whichever name that game spells it (`game.overworld` or `game.world`).
+
+The worst case anywhere is the behaviour before this release, never a throw
+while the screen is closing.
+
 ## 1.9.1 — the follower is told when the party changes
 
 Reported: deposit the shiny that is following you, withdraw an ordinary

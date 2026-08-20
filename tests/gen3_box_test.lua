@@ -2384,4 +2384,120 @@ do
   for _, name in ipairs(NAMES) do package.loaded[name] = realModules[name] end
 end
 
+-- ------- ...and Wilds of Kanto's follower, which is not the engine's
+--
+-- 1.9.1 respawned the ENGINE's follower and the report stayed open. That mod
+-- does not ride PikachuFollower at all: it keeps its own trailing entities
+-- and designates the follower through save data rather than party order, so
+-- the engine respawn rebuilt something that was never the thing on screen.
+--
+-- Its exported syncAll(game, ow) is the seam that does what a map change
+-- does, which is exactly what the reporter observed fixes it. So: when that
+-- mod is installed and the party changed, it must be called.
+do
+  local loaderRef = run.loader
+  loaderRef.mods = loaderRef.mods or {}
+  loaderRef.exports = loaderRef.exports or {}
+  local OW = "overworld_wild_spawns"
+
+  local syncCalls, sawGame, sawOw = 0, nil, nil
+  loaderRef.mods[OW] = { enabled = true, failed = false,
+                          manifest = { version = "2.1.8" } }
+  loaderRef.exports[OW] = {
+    syncAll = function(g, ow)
+      syncCalls = syncCalls + 1
+      sawGame, sawOw = g, ow
+    end,
+  }
+
+  local anySpecies = next(Data.pokemon)
+
+  -- the party changed: both followers are told
+  do
+    local game = fakeGame({ mon(anySpecies, 5) }, { mon(anySpecies, 9) })
+    game.overworld = { fake = "the overworld" }
+    local screen = factory.new(game)
+    syncCalls = 0
+    table.insert(game.save.party, game.save.boxes[1][1])
+    table.remove(game.save.boxes[1], 1)
+    screen:exit()
+    T.eq(syncCalls, 1, "Wilds of Kanto's own syncAll is called on the way out")
+    T.check(sawGame == game, "with the live game")
+    T.check(sawOw == game.overworld, "and the live overworld")
+  end
+
+  -- nothing changed: nothing is disturbed
+  do
+    local game = fakeGame({ mon(anySpecies, 5) }, { mon(anySpecies, 9) })
+    game.overworld = { fake = "the overworld" }
+    local screen = factory.new(game)
+    syncCalls = 0
+    screen:exit()
+    T.eq(syncCalls, 0, "an untouched party leaves that mod alone")
+  end
+
+  -- DISABLED, not absent: mod.find calls isActive (src/mods/Loader.lua:1239)
+  -- and answers nil for a mod that is switched off or failed to load, so the
+  -- guard is the same one. A player who turned Wilds of Kanto off must not
+  -- have this screen reaching into it anyway.
+  do
+    loaderRef.mods[OW] = { enabled = false, failed = false,
+                            manifest = { version = "2.1.8" } }
+    local game = fakeGame({ mon(anySpecies, 5) }, { mon(anySpecies, 9) })
+    game.overworld = { fake = "the overworld" }
+    local screen = factory.new(game)
+    syncCalls = 0
+    table.insert(game.save.party, game.save.boxes[1][1])
+    local ok = pcall(function() screen:exit() end)
+    T.check(ok, "a disabled Wilds of Kanto does not break the exit")
+    T.eq(syncCalls, 0, "and is not reached into")
+    loaderRef.mods[OW] = { enabled = true, failed = false,
+                            manifest = { version = "2.1.8" } }
+  end
+
+  -- An OLDER Wilds of Kanto, from before syncAll existed: the export is
+  -- simply not there, and a missing export must degrade to the engine
+  -- follower rather than throwing on the way out of a screen.
+  do
+    loaderRef.exports[OW] = { spriteProviders = {} }
+    local game = fakeGame({ mon(anySpecies, 5) }, { mon(anySpecies, 9) })
+    game.overworld = { fake = "the overworld" }
+    local screen = factory.new(game)
+    table.insert(game.save.party, game.save.boxes[1][1])
+    local ok = pcall(function() screen:exit() end)
+    T.check(ok, "a Wilds of Kanto without syncAll does not break the exit")
+  end
+
+  -- On GOLD the world is spelled differently, and that is what has to reach
+  -- the other mod: it takes the live overworld as its second argument.
+  do
+    loaderRef.exports[OW] = {
+      syncAll = function(g, ow) syncCalls = syncCalls + 1; sawGame, sawOw = g, ow end,
+    }
+    local game = fakeGame({ mon(anySpecies, 5) }, { mon(anySpecies, 9) })
+    game.overworld = nil
+    game.world = { fake = "Gold's world" }
+    game.save.generation = 2
+    local screen = factory.new(game)
+    syncCalls = 0
+    table.insert(game.save.party, game.save.boxes[1][1])
+    screen:exit()
+    T.eq(syncCalls, 1, "on Gold it is still called")
+    T.check(sawOw == game.world, "and handed Gold's own world")
+  end
+
+  loaderRef.mods[OW] = nil
+  loaderRef.exports[OW] = nil
+
+  -- and with that mod absent it is one nil check, not a throw
+  do
+    local game = fakeGame({ mon(anySpecies, 5) }, { mon(anySpecies, 9) })
+    game.overworld = { fake = "the overworld" }
+    local screen = factory.new(game)
+    table.insert(game.save.party, game.save.boxes[1][1])
+    local ok = pcall(function() screen:exit() end)
+    T.check(ok, "with Wilds of Kanto absent, closing the screen still works")
+  end
+end
+
 T.finish("gen3_box")
