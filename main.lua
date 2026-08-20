@@ -578,7 +578,67 @@ return function(mod)
     -- is as deposited as the one dropped a second ago, and "rested unless
     -- you happened to be looking at that box when you left" is not a rule
     -- anybody could hold in their head.
+    -- ------- the follower has to be told the party changed
+    --
+    -- Reported: deposit a shiny that is following you, withdraw an ordinary
+    -- Pokemon, close the screen -- and the follower behind you is still the
+    -- shiny one until you change maps or step into a Pokemon Centre.
+    --
+    -- Nothing here was wrong about the party: it really did change. What was
+    -- missing is that ANYTHING was said about it. This screen moves Pokemon
+    -- with its own table operations rather than through the vanilla PC's
+    -- flow, and the follower is spawned once and then left alone -- it is
+    -- rebuilt on PikachuFollower.onMapEntered, which is exactly why walking
+    -- through a door fixes it. A follower mod (Wilds of Kanto) reads the
+    -- Pokemon at spawn time, so a stale entity keeps the old species, the
+    -- old palette and the old shininess.
+    --
+    -- So: respawn it on the way out, with viaMapLoad FALSE -- the mid-map
+    -- respawn the engine already uses for a bike dismount or a revive, which
+    -- puts the follower on the cell behind the player rather than under him
+    -- as a fresh map entry would.
+    --
+    -- `src.world.PikachuFollower` is one of the fifteen names the Gen 2
+    -- adapter serves, resolving to src/world/gen2/Follower.lua on a Gold
+    -- boot with the same onMapEntered signature, so this one call covers
+    -- both games. The overworld is spelled differently between them, which
+    -- is the only branch needed.
+    local function refreshFollower()
+      local ow = game.overworld or game.world
+      if not ow then return end
+      local ok, Follower = pcall(require, "src.world.PikachuFollower")
+      if not ok or type(Follower) ~= "table" then return end
+      if type(Follower.onMapEntered) ~= "function" then return end
+      -- Every call into it is guarded: this runs while the screen is being
+      -- torn down, and a throw here would take the exit with it.
+      pcall(Follower.onMapEntered, game, ow, nil, false)
+    end
+
+    -- Whether the party is the one we opened with. Identity, not contents:
+    -- the same six tables in the same order is "unchanged", and any swap,
+    -- deposit or withdrawal moves at least one of them.
+    local function partySnapshot()
+      local out = {}
+      for i, mon in ipairs(game.save.party or {}) do out[i] = mon end
+      return out
+    end
+
+    local function partyChangedFrom(before)
+      local now = game.save.party or {}
+      if #now ~= #before then return true end
+      for i = 1, #now do
+        if now[i] ~= before[i] then return true end
+      end
+      return false
+    end
+
+    self.partyAtOpen = partySnapshot()
+
     function self:exit()
+      -- The follower first, and outside the healing gate: BOX HEALS is off
+      -- by default and this has nothing to do with it.
+      if partyChangedFrom(self.partyAtOpen or {}) then refreshFollower() end
+
       if not healing() then return end
       local gen2 = isGen2(game)
       for _, box in ipairs(Boxes.ensure(game.save)) do

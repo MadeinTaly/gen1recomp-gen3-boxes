@@ -1,5 +1,34 @@
 # Changelog
 
+## 1.9.1 — the follower is told when the party changes
+
+Reported: deposit the shiny that is following you, withdraw an ordinary
+Pokémon, close the screen — and the follower behind you is still the shiny
+one, until you change maps or step into a Pokémon Centre.
+
+Nothing here was wrong about the party: it really did change. What was missing
+is that anything was **said** about it. This screen moves Pokémon with its own
+table operations rather than through the vanilla PC's flow, and the follower
+is spawned once and then left alone — it is rebuilt on
+`PikachuFollower.onMapEntered`, which is exactly why walking through a door
+fixes it. A follower mod reads the Pokémon at spawn time, so a stale entity
+keeps the old species, the old palette and the old shininess.
+
+So the screen now asks for that rebuild on the way out, and only when the
+party it opened with is not the party it is closing with — identity, not
+contents, so any swap, deposit or withdrawal counts and an untouched visit
+does not twitch the thing behind you for no reason.
+
+The respawn is `viaMapLoad = false`: the mid-map respawn the engine already
+uses for a bike dismount or a revive, which puts the follower on the cell
+behind the player rather than under him as a fresh map entry would.
+
+One call covers both games. `src.world.PikachuFollower` is one of the fifteen
+names the Gen 2 adapter serves, resolving to `src/world/gen2/Follower.lua` on
+a Gold boot with the same signature; only the overworld is spelled
+differently (`game.overworld` against `game.world`), and that is the one
+branch.
+
 ## 1.9.0 — the box is somewhere, and a shiny is not its species
 
 Two things: the wallpaper became a place, and issue #2 is fixed.

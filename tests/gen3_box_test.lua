@@ -2297,4 +2297,79 @@ do
   G.line, G.rectangle, G.setColor = realLine, realRect, realColor
 end
 
+-- ------- the follower is told when the party changes
+--
+-- Reported: deposit the shiny that is following you, withdraw an ordinary
+-- Pokemon, close the screen, and the follower behind you is still the shiny
+-- one until you change maps or enter a Pokemon Centre.
+--
+-- The party really did change; what was missing is that anything was SAID
+-- about it. The follower is spawned once and rebuilt on
+-- PikachuFollower.onMapEntered, which is why walking through a door fixes
+-- it -- so this screen has to ask for that rebuild on the way out.
+--
+-- Asserted through the engine module itself, and both ways round: a screen
+-- that changed nothing must NOT respawn the follower, or every visit to the
+-- boxes would twitch the thing behind you for no reason.
+do
+  -- The mod requires this module through the loader's own require shim, so
+  -- swapping a field on the table this file gets back is not necessarily
+  -- swapping the table the mod sees. The module entry itself is replaced
+  -- instead, which every route to it resolves through.
+  local MODULE = "src.world.PikachuFollower"
+  local realModule = package.loaded[MODULE]
+  local calls, lastViaMapLoad = 0, "unset"
+  package.loaded[MODULE] = {
+    onMapEntered = function(_game, _ow, _opts, viaMapLoad)
+      calls = calls + 1
+      lastViaMapLoad = viaMapLoad
+    end,
+  }
+
+  local anySpecies = next(Data.pokemon)
+
+  -- 1. Opened and closed without touching anything.
+  do
+    local game = fakeGame({ mon(anySpecies, 5) }, { mon(anySpecies, 9) })
+    game.overworld = { fake = "the overworld" }
+    local screen = factory.new(game)
+    calls = 0
+    screen:exit()
+    T.eq(calls, 0, "an untouched party does not respawn the follower")
+  end
+
+  -- 2. A withdrawal: box -> party, which is exactly the reported flow.
+  do
+    local game = fakeGame({ mon(anySpecies, 5) }, { mon(anySpecies, 9) })
+    game.overworld = { fake = "the overworld" }
+    local screen = factory.new(game)
+    calls = 0
+    -- The mon that was in the box is now the party's, the way a withdrawal
+    -- leaves it.
+    table.insert(game.save.party, game.save.boxes[1][1])
+    table.remove(game.save.boxes[1], 1)
+    screen:exit()
+    T.eq(calls, 1, "a party that changed respawns the follower once")
+    T.eq(lastViaMapLoad, false,
+      "and as a MID-MAP respawn -- behind the player, not under him")
+  end
+
+  -- 3. Gold spells the overworld differently, and the adapter serves the
+  --    same module name there, so the one call has to cover both.
+  do
+    local game = fakeGame({ mon(anySpecies, 5) }, { mon(anySpecies, 9) })
+    game.overworld = nil
+    game.world = { fake = "Gold's world" }
+    game.save.generation = 2
+    local screen = factory.new(game)
+    calls = 0
+    table.insert(game.save.party, game.save.boxes[1][1])
+    table.remove(game.save.boxes[1], 1)
+    screen:exit()
+    T.eq(calls, 1, "on Gold the world is found under its own name")
+  end
+
+  package.loaded[MODULE] = realModule
+end
+
 T.finish("gen3_box")
