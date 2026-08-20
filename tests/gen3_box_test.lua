@@ -2316,15 +2316,27 @@ do
   -- swapping a field on the table this file gets back is not necessarily
   -- swapping the table the mod sees. The module entry itself is replaced
   -- instead, which every route to it resolves through.
-  local MODULE = "src.world.PikachuFollower"
-  local realModule = package.loaded[MODULE]
+  -- BOTH names, because which one the mod's require resolves to depends on
+  -- the boot: on a Gen 2 boot the loader's shim answers
+  -- `src.world.PikachuFollower` with the adapter over
+  -- `src.world.gen2.Follower` ("gen2 facade: src.world.PikachuFollower ->
+  -- src.world.gen2.Follower" in the log), and this suite loads the mod on
+  -- both generations before it gets here. Stubbing only the Gen 1 name
+  -- passed locally and failed in CI, which is the test being fragile rather
+  -- than the mod being wrong.
+  local NAMES = { "src.world.PikachuFollower", "src.world.gen2.Follower" }
+  local realModules = {}
   local calls, lastViaMapLoad = 0, "unset"
-  package.loaded[MODULE] = {
+  local stub = {
     onMapEntered = function(_game, _ow, _opts, viaMapLoad)
       calls = calls + 1
       lastViaMapLoad = viaMapLoad
     end,
   }
+  for _, name in ipairs(NAMES) do
+    realModules[name] = package.loaded[name]
+    package.loaded[name] = stub
+  end
 
   local anySpecies = next(Data.pokemon)
 
@@ -2369,7 +2381,7 @@ do
     T.eq(calls, 1, "on Gold the world is found under its own name")
   end
 
-  package.loaded[MODULE] = realModule
+  for _, name in ipairs(NAMES) do package.loaded[name] = realModules[name] end
 end
 
 T.finish("gen3_box")
