@@ -392,18 +392,28 @@ return function(mod)
     -- 1. What this PARTICULAR Pokemon should look like. Sprites.path raises
     --    `pokemon.sprite` with the live mon in its ctx, which is how a shiny
     --    is told apart from an ordinary one of the same species (issue #2).
-    local okPath, resolved = pcall(Sprites.path, game.data, mon.species,
-      "front", { mon = mon, kind = "summary" })
+    --
+    --    It answers `path, trueColor` (src/pokemon/Sprites.lua:24-42), and
+    --    the SECOND value is the one issue #4 turned on: it is the sprite
+    --    mod's own word for "this art is already coloured", either from the
+    --    species record's `trueColor` or set on the ctx by its
+    --    `pokemon.sprite` hook. Dropping it -- which is what this line did --
+    --    left drawPic unable to tell Crystal art from a four-shade Gen 1
+    --    pic, so both went under the shade remap and the coloured one came
+    --    out wrong. It is returned alongside the image from here on.
+    local okPath, resolved, trueColor = pcall(Sprites.path, game.data,
+      mon.species, "front", { mon = mon, kind = "summary" })
     if okPath then
       local img = tryPath(resolved)
-      if img then return img end
+      if img then return img, trueColor and true or false end
     end
 
     -- 2. The species record: an older engine with no seam, a wrapper that
     --    threw, or art this screen cannot draw. Going through Assets.image
     --    means a Crystal-sprites mod's replacement art still shows up here,
-    --    rather than this screen pinning the vanilla PNG.
-    return tryPath(def.spriteFront)
+    --    rather than this screen pinning the vanilla PNG. A record that
+    --    carries its own art carries its own `trueColor` with it.
+    return tryPath(def.spriteFront), def.trueColor and true or false
   end
 
   -- ------- marks (Gen 3's CIRCLE/SQUARE/TRIANGLE/HEART)
@@ -643,7 +653,70 @@ return function(mod)
       if not okHandle or not handle or not handle.exports then return end
       local syncAll = handle.exports.syncAll
       if type(syncAll) ~= "function" then return end
+
+      -- ------- and where it comes back (issue #3, the second report)
+      --
+      -- 1.9.2 rebuilt the right follower and put it in the wrong place: it
+      -- reappeared ON the player rather than behind him. That is not a
+      -- choice this screen makes, it is what syncAll asks for -- it always
+      -- calls syncTrailers with `mapEnter = true`
+      -- (lib/follower/control_engine.lua:4056-4060), and a map entry with no
+      -- walked trail behind it parks the pack on the player's own cell so it
+      -- walks out from under him, the Red/Blue door-exit look
+      -- (:2418-2432). Nobody walked anywhere while the box was open, so the
+      -- trail is empty every time and that branch is the one that runs.
+      --
+      -- There is no "mid-map" mode on that export to ask for instead, so the
+      -- cells are remembered before the rebuild and given back after it. The
+      -- restore is deliberately narrow: only a trailer that came back
+      -- standing exactly on the player is moved, which is the parked case
+      -- and nothing else. A rebuild that changed the number of followers
+      -- goes down that mod's own grow/trim path with its positions intact,
+      -- and this leaves it alone.
+      --
+      -- The move itself is that mod's own placeTrailerAt
+      -- (lib/follower/control_engine.lua:2199-2207) written out: cellX/cellY
+      -- are the real position, px/py the presentation (biased per slot by
+      -- `_wildsDrawBias` for its draw order), and the step state is cleared
+      -- so the trailer stands on the cell rather than sliding to it. Its
+      -- trail cell moves with it, because pokepcTrailCells is what the pack
+      -- walks back along on the player's next step and a stale entry there
+      -- would pull the follower onto the player again.
+      --
+      -- Every field is read defensively: this is another mod's entity table.
+      local before = {}
+      if type(ow.pokepcTrailers) == "table" then
+        for i, npc in ipairs(ow.pokepcTrailers) do
+          if type(npc) == "table" then
+            before[i] = { x = npc.cellX, y = npc.cellY, facing = npc.facing }
+          end
+        end
+      end
+
       pcall(syncAll, game, ow)
+
+      pcall(function()
+        local player = ow.player
+        if not player or type(ow.pokepcTrailers) ~= "table" then return end
+        for i, npc in ipairs(ow.pokepcTrailers) do
+          local was = before[i]
+          if type(npc) == "table" and was and was.x and was.y
+              and npc.cellX == player.cellX and npc.cellY == player.cellY then
+            npc.cellX, npc.cellY = was.x, was.y
+            npc.px = was.x * 16
+            npc.py = was.y * 16 + (npc._wildsDrawBias or 0)
+            npc.targetX, npc.targetY = nil, nil
+            npc.moving = false
+            npc.progress = 0
+            npc.hopStep = nil
+            if was.facing then npc.facing = was.facing end
+            local cells = ow.pokepcTrailCells
+            if type(cells) == "table" and type(cells[i]) == "table" then
+              cells[i].x, cells[i].y = was.x, was.y
+            end
+          end
+        end
+      end)
     end
 
     -- Whether the party is the one we opened with. Identity, not contents:
@@ -887,11 +960,29 @@ return function(mod)
     -- because box_struct carries none), so handing it one straight out of
     -- save.boxes is the supported path -- Bill's PC STATS entry does
     -- exactly this.
+    --
+    -- The two screens are NOT closed the same way, which is the whole of
+    -- issue #5. Gen 1's SummaryMenu pops itself (src/ui/SummaryMenu.lua:65:
+    -- A or B off page two calls game.stack:pop()), so handing it the mon and
+    -- walking away is complete. Gold's does not: every exit path in
+    -- src/ui/gen2/SummaryMenu.lua ends at self:close(), and close() is
+    -- `if self.onClose then self.onClose() end` (:664-666) -- with no
+    -- callback the screen answers B by doing nothing at all and stays on the
+    -- stack forever, which is the soft lock as reported. Gold's own PC passes
+    -- one (src/ui/gen2/BoxMenu.lua:309-313) and so does its party menu; this
+    -- screen was the only caller that did not.
     local function showStats()
       local mon = self.held and self.held.mon or list()[index()]
       if not mon then return end
       if isGen2(game) then
-        Screens.push(game, SCREEN_SUMMARY_GEN2, { mon = mon })
+        -- the same guard the vanilla Gold PC uses one line above its own
+        -- push: an engine build without the screen registered leaves STATS
+        -- doing nothing, rather than throwing inside a menu
+        if not pcall(Screens.get, game, SCREEN_SUMMARY_GEN2) then return end
+        Screens.push(game, SCREEN_SUMMARY_GEN2, {
+          mon = mon,
+          onClose = function() game.stack:pop() end,
+        })
       else
         Screens.push(game, SCREEN_SUMMARY_GEN1, mon)
       end
@@ -1668,7 +1759,16 @@ return function(mod)
       local okQuad, quad = pcall(love.graphics.newQuad, 0, 0, iw, fh, iw, ih)
       if not okQuad or not quad then return miss() end
 
-      local sprite = { image = img, quad = quad, w = iw, h = fh }
+      -- That mod's sprite defs carry the engine's `trueColor` flag, and its
+      -- own convention is that UNSET means full colour -- `def.trueColor ~=
+      -- false` is the exact test its provider chain uses
+      -- (lib/sprite_providers.lua:119-125), and its party-menu patch marks
+      -- the rect it draws for the same reason drawPic does below
+      -- (lib/follower/sprite_service.lua:372). These sprites are coloured
+      -- art, so this is nearly always true; it is read rather than assumed
+      -- because that mod also serves luminance sheets with the flag off.
+      local sprite = { image = img, quad = quad, w = iw, h = fh,
+                       trueColor = def.trueColor ~= false }
       cache[key] = sprite
       return sprite
     end
@@ -1680,13 +1780,55 @@ return function(mod)
     local function spriteToDraw(mon)
       if owSpritesOn() and layout(game).cell == LAYOUT.classic.cell then
         local sprite = owSpriteFor(mon)
-        if sprite then return { kind = "ow", sprite = sprite } end
+        if sprite then
+          return { kind = "ow", sprite = sprite, trueColor = sprite.trueColor }
+        end
       end
-      local img = picOf(game, mon)
-      if img then return { kind = "battle", img = img } end
+      local img, trueColor = picOf(game, mon)
+      if img then return { kind = "battle", img = img, trueColor = trueColor } end
       return nil
     end
     self.spriteToDraw = spriteToDraw
+
+    -- ------- full-colour art and the shade remap (issue #4)
+    --
+    -- sgbPalettes below hands every cell its species' four-colour SGB
+    -- palette, and the renderer's shader reads the pixels under that zone as
+    -- four DMG greys and maps them onto those four colours. That is right
+    -- for a Gen 1 battle pic and wrong for anything already coloured: a
+    -- Crystal-sprites mod's art has real RGB in it, so the brightness of
+    -- each pixel picks an unrelated colour out of the ramp and the Pokemon
+    -- comes out in somebody else's palette.
+    --
+    -- The engine's answer is not to drop the zone but to report the rect the
+    -- coloured art covers: Renderer:endFrame splices every rect reported
+    -- here into the pass as a `colors = false` zone and re-blits it
+    -- unshaded over the colourised frame (PaletteFX.lua:226-274). The cell
+    -- around the sprite keeps the species palette and the wallpaper keeps
+    -- its own, so nothing else on the screen changes -- this is exactly what
+    -- the engine's own summary screen does with its pic
+    -- (src/ui/SummaryMenu.lua:118-124).
+    --
+    -- Vanilla art never carries the flag, so on a mod-free boot nothing is
+    -- reported and the frame is the one 1.9.2 drew. Guarded through pcall
+    -- for the same reason every other engine call in this file is: an engine
+    -- old enough to have no markTrueColor draws what it drew before.
+    -- Resolved on the first coloured picture drawn and remembered as false
+    -- when there is nothing to resolve, so a draw loop that runs twenty
+    -- times a frame asks once. `false` rather than nil, because nil is
+    -- "not looked yet" and an engine without the function must not be
+    -- looked up again every cell.
+    local paletteFX
+    local function markTrueColor(x, y, w, h)
+      if w <= 0 or h <= 0 then return end
+      if paletteFX == nil then
+        local okFX, fx = pcall(require, "src.render.PaletteFX")
+        paletteFX = okFX and type(fx) == "table"
+          and type(fx.markTrueColor) == "function" and fx or false
+      end
+      if not paletteFX then return end
+      pcall(paletteFX.markTrueColor, x, y, w, h)
+    end
 
     local function drawPic(mon, x, y)
       local L = layout(game)
@@ -1696,15 +1838,17 @@ return function(mod)
         local sprite = chosen.sprite
         local k = scaleFor(sprite.w, sprite.h, L.cell)
         local w, h = sprite.w * k, sprite.h * k
-        love.graphics.draw(sprite.image, sprite.quad,
-          x + (L.cell - w) / 2, y + (L.cell - h) / 2, 0, k, k)
+        local dx, dy = x + (L.cell - w) / 2, y + (L.cell - h) / 2
+        love.graphics.draw(sprite.image, sprite.quad, dx, dy, 0, k, k)
+        if chosen.trueColor then markTrueColor(dx, dy, w, h) end
         return
       end
       local img = chosen.img
       local k = picScale(img, L.cell)
       local w, h = img:getWidth() * k, img:getHeight() * k
-      love.graphics.draw(img, x + (L.cell - w) / 2, y + (L.cell - h) / 2,
-        0, k, k)
+      local dx, dy = x + (L.cell - w) / 2, y + (L.cell - h) / 2
+      love.graphics.draw(img, dx, dy, 0, k, k)
+      if chosen.trueColor then markTrueColor(dx, dy, w, h) end
     end
 
     -- ------- the marks

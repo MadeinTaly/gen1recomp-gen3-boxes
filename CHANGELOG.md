@@ -1,5 +1,68 @@
 # Changelog
 
+## 1.9.3-beta.1 — a way out, the right colours, and the cell behind you
+
+Three reports, three seams, none of them the same bug. It ships as a
+pre-release because all three are confirmed from the code and none of them
+from a screen: the launcher leaves everyone on 1.9.2 until the people who
+reported them say these are fixed.
+
+
+
+**START on a Pokemon soft-locked Gold (#5).** The two summary screens are
+not closed the same way and this screen treated them as if they were. Gen 1's
+pops itself — A or B off page two is `game.stack:pop()`
+(`src/ui/SummaryMenu.lua:65`), so handing it the mon and walking away is the
+whole call. Gold's does not: every exit path in `src/ui/gen2/SummaryMenu.lua`
+ends at `self:close()`, and `close()` is `if self.onClose then self.onClose()
+end` (`:664-666`). With no callback, B does nothing at all and the screen
+stays on the stack forever. Gold's own PC passes one
+(`src/ui/gen2/BoxMenu.lua:309-313`) and so does its party menu; this screen
+was the only caller that did not. It passes one now, behind the same
+`pcall(Screens.get, ...)` guard the vanilla PC uses, so an engine build
+without the screen leaves STATS inert rather than throwing inside a menu.
+Red, Blue and Yellow are untouched — that path was already right.
+
+**Crystal sprites came out in somebody else's palette (#4).** Every cell
+wears its species' four-colour SGB palette, and the renderer's shader reads
+the pixels under that zone as four DMG greys and maps them onto those four
+colours. That is right for a Gen 1 battle pic and wrong for art that is
+already coloured: real RGB pixels pick their new colour by brightness, out of
+a ramp that has nothing to do with them.
+
+The engine has carried the answer all along, and this screen was throwing it
+away. `Sprites.path` returns `path, trueColor` — the sprite mod's own word
+for "this art is already coloured", set either on the species record or on
+the ctx by its `pokemon.sprite` hook — and `picOf` captured only the path.
+The flag now travels with the image to `drawPic`, which reports the rect the
+coloured art covers through `PaletteFX.markTrueColor`. The renderer splices
+those rects into the pass as `colors = false` zones and re-blits them
+unshaded over the colourised frame, which is exactly what the engine's own
+summary screen does with its pic (`src/ui/SummaryMenu.lua:118-124`). The cell
+around the sprite keeps its species palette and the wallpaper keeps its own,
+so nothing else on the screen moves. Wilds of Kanto's overworld sprites go
+through the same path, read from that mod's own `trueColor` convention
+(unset means full colour, `lib/sprite_providers.lua:119-125`). Vanilla art
+never sets the flag: on a mod-free boot nothing is reported and the frame is
+the one 1.9.2 drew.
+
+**The follower came back standing on you (#3).** 1.9.2 rebuilt the right
+follower and put it in the wrong place, and the reporter said so. That is not
+a choice this screen makes: `syncAll` always asks for `mapEnter = true`
+(`lib/follower/control_engine.lua:4056-4060`), and a map entry with no walked
+trail behind it parks the pack on the player's own cell so it walks out from
+under him — the Red/Blue door-exit look (`:2418-2432`). Nobody walks anywhere
+while the box is open, so that branch is the one that runs every time.
+
+There is no mid-map mode on that export to ask for instead, so the cells are
+remembered before the rebuild and given back after it, the way that mod's own
+`placeTrailerAt` writes them (`:2199-2207`) and with the trail cell moved
+along, since `pokepcTrailCells` is what the pack walks back down on the next
+step. The restore is deliberately narrow: only a trailer that came back
+standing exactly on the player is moved. A rebuild that changed the number of
+followers goes down that mod's own grow/trim path with its positions already
+intact, and this leaves it alone.
+
 ## 1.9.2 — the other follower, the one that was actually on screen
 
 1.9.1 respawned the **engine's** follower when the party changed, and the

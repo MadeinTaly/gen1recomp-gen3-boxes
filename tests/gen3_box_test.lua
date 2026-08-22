@@ -235,6 +235,19 @@ do
     "on Gen 2, START opens the Gen2-prefixed summary screen")
   T.eq(pushed and pushed.mon and pushed.mon.mon and pushed.mon.mon.species,
     "PIKACHU", "wrapped in opts.mon, the Gen 2 constructor shape")
+
+  -- ...and with the way OUT. Gold's summary never pops itself: every exit
+  -- path ends at self:close(), which is `if self.onClose then self.onClose()
+  -- end` (src/ui/gen2/SummaryMenu.lua:664-666), so a push without the
+  -- callback answers B by doing nothing and the screen stays up forever
+  -- (issue #5). Gold's own PC passes one; so does this screen now.
+  T.eq(type(pushed and pushed.mon and pushed.mon.onClose), "function",
+    "and with an onClose, because Gold's summary cannot close itself")
+  local sentinel = { "the summary, on the stack" }
+  gen2Game.stack:push(sentinel)
+  pushed.mon.onClose()
+  T.check(gen2Game.stack:top() ~= sentinel,
+    "and that callback is what takes it back off the stack")
 end
 
 -- ------- MAIL stays with its own mon, Gen 2 only
@@ -1816,6 +1829,71 @@ do
     store.grid = "classic"
   end
 
+  -- ------- and whether that picture is already coloured (issue #4)
+  --
+  -- The cell wears its species' four-colour SGB palette, and the renderer
+  -- reads the pixels under it as four DMG greys. Art that is already
+  -- coloured has to say so or it comes out in somebody else's palette, so
+  -- the flag travels with the picture from here to the draw. That mod's own
+  -- convention is that UNSET means full colour
+  -- (lib/sprite_providers.lua:119-125), which is what the defs below check.
+  do
+    store.owSprites = true
+    store.grid = "classic"
+
+    installOw(function()
+      return { def = { image = "ow.png", frames = 1 }, providerId = "gold" }
+    end)
+    local game = fakeGame({ mon(anySpecies, 5) })
+    local screen = factory.new(game)
+    local chosen = screen.spriteToDraw(game.save.boxes[1][1])
+    T.eq(chosen and chosen.kind, "ow", "the overworld sprite is what is drawn")
+    T.check(chosen and chosen.trueColor == true,
+      "and an overworld sprite with no flag is full colour, that mod's own default")
+    removeOw()
+
+    -- ...and a luminance sheet, which that mod serves with the flag OFF,
+    -- is four shades and belongs under the remap like a battle pic
+    installOw(function()
+      return { def = { image = "ow.png", frames = 1, trueColor = false },
+               providerId = "gold" }
+    end)
+    local lumaGame = fakeGame({ mon(anySpecies, 5) })
+    local lumaScreen = factory.new(lumaGame)
+    local luma = lumaScreen.spriteToDraw(lumaGame.save.boxes[1][1])
+    T.check(luma and luma.trueColor == false,
+      "a sprite that says trueColor = false keeps the shade remap")
+    removeOw()
+  end
+
+  -- The battle picture carries the same word, and it is Sprites.path's
+  -- SECOND return value -- the one 1.9.2 dropped on the floor, which is the
+  -- whole of issue #4. A Crystal-sprites mod sets it on the record or on the
+  -- ctx; vanilla art never does.
+  do
+    store.owSprites = false
+    store.grid = "classic"
+    local def = Data.pokemon[anySpecies]
+    local realFlag = def.trueColor
+
+    def.trueColor = nil
+    local plainGame = fakeGame({ mon(anySpecies, 5) })
+    local plain = factory.new(plainGame)
+    local chosenPlain = plain.spriteToDraw(plainGame.save.boxes[1][1])
+    T.eq(chosenPlain and chosenPlain.kind, "battle", "vanilla art is a battle pic")
+    T.check(chosenPlain and not chosenPlain.trueColor,
+      "and carries no trueColor, so the SGB remap it was drawn for still runs")
+
+    def.trueColor = true
+    local colourGame = fakeGame({ mon(anySpecies, 5) })
+    local colour = factory.new(colourGame)
+    local chosenColour = colour.spriteToDraw(colourGame.save.boxes[1][1])
+    T.check(chosenColour and chosenColour.trueColor == true,
+      "a record that says its art is already coloured says so all the way to the draw")
+
+    def.trueColor = realFlag
+  end
+
   -- a black-fallback result is treated as a miss, the same as no handle
   do
     store.owSprites = true
@@ -2498,6 +2576,118 @@ do
     local ok = pcall(function() screen:exit() end)
     T.check(ok, "with Wilds of Kanto absent, closing the screen still works")
   end
+end
+
+-- ------- ...and it comes back where it was standing
+--
+-- 1.9.2 rebuilt the right follower and put it in the wrong place: it
+-- reappeared ON the player rather than behind him, which is the second half
+-- of issue #3. Not a choice this screen makes -- syncAll always asks for
+-- `mapEnter = true` (lib/follower/control_engine.lua:4056-4060), and a map
+-- entry with no walked trail behind it parks the pack on the player's own
+-- cell so it walks out from under him. Nobody walks anywhere while the box
+-- is open, so that is the branch that runs every time.
+--
+-- The stub below is that behaviour in miniature: it throws the trailers away
+-- and rebuilds them parked on the player, the way the real re-seed does.
+do
+  local loaderRef = run.loader
+  loaderRef.mods = loaderRef.mods or {}
+  loaderRef.exports = loaderRef.exports or {}
+  local OW = "overworld_wild_spawns"
+  local anySpecies = next(Data.pokemon)
+
+  local function fakeOw()
+    return {
+      player = { cellX = 7, cellY = 4 },
+      -- the follower where it really is: one cell below, behind a player
+      -- walking up, with that mod's own sub-pixel draw-order bias on py
+      pokepcTrailers = { {
+        cellX = 7, cellY = 5, facing = "up",
+        px = 7 * 16, py = 5 * 16 + 0.5, _wildsDrawBias = 0.5,
+      } },
+      pokepcTrailCells = { { x = 7, y = 5 } },
+    }
+  end
+
+  -- syncAll as the real one behaves: the old trailer is gone, a NEW one
+  -- stands on the player, and the trail cell it will walk down points there
+  local function parkOnPlayer(_g, ow)
+    ow.pokepcTrailers = { {
+      cellX = ow.player.cellX, cellY = ow.player.cellY, facing = "down",
+      px = ow.player.cellX * 16, py = ow.player.cellY * 16 + 0.5,
+      _wildsDrawBias = 0.5,
+    } }
+    ow.pokepcTrailCells = { { x = ow.player.cellX, y = ow.player.cellY } }
+  end
+
+  loaderRef.mods[OW] = { enabled = true, failed = false,
+                          manifest = { version = "2.1.9" } }
+  loaderRef.exports[OW] = { syncAll = parkOnPlayer }
+
+  do
+    local game = fakeGame({ mon(anySpecies, 5) }, { mon(anySpecies, 9) })
+    game.overworld = fakeOw()
+    local screen = factory.new(game)
+    table.insert(game.save.party, game.save.boxes[1][1])
+    table.remove(game.save.boxes[1], 1)
+    screen:exit()
+
+    local trailer = game.overworld.pokepcTrailers[1]
+    T.eq(trailer.cellX, 7, "the rebuilt follower is put back on its own column")
+    T.eq(trailer.cellY, 5, "and its own row -- behind the player, not under him")
+    T.eq(trailer.px, 7 * 16, "px follows the cell")
+    T.eq(trailer.py, 5 * 16 + 0.5,
+      "and py with that mod's own draw-order bias kept")
+    T.eq(trailer.facing, "up", "facing as it was standing")
+    T.check(trailer.targetX == nil and trailer.moving == false,
+      "and standing still, rather than sliding to where it was put")
+    T.eq(game.overworld.pokepcTrailCells[1].y, 5,
+      "the trail cell moves with it, or the next step pulls it back onto the player")
+  end
+
+  -- A trailer that came back somewhere else was placed deliberately -- that
+  -- mod's own grow/trim path keeps positions -- and is left exactly alone.
+  do
+    loaderRef.exports[OW] = {
+      syncAll = function(_g, ow)
+        ow.pokepcTrailers = { { cellX = 9, cellY = 9, facing = "left",
+                                px = 9 * 16, py = 9 * 16 } }
+        ow.pokepcTrailCells = { { x = 9, y = 9 } }
+      end,
+    }
+    local game = fakeGame({ mon(anySpecies, 5) }, { mon(anySpecies, 9) })
+    game.overworld = fakeOw()
+    local screen = factory.new(game)
+    table.insert(game.save.party, game.save.boxes[1][1])
+    screen:exit()
+    local trailer = game.overworld.pokepcTrailers[1]
+    T.eq(trailer.cellX, 9, "a follower placed somewhere of its own is not moved")
+    T.eq(trailer.cellY, 9, "on either axis")
+  end
+
+  -- An overworld with no trailers at all, and one with no player: the
+  -- restore is bookkeeping over another mod's tables and must not be the
+  -- thing that throws on the way out of a screen.
+  do
+    loaderRef.exports[OW] = { syncAll = function() end }
+    local game = fakeGame({ mon(anySpecies, 5) }, { mon(anySpecies, 9) })
+    game.overworld = { fake = "an overworld with nothing on it" }
+    local screen = factory.new(game)
+    table.insert(game.save.party, game.save.boxes[1][1])
+    T.check(pcall(function() screen:exit() end),
+      "an overworld with no trailers closes the screen cleanly")
+
+    local bare = fakeGame({ mon(anySpecies, 5) }, { mon(anySpecies, 9) })
+    bare.overworld = { pokepcTrailers = { { cellX = 1, cellY = 1 } } }
+    local bareScreen = factory.new(bare)
+    table.insert(bare.save.party, bare.save.boxes[1][1])
+    T.check(pcall(function() bareScreen:exit() end),
+      "and so does one with trailers but no player")
+  end
+
+  loaderRef.mods[OW] = nil
+  loaderRef.exports[OW] = nil
 end
 
 T.finish("gen3_box")
