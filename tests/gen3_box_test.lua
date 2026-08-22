@@ -119,13 +119,16 @@ local function findMenu(game, title)
   return nil
 end
 
-local function fakeGame(boxMons, partyMons)
+-- `data` is the dataset the game hands the screen, and it is Data for every
+-- test here but one: the MAIL block runs on a real Gold boot, which is a
+-- second SDK load with a fixture dataset of its own (see it below for why).
+local function fakeGame(boxMons, partyMons, data)
   local boxes = {}
   for i = 1, 12 do boxes[i] = {} end
   for i, m in ipairs(boxMons or {}) do boxes[1][i] = m end
   local pressed = {}
   return {
-    data = Data,
+    data = data or Data,
     save = { boxes = boxes, currentBox = 1, party = partyMons or {} },
     stack = newStack(),
     input = { wasPressed = function(_, key) return pressed[key] end },
@@ -258,11 +261,32 @@ end
 -- departure down (Mail.removeSlot), and every site that grows save.party
 -- again has to make room the same way (gen2InsertPartySlot in main.lua) or
 -- a later mon lands wearing an earlier one's letter.
+--
+-- This one runs on a REAL Gold boot rather than on the Gen 1 harness with a
+-- Gen 2 save faked onto it, and that is not tidiness: the loader now refuses
+-- a mod any `src.*.gen2.*` module while the running game is Gen 1 --
+-- "the structs it reads and writes are not this game's, so anything it
+-- stores lands on the save in the wrong shape" (src/mods/Loader.lua:121-131,
+-- crossGenerationDenial). So a Gen 1 boot cannot reach the letters at all
+-- any more, and should not: it has none. The mod is unchanged by that rule
+-- -- on Gold the module resolves and the bookkeeping runs -- but the test
+-- has to boot the generation it is testing.
 do
-  local gen2Game = fakeGame({}, { mon("FIXMON_A", 1), mon("FIXMON_B", 2) })
+  local D = T.fixtures.fresh()
+  setmetatable(D, { __index = function(_, k)
+    local v = Data[k]
+    if type(v) == "function" then return v end
+    return nil
+  end })
+  local gen2Run = T.sdk.loadMod(DIR, { data = D, generation = 2 })
+  T.eq(#gen2Run.errors, 0, "the Gold boot the MAIL check needs loads clean")
+  local gen2Factory = D.screens and D.screens.Gen3Box
+  T.check(gen2Factory ~= nil, "and registers the screen on that boot")
+
+  local gen2Game = fakeGame({}, { mon("FIXMON_A", 1), mon("FIXMON_B", 2) }, D)
   gen2Game.save.generation = 2
   gen2Game.save.mail = { party = { [2] = { type = "FLOWER_MAIL", message = "for B" } } }
-  local screen = factory.new(gen2Game)
+  local screen = gen2Factory.new(gen2Game)
   gen2Game.press("select"); screen:update() -- cross to the party
   gen2Game.press("a"); screen:update()      -- grab slot 1 (FIXMON_A, no mail)
   gen2Game.press("b"); screen:update()      -- put it straight back
@@ -273,6 +297,7 @@ do
     "the letter followed FIXMON_B to its new slot")
   T.check(gen2Game.save.mail.party[2] == nil,
     "and did not stay behind on FIXMON_A's old slot, now FIXMON_A itself")
+  gen2Run.release()
 end
 
 -- over an empty cell there is nothing to show, and nothing to break

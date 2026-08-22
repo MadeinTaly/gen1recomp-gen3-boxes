@@ -46,6 +46,15 @@ through the same path, read from that mod's own `trueColor` convention
 never sets the flag: on a mod-free boot nothing is reported and the frame is
 the one 1.9.2 drew.
 
+**One test moved, for a reason worth writing down.** The engine now refuses a
+mod any `src.*.gen2.*` module while the running game is Gen 1 — "the structs
+it reads and writes are not this game's, so anything it stores lands on the
+save in the wrong shape" (`src/mods/Loader.lua`, `crossGenerationDenial`).
+The MAIL check here had been faking a Gen 2 save onto the Gen 1 harness, and
+that is exactly the thing the rule exists to stop. Nothing in the screen
+changed: on Gold the module resolves and the letters follow their Pokémon as
+they always did. The test simply boots the generation it is testing now.
+
 **The follower came back standing on you (#3).** 1.9.2 rebuilt the right
 follower and put it in the wrong place, and the reporter said so. That is not
 a choice this screen makes: `syncAll` always asks for `mapEnter = true`

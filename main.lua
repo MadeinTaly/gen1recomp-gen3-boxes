@@ -460,7 +460,7 @@ return function(mod)
   -- never sees it.
   local function gen2Mail()
     local ok, Mail = pcall(require, "src.core.gen2.Mail")
-    return ok and Mail or nil
+    return ok and type(Mail) == "table" and Mail or nil
   end
 
   local function monHoldsMail(mon)
