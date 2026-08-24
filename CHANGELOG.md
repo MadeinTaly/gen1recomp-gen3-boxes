@@ -1,11 +1,12 @@
 # Changelog
 
-## 1.9.3-beta.1 — a way out, the right colours, and the cell behind you
+## 1.9.3 — a way out, the right colours, and the cell behind you
 
-Three reports, three seams, none of them the same bug. It ships as a
-pre-release because all three are confirmed from the code and none of them
-from a screen: the launcher leaves everyone on 1.9.2 until the people who
-reported them say these are fixed.
+Three reports, three seams, none of them the same bug. 1.9.3-beta.1 went out
+as a pre-release first, and two of the three reporters came back on it: the
+soft lock and the follower's cell are confirmed fixed on a real screen, not
+only in the code. The third (#4, Crystal sprites) is confirmed from the
+engine's own trueColor contract and ships with them.
 
 
 
