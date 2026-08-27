@@ -167,6 +167,20 @@ return function(mod)
         { "60%", "60" },
         { "80%", "80" },
       } },
+    -- The title row and the footer are painted back to white because they
+    -- are black text, and Gen 3 keeps its header on a solid band for the
+    -- same reason. But a scene that runs under them instead is the thing
+    -- people actually ask for -- the wallpaper taking the WHOLE screen --
+    -- and the only real objection is legibility, which is answerable: below
+    -- SOLID every caption gets a light halo, so the letters keep an edge
+    -- over a night sky the same way they do over a white band.
+    { key = "bands", label = "BANDS", type = "choice", default = "SOLID",
+      choices = {
+        { "SOLID", "SOLID" },
+        { "60%", "60" },
+        { "30%", "30" },
+        { "CLEAR", "0" },
+      } },
   })
 
   -- GRID BIG asks the renderer for a 320x288 surface, and that ask only
@@ -234,6 +248,19 @@ return function(mod)
     if not ok then return 0.40 end
     local n = tonumber(value)
     if not n then return 0.40 end
+    return math.max(0, math.min(100, n)) / 100
+  end
+
+  -- How opaque the header and footer bands are, 0..1, or nil for SOLID --
+  -- which is not the same as 1: solid means the band is painted white and
+  -- the captions need nothing else, while 100%% would still turn the halo
+  -- on for no reason. An unreadable option falls back to SOLID, because a
+  -- caption nobody can read is the one failure worth defaulting away from.
+  local function bandAlpha()
+    local ok, value = pcall(function() return mod.options:get("bands") end)
+    if not ok or value == nil or value == "SOLID" then return nil end
+    local n = tonumber(value)
+    if not n then return nil end
     return math.max(0, math.min(100, n)) / 100
   end
 
@@ -2306,6 +2333,26 @@ return function(mod)
     -- 160 and a footer at y=132: on the 288-tall BIG canvas that put
     -- "B:EXIT" in the middle of the grid, printed over the Pokemon.
     local TEXT_X = 4
+
+    -- A caption that survives whatever is behind it. With SOLID bands this
+    -- is Font.draw and nothing else: the band is white, the letters are
+    -- black, and there is nothing to solve. Once the scene runs under the
+    -- header the letters need their own edge, so they get a one-pixel white
+    -- halo -- eight offsets in white, the glyph in black on top. Gen 3 does
+    -- the same with the box name it lays over a wallpaper, and it costs
+    -- nine draws on two short strings.
+    local function caption(text, x, y)
+      if bandAlpha() then
+        love.graphics.setColor(1, 1, 1, 1)
+        for dx = -1, 1 do
+          for dy = -1, 1 do
+            if dx ~= 0 or dy ~= 0 then Font.draw(text, x + dx, y + dy) end
+          end
+        end
+        love.graphics.setColor(0, 0, 0, 1)
+      end
+      return Font.draw(text, x, y)
+    end
     local function textMax() return layout(game).w - TEXT_X * 2 end
     local function footerY() return layout(game).h - 12 end
 
@@ -3048,6 +3095,35 @@ return function(mod)
       love.graphics.setColor(0, 0, 0, 1)
     end
 
+    -- ------- and it stays inside the screen
+    --
+    -- Every scene draws deliberately past its own edges: waves start at -8,
+    -- the 90s shapes at -30, and a strip is tiled until it covers the width
+    -- with the last copy hanging off the right. On a Gen 1 boot that costs
+    -- nothing, because Game:draw asks the top state for a uiSize and gives
+    -- the UI a canvas of exactly that size, which clips.
+    --
+    -- Gold has no such hook: src/core/Game2.lua composes states straight
+    -- into a window-sized canvas under Chrome's scale, so everything past
+    -- the edge landed on the white surround AROUND the Game Boy screen --
+    -- pink and cyan shapes scattered over the border, reported on both
+    -- grids. The screen has to clip itself there. intersectScissor is what
+    -- the engine's own battle code uses for this and it takes game
+    -- coordinates, so 0,0,w,h means the box and nothing outside it.
+    local function clipToScreen(w, h, draw)
+      local g = love.graphics
+      local can = g.getScissor and g.intersectScissor
+      local sx, sy, sw, sh
+      if can then
+        sx, sy, sw, sh = g.getScissor()
+        g.intersectScissor(0, 0, w, h)
+      end
+      draw()
+      if can then
+        if sx then g.setScissor(sx, sy, sw, sh) else g.setScissor() end
+      end
+    end
+
     -- BIG is the same screen at twice the pixel density -- a 56-pixel cell
     -- is a 28-pixel cell doubled -- so a scene meant for 160x144 belongs on
     -- it at scale two, not stretched and not taught a second geometry. What
@@ -3061,20 +3137,28 @@ return function(mod)
       if paper.pattern == "PLAIN" or not paper.palette then return end
       local t = animateOn() and (self.paperTick or 0) or 0
       -- someone else's art first: if it draws, this function is done
-      if style and (style.layers or style.image)
-         and drawArt(style, w, h, t) then return end
+      if style and (style.layers or style.image) then
+        local drew = false
+        clipToScreen(w, h, function() drew = drawArt(style, w, h, t) end)
+        if drew then return end
+      end
 
-      local k = math.max(1, math.floor(math.min(w / 160, h / 144)))
-      local scaled = k > 1 and pcall(function()
-        love.graphics.push()
-        love.graphics.scale(k, k)
+      -- the clip goes OUTSIDE the scale, because a scissor set under a
+      -- doubling transform describes a rect twice the size -- which is not
+      -- the screen, and would clip nothing
+      clipToScreen(w, h, function()
+        local k = math.max(1, math.floor(math.min(w / 160, h / 144)))
+        local scaled = k > 1 and pcall(function()
+          love.graphics.push()
+          love.graphics.scale(k, k)
+        end)
+        -- if the transform did not take, draw at the real size rather than
+        -- at a size nothing is applying: a corner of a scene is worse than
+        -- a sparse one
+        if not scaled then k = 1 end
+        drawPattern(paper, w / k, h / k, t)
+        if scaled then pcall(love.graphics.pop) end
       end)
-      -- if the transform did not take, draw at the real size rather than
-      -- at a size nothing is applying: a corner of a scene is worse than a
-      -- sparse one
-      if not scaled then k = 1 end
-      drawPattern(paper, w / k, h / k, t)
-      if scaled then pcall(love.graphics.pop) end
     end
 
     -- Exposed for the same reason picScale and spriteToDraw are: a pattern
@@ -3131,9 +3215,16 @@ return function(mod)
           style = artOf(game.save.currentBox)
         end
         drawWallpaper(paper, L.w, L.h, style)
-        love.graphics.setColor(1, 1, 1, 1)
-        love.graphics.rectangle("fill", 0, 0, L.w, L.gridY - 2)
-        love.graphics.rectangle("fill", 0, footerY() - 2, L.w, L.h - footerY() + 2)
+        -- BANDS: how much of the header and the footer the scene is allowed
+        -- to have. SOLID is the Gen 3 band and stays the default; anything
+        -- below it lets the wallpaper run edge to edge over the WHOLE
+        -- screen, and the captions carry their own halo from there on.
+        local band = bandAlpha()
+        if band ~= 0 then
+          love.graphics.setColor(1, 1, 1, band or 1)
+          love.graphics.rectangle("fill", 0, 0, L.w, L.gridY - 2)
+          love.graphics.rectangle("fill", 0, footerY() - 2, L.w, L.h - footerY() + 2)
+        end
         love.graphics.setColor(0, 0, 0, 1)
       end
 
@@ -3173,10 +3264,10 @@ return function(mod)
       local shownTitle = hint
         and fitTo(title, hintX - TEXT_X - 6)
         or fit(title)
-      Font.draw(shownTitle, TEXT_X, 2)
+      caption(shownTitle, TEXT_X, 2)
 
       if hint then
-        Font.draw(hint, hintX, 2)
+        caption(hint, hintX, 2)
         outline(hintX - 3, 0, hintW + 6, 11)
       end
 
@@ -3254,9 +3345,9 @@ return function(mod)
       -- left, the hand on the right, and the grid untouched behind
       local pickId, pickBy = paperPickLine()
       if pickId then
-        Font.draw(fit(pickId), TEXT_X, footerY())
+        caption(fit(pickId), TEXT_X, footerY())
         local w = Font.width(pickBy)
-        Font.draw(pickBy, layout(game).w - TEXT_X - w, footerY())
+        caption(pickBy, layout(game).w - TEXT_X - w, footerY())
         drawMarkWindow()
         return
       end
@@ -3284,7 +3375,7 @@ return function(mod)
           line = Strings("SEL:BOX B:EXIT")
         end
       end
-      Font.draw(fit(line), TEXT_X, footerY())
+      caption(fit(line), TEXT_X, footerY())
 
       -- the marking window, last, so it sits over the grid and the cursor
       drawMarkWindow()

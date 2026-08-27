@@ -2587,6 +2587,91 @@ do
       .. "instead of sitting in a corner of it")
   end
 
+  -- ------- la scena si ritaglia da sola
+  --
+  -- Ogni pattern disegna di proposito oltre i propri bordi: le onde partono
+  -- da -8, le forme anni '90 da -30, e una striscia si affianca finche' non
+  -- copre la larghezza, con l'ultima copia che sborda. Su un boot Gen 1 non
+  -- costa niente: Game:draw chiede la uiSize allo stato in cima e la UI
+  -- finisce in una canvas grande esattamente cosi', che taglia. Gold non ha
+  -- quel gancio -- Game2 compone dentro una canvas grande quanto la
+  -- finestra -- e tutto quello che usciva finiva sul bordo bianco INTORNO
+  -- allo schermo Game Boy. Quindi lo schermo si ritaglia da se'.
+  do
+    local G = love.graphics
+    local realGet, realSet = G.getScissor, G.setScissor
+    local clips, restored = {}, 0
+    -- lo stub non ha intersectScissor: qui si fornisce quello che LOVE vera
+    -- ha davvero, e si guarda cosa ne fa lo schermo
+    G.intersectScissor = function(x, y, w, h) clips[#clips + 1] = { x, y, w, h } end
+    G.getScissor = function() return nil end
+    G.setScissor = function(x) if x == nil then restored = restored + 1 end end
+
+    opts.grid = "classic"
+    local clipped = factory.new(game)
+    clipped:draw()
+
+    G.intersectScissor, G.getScissor, G.setScissor = nil, realGet, realSet
+
+    T.check(#clips > 0, "il wallpaper si ritaglia allo schermo")
+    local strayed = false
+    for _, c in ipairs(clips) do
+      if c[1] ~= 0 or c[2] ~= 0 or c[3] ~= 160 or c[4] ~= 144 then strayed = true end
+    end
+    T.check(not strayed,
+      "e il rettangolo e' lo schermo, non qualcosa di piu' grande")
+    T.eq(restored, #clips, "e ogni ritaglio viene rimesso com'era")
+  end
+
+  -- ------- BANDS: quanto schermo prende la scena
+  --
+  -- La riga del titolo e il piede sono ridipinti di bianco perche' sono
+  -- testo nero, ed e' quello che fa anche Gen 3. Sotto SOLID pero' la scena
+  -- ci passa sotto e prende tutto lo schermo, e allora le scritte devono
+  -- portarsi dietro il proprio bordo: senza alone, una didascalia nera su
+  -- un cielo notturno non la legge nessuno. Le due meta' si verificano
+  -- insieme, perche' una senza l'altra e' un peggioramento.
+  do
+    local Font = require("src.render.Font")
+    local realRect, realColor, realFont = G.rectangle, G.setColor, Font.draw
+    local tone = { 0, 0, 0, 1 }
+    local bands, glyphs = {}, 0
+    G.setColor = function(r, g, b, a) tone = { r, g, b, a or 1 } end
+    G.rectangle = function(mode, x, y, w, h)
+      -- le due bande e nient'altro: piena larghezza, alte 14, bianche
+      if mode == "fill" and x == 0 and w == 160 and h == 14
+          and tone[1] == 1 and tone[2] == 1 and tone[3] == 1 then
+        bands[#bands + 1] = tone[4]
+      end
+    end
+    Font.draw = function() glyphs = glyphs + 1; return 0 end
+
+    local function drawn(setting)
+      opts.bands = setting
+      bands, glyphs = {}, 0
+      factory.new(game):draw()
+      return bands, glyphs
+    end
+
+    local solid, solidGlyphs = drawn("SOLID")
+    T.eq(#solid, 2, "SOLID dipinge le due bande")
+    T.check(solid[1] == 1 and solid[2] == 1, "e le dipinge piene")
+
+    local half = drawn("60")
+    T.eq(#half, 2, "al 60% le bande ci sono ancora")
+    T.check(math.abs((half[1] or 0) - 0.6) < 0.001,
+      "ma la scena si vede attraverso")
+
+    local none, haloGlyphs = drawn("0")
+    T.eq(#none, 0, "CLEAR non ne dipinge nessuna: lo sfondo prende tutto")
+    T.check(haloGlyphs > solidGlyphs * 2,
+      "e ogni didascalia si disegna con l'alone attorno, o sarebbe "
+      .. "illeggibile su una scena scura")
+
+    opts.bands = nil
+    G.rectangle, G.setColor, Font.draw = realRect, realColor, realFont
+  end
+
   -- SLOTS is a ladder, and both of its ends have to mean what they say.
   -- CLEAR draws no slot at all -- the wallpaper straight through -- and a
   -- heavier setting draws the same twenty squares at its own opacity.

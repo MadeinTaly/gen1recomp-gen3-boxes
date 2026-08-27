@@ -45,7 +45,7 @@ What is different there, and nowhere else:
 | MAIL | a party Pokémon holding mail cannot be picked up or displaced — `Remove MAIL.`, the same refusal the vanilla PC gives |
 | the PC entrance | the BOXES row goes in the storage menu, not in the ITEM PC |
 | `GRID` | `CLASSIC` always: `BIG` needs two Gen 1 drawing seams Gold's boot does not have |
-| wallpapers | the pattern, without the four-colour palette, for the same reason |
+| wallpapers | the same scenes by the same artists, in the same colours. The screen clips itself there: Gold composes states into a window-sized canvas, so what a scene deliberately draws past its own edge would otherwise land on the border around the Game Boy screen |
 
 Everything else — FIND, SORT, MARKS, NAME BOX, PLACE CRY, the header row and
 the BOX MENU — is the same screen doing the same thing.
@@ -85,6 +85,7 @@ in 1.5.2.
 | `PLACE CRY` | on / off | play the Pokémon's cry every time one lands in a slot |
 | `GRID` | `CLASSIC` / `BIG` | a 320×288 surface, full-size pics, and a palette per Pokémon |
 | `SLOTS` | `CLEAR` / `25%` / `40%` / `60%` / `80%` | how opaque each cell is over the wallpaper |
+| `BANDS` | `SOLID` / `60%` / `30%` / `CLEAR` | how much of the title row and the footer the wallpaper gets. Below `SOLID` the scene runs edge to edge over the whole screen and the captions take a white halo, so they stay readable over a night sky |
 | `ANIMATE` | on / off | whether the wallpaper drifts (off is a still wallpaper, pixel for pixel) |
 | `OW SPRITES` | on / off | draw Wilds of Kanto's overworld sprites in the `CLASSIC` grid instead of the half-scale battle pics (on by default; does nothing without that mod — see below) |
 
