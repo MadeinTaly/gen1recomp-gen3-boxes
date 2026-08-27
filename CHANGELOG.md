@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.10.2 — ship the tool the changelog promised
+
+1.10.0 said the wallpapers had finally been looked at, and named the thing
+that made it possible. That file was not in the release: it had been written
+in a scratch directory and deleted before packaging, so the changelog was
+describing a tool nobody could run.
+
+It is `tools/render_wallpapers.lua` now, and it ships. It stubs
+`love.graphics` with a small rasteriser, asks the screen for its real
+`drawWallpaper` and writes the frames out as raw RGB -- no ROM, no window, and
+nothing reimplemented, so what comes out is what the game draws.
+
 ## 1.10.1 — the check caught what 1.10.0 shipped
 
 `tools/check_wallpaper.py` exists because CONTEST.md promises entrants a
@@ -32,7 +44,7 @@ and it stops them being the only choice.
 **A renderer that did not exist.** A pattern that lives only as code cannot
 be judged by reading it, and these never had been — the forest was a field of
 green dots, the snow was invisible, the cave was a beige wall with teeth at
-the edges. `tests/_render.lua` stubs `love.graphics`, calls the real drawing
+the edges. `tools/render_wallpapers.lua` stubs `love.graphics`, calls the real drawing
 code and writes the frames out, so every scene in this release was looked at
 before it shipped. It found a bug on its first run: NIGHT was passing a
 NEGATIVE alpha to `setColor`, which LOVE tolerates in silence.

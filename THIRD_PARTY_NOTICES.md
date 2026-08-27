@@ -51,4 +51,4 @@ Every wallpaper labelled `GEN3 BOX` — the default for each category, and the
 whole of SEA, NIGHT and 90S — is drawn procedurally in `main.lua`. No files,
 no imports, nobody else's pixels: shapes, palettes and motion written out in
 Lua and rendered at runtime. They can be previewed without a ROM through
-`tests/_render.lua`, which stubs `love.graphics` and writes the frames out.
+`tools/render_wallpapers.lua`, which stubs `love.graphics` and writes the frames out.
