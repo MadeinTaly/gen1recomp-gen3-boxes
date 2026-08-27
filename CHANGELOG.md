@@ -35,13 +35,37 @@ and on a Gen 1 boot that costs nothing, because `Game:draw` asks the top
 state for a `uiSize` and gives the UI a canvas of exactly that size, which
 clips. Gold has no such hook: `Game2` composes states straight into a
 window-sized canvas, so pink and cyan shapes were scattered over the white
-border AROUND the Game Boy screen. The screen clips itself there now -- and
-the clip is a WINDOW rectangle, because that is what a scissor is: no
-transform applies to it, which is why every place the engine sets one works
-the rect out by hand first. The corners go through `transformPoint`, and if
-that cannot be done the clip is skipped rather than guessed. A scene that
-spills over the border is a blemish; a scene clipped to the wrong rectangle
-is no scene at all.
+border AROUND the Game Boy screen.
+
+Two attempts at fixing that with a scissor were wrong, the second one badly:
+on Gold every wallpaper disappeared. A scissor is a rectangle in a different
+space from the one being drawn in, and working out WHICH space -- through a
+transform, a canvas and a device pixel ratio -- is a guess. So it stopped
+guessing: the scene is painted onto a surface exactly the size of the screen
+and posed at the origin. A canvas has no coordinates outside itself, so what
+falls off the edge is gone by construction, on any boot, under any transform.
+Without a canvas it paints straight to the screen as before -- spilling over
+the border is a blemish, and a blemish beats a blank box.
+
+**The white slab over GRID BIG.** The title's band was drawn as tall as the
+margin above the grid. In CLASSIC that is the same 14 pixels as the caption
+and always was; in BIG the margin is 32, so the title sat on a white slab
+with twenty-two empty pixels under it -- a white border across the top of the
+scene. Both bands are the height of their caption now, on either grid.
+
+**The bands are not white.** White is a sticker laid on a picture. Every
+scene carries four tones and the lightest of them is a near-white of the
+scene's own hue -- pale blue under SEA, cream under CAVE -- so the band is
+painted in that and reads as part of the painting while still holding black
+text. NIGHT is why the lightest tone is looked for rather than the first: its
+ramp runs backwards and its first colour is nearly black.
+
+**`GRID` is not shown on Gold.** It could never do anything there -- layout
+reads CLASSIC whatever the option says, because `Game2:draw` has no `uiSize`
+seam for BIG to ask through -- and it used to be listed anyway with
+"(GEN 1 ONLY)" bolted onto the label, which is a menu row that exists to
+explain why it does nothing. The options are published twice now: once at
+load from the ROM version, and again on `game.ready` with a game in hand.
 
 **BANDS, a new option.** The title row and the footer are painted back to
 white because they are black text, and Gen 3 keeps its header on a solid band

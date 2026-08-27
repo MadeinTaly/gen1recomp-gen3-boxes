@@ -280,6 +280,42 @@ do
   end })
   local gen2Run = T.sdk.loadMod(DIR, { data = D, generation = 2 })
   T.eq(#gen2Run.errors, 0, "the Gold boot the MAIL check needs loads clean")
+
+  -- ------- una riga che non puo' fare niente non si mostra
+  --
+  -- GRID e' l'unica: layout() legge CLASSIC su Gold qualunque cosa dica
+  -- l'opzione, perche' Game2:draw non ha il gancio uiSize a cui BIG
+  -- dovrebbe chiedere. Prima la riga c'era lo stesso, con "(GEN 1 ONLY)"
+  -- attaccato all'etichetta -- cioe' una riga di menu che esiste solo per
+  -- spiegare perche' non fa niente.
+  --
+  -- Lo schema si pubblica due volte: al load, quando l'unica cosa da
+  -- chiedere e' la versione della ROM, e di nuovo su game.ready, quando un
+  -- game c'e' davvero. E' il secondo passaggio che si guida da qui.
+  local function rowsOf(loader)
+    local out = {}
+    for _, row in ipairs((loader.optionSchemas or {}).gen3_box or {}) do
+      out[row.key] = true
+    end
+    return out
+  end
+
+  T.check(rowsOf(run.loader).grid,
+    "su un boot Gen 1 la riga GRID c'e' come sempre")
+
+  local goldGame = { save = { generation = 2 } }
+  Runtime.emit("game.ready", { game = goldGame })
+  local afterGold = rowsOf(gen2Run.loader)
+  T.check(not afterGold.grid,
+    "con un game Gold in mano la riga GRID sparisce: non puo' fare niente")
+  T.check(afterGold.bands,
+    "mentre le righe che valgono su entrambi restano")
+
+  -- e non e' una rimozione a senso unico: un boot Gen 1 la ripubblica
+  Runtime.emit("game.ready", { game = { save = { generation = 1 } } })
+  T.check(rowsOf(gen2Run.loader).grid,
+    "e su un game Gen 1 torna, perche' li' fa qualcosa")
+
   local gen2Factory = D.screens and D.screens.Gen3Box
   T.check(gen2Factory ~= nil, "and registers the screen on that boot")
 
@@ -2585,59 +2621,90 @@ do
     T.check(fullScreenFills >= 1,
       "and the scene is still composed for 160x144, so it fills that canvas "
       .. "instead of sitting in a corner of it")
+
+    -- e la banda del titolo e' alta quanto la SCRITTA, non quanto il margine
+    -- sopra la griglia. In CLASSIC sono gli stessi 14 pixel; in BIG il
+    -- margine e' 32, e il titolo stava su una lastra bianca con ventidue
+    -- pixel vuoti sotto -- un bordo bianco in cima alla scena
+    local topBands = {}
+    local realRect3 = G.rectangle
+    G.rectangle = function(mode, x, y, w, h)
+      if mode == "fill" and x == 0 and y == 0 and w == 320 then
+        topBands[#topBands + 1] = h
+      end
+    end
+    opts.grid = "big"
+    factory.new(game):draw()
+    opts.grid = "classic"
+    G.rectangle = realRect3
+    local slab = false
+    for _, h in ipairs(topBands) do if h > 14 then slab = true end end
+    T.check(not slab,
+      "e in BIG la banda del titolo e' alta quanto la scritta, non quanto "
+      .. "il margine sopra la griglia")
   end
 
-  -- ------- la scena si ritaglia da sola
+  -- ------- la scena si dipinge su una superficie sua
   --
-  -- Ogni pattern disegna di proposito oltre i propri bordi: le onde partono
-  -- da -8, le forme anni '90 da -30, e una striscia si affianca finche' non
-  -- copre la larghezza, con l'ultima copia che sborda. Su un boot Gen 1 non
-  -- costa niente: Game:draw chiede la uiSize allo stato in cima e la UI
-  -- finisce in una canvas grande esattamente cosi', che taglia. Gold non ha
-  -- quel gancio -- Game2 compone dentro una canvas grande quanto la
-  -- finestra -- e tutto quello che usciva finiva sul bordo bianco INTORNO
-  -- allo schermo Game Boy. Quindi lo schermo si ritaglia da se'.
+  -- Ogni scena disegna di proposito oltre i propri bordi: le onde partono da
+  -- -8, le forme anni '90 da -30, e una striscia si affianca finche' non
+  -- copre la larghezza. Su Gen 1 non costa niente -- Game:draw da' alla UI
+  -- una canvas grande esattamente come lo schermo, che taglia -- ma Gold
+  -- compone dentro una canvas grande quanto la finestra e quella roba
+  -- finiva sul bordo bianco intorno allo schermo Game Boy.
+  --
+  -- Due tentativi con lo scissor sono stati sbagliati, il secondo al punto
+  -- da far sparire tutti i wallpaper su Gold: uno scissor e' un rettangolo
+  -- in uno spazio diverso da quello in cui si disegna, e indovinare QUALE
+  -- da qui non si puo'. Quindi non si indovina: la scena si dipinge su una
+  -- superficie grande come lo schermo e si posa all'origine. Una canvas non
+  -- ha coordinate fuori da se stessa, quindi quello che cade oltre il bordo
+  -- e' perso per costruzione, su qualsiasi boot e sotto qualsiasi
+  -- trasformata.
   do
     local G = love.graphics
-    local realGet, realSet = G.getScissor, G.setScissor
-    local clips, restored = {}, 0
-    -- lo stub non ha ne' intersectScissor ne' transformPoint: qui si
-    -- forniscono quelli che LOVE vera ha davvero, e si guarda cosa ne fa
-    -- lo schermo. La trasformata finta e' quella di Gold: lo schermo Game
-    -- Boy scalato per tre e centrato nella finestra.
-    local SCALE, OX, OY = 3, 60, 24
-    G.intersectScissor = function(x, y, w, h) clips[#clips + 1] = { x, y, w, h } end
-    G.transformPoint = function(x, y) return OX + x * SCALE, OY + y * SCALE end
-    G.getScissor = function() return nil end
-    G.setScissor = function(x) if x == nil then restored = restored + 1 end end
+    local realNew, realSetC = G.newCanvas, G.setCanvas
+    local realRect, realDraw = G.rectangle, G.draw
+    local asked, target, onSurface, blits = {}, nil, 0, {}
+    G.newCanvas = function(w, h)
+      local c = realNew(w, h)
+      asked[#asked + 1] = { w, h, c }
+      return c
+    end
+    G.setCanvas = function(c) target = c; return realSetC(c) end
+    G.rectangle = function() if target then onSurface = onSurface + 1 end end
+    G.draw = function(img, x, y) blits[#blits + 1] = { img, x, y } end
 
     opts.grid = "classic"
     factory.new(game):draw()
 
-    G.intersectScissor, G.transformPoint = nil, nil
-    G.getScissor, G.setScissor = realGet, realSet
+    G.newCanvas, G.setCanvas = realNew, realSetC
+    G.rectangle, G.draw = realRect, realDraw
 
-    T.check(#clips > 0, "il wallpaper si ritaglia allo schermo")
-    -- il punto di tutto: il rettangolo e' quello della FINESTRA, non
-    -- 0,0,160,144. Lo scissor non conosce la trasformata, e un ritaglio
-    -- nell'angolo della finestra fa sparire lo sfondo invece di contenerlo
-    local strayed = false
-    for _, c in ipairs(clips) do
-      if c[1] ~= OX or c[2] ~= OY or c[3] ~= 160 * SCALE or c[4] ~= 144 * SCALE then
-        strayed = true
-      end
+    local surface
+    for _, a in ipairs(asked) do
+      if a[1] == 160 and a[2] == 144 then surface = a[3] end
     end
-    T.check(not strayed,
-      "e ha le coordinate della finestra, non quelle di gioco")
-    T.eq(restored, #clips, "e ogni ritaglio viene rimesso com'era")
+    T.check(surface ~= nil,
+      "la scena chiede una superficie grande come lo schermo")
+    T.check(onSurface > 0, "e ci dipinge sopra")
+    T.eq(target, nil, "poi rimette il bersaglio dove l'aveva trovato")
+    local posed = false
+    for _, b in ipairs(blits) do
+      if b[1] == surface and b[2] == 0 and b[3] == 0 then posed = true end
+    end
+    T.check(posed, "e la posa all'origine, dove sta la box")
 
-    -- senza transformPoint non si tira a indovinare: meglio una scena che
-    -- sborda di una ritagliata sul rettangolo sbagliato, che non si vede
-    clips = {}
-    G.intersectScissor = function(x, y, w, h) clips[#clips + 1] = { x, y, w, h } end
-    factory.new(game):draw()
-    G.intersectScissor = nil
-    T.eq(#clips, 0, "e senza un modo di mappare il rettangolo non ritaglia")
+    -- e senza canvas non resta un buco: si dipinge dritti sullo schermo,
+    -- che sbordera' -- ma una macchia sul bordo e' meglio di una box vuota
+    local hadNew = G.newCanvas
+    G.newCanvas = nil
+    local painted = 0
+    G.rectangle = function() painted = painted + 1 end
+    local okBare = pcall(function() factory.new(game):draw() end)
+    G.rectangle, G.newCanvas = realRect, hadNew
+    T.check(okBare and painted > 0,
+      "e senza canvas la scena si dipinge lo stesso, dritta sullo schermo")
   end
 
   -- ------- BANDS: quanto schermo prende la scena
@@ -2655,10 +2722,9 @@ do
     local bands, glyphs = {}, 0
     G.setColor = function(r, g, b, a) tone = { r, g, b, a or 1 } end
     G.rectangle = function(mode, x, y, w, h)
-      -- le due bande e nient'altro: piena larghezza, alte 14, bianche
-      if mode == "fill" and x == 0 and w == 160 and h == 14
-          and tone[1] == 1 and tone[2] == 1 and tone[3] == 1 then
-        bands[#bands + 1] = tone[4]
+      -- le due bande e nient'altro: piena larghezza, alte 14
+      if mode == "fill" and x == 0 and w == 160 and h == 14 then
+        bands[#bands + 1] = { tone[1], tone[2], tone[3], tone[4] }
       end
     end
     Font.draw = function() glyphs = glyphs + 1; return 0 end
@@ -2672,15 +2738,31 @@ do
 
     local solid, solidGlyphs = drawn("SOLID")
     T.eq(#solid, 2, "SOLID dipinge le due bande")
-    T.check(solid[1] == 1 and solid[2] == 1, "e le dipinge piene")
+    T.check(solid[1] and solid[1][4] == 1 and solid[2][4] == 1,
+      "e le dipinge piene")
+
+    -- e non le dipinge BIANCHE: il bianco e' un adesivo appiccicato sopra
+    -- un quadro. Ogni scena porta quattro toni e il piu' chiaro e' un
+    -- quasi-bianco della sua stessa tinta, quindi la banda fa parte della
+    -- scena e regge lo stesso il testo nero
+    local seaLightest
+    for _, w in ipairs(run.loader.exports.gen3_box.wallpapers) do
+      if w.id == "SEA" then seaLightest = w.palette[1] end
+    end
+    T.check(seaLightest ~= nil, "SEA ha una palette da cui prendere il tono")
+    local c = solid[1]
+    T.check(math.abs(c[1] - seaLightest[1] / 255) < 0.005
+        and math.abs(c[2] - seaLightest[2] / 255) < 0.005
+        and math.abs(c[3] - seaLightest[3] / 255) < 0.005,
+      "e le tinge col tono piu' chiaro della scena, non di bianco")
 
     local half = drawn("60")
     T.eq(#half, 2, "al 60% le bande ci sono ancora")
-    T.check(math.abs((half[1] or 0) - 0.6) < 0.001,
+    T.check(math.abs((half[1][4] or 0) - 0.6) < 0.001,
       "ma la scena si vede attraverso")
 
     local thin, haloGlyphs = drawn("15")
-    T.check(math.abs((thin[1] or 0) - 0.15) < 0.001,
+    T.check(math.abs((thin[1][4] or 0) - 0.15) < 0.001,
       "in fondo alla scala resta un velo, non il nulla: una didascalia non "
       .. "deve combattere con la scena che ha esattamente il suo colore")
     T.check(haloGlyphs > solidGlyphs * 2,

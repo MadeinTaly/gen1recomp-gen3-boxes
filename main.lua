@@ -106,7 +106,17 @@ return function(mod)
   -- Only what is actually honoured below. The vanilla box PC is left in
   -- place whichever way this is set: nothing is taken away, and turning the
   -- mod off leaves a save reaching its storage exactly as before.
-  mod.options:define({
+  --
+  -- A row that cannot do anything on this boot is not shown on it. GRID is
+  -- the only one: layout() reads CLASSIC on Gold whatever the option says,
+  -- because Game2:draw has no uiSize seam for BIG to ask through. It used
+  -- to be listed with "(GEN 1 ONLY)" bolted onto its label, which is a
+  -- menu row that exists to explain why it does nothing. isGen2(nil) reads
+  -- the SAME generation layout() reads at draw time, once, while the schema
+  -- is built -- and define() runs once per boot, so a Red boot still gets
+  -- the row. The option itself is never written back either way, so a save
+  -- that chose BIG on Red is still BIG the next time it is Red.
+  local schema = {
     { key = "access", label = "OPEN FROM", type = "choice", default = "both",
       choices = {
         { "START+PC", "both" },
@@ -119,17 +129,11 @@ return function(mod)
     -- convenience: it is Potions and Centre trips that stop being needed,
     -- not clicks that stop being clicked.
     { key = "heal", label = "BOX HEALS", type = "toggle", default = false },
-    -- See "the two layouts" above. CLASSIC is what 1.4.0 drew. layout()
-    -- reads CLASSIC on Gold regardless of this option (Game2:draw has no
-    -- uiSize seam for BIG to ask through -- see layout()'s own comment),
-    -- so the row's label says so on that boot rather than offering a
-    -- choice that quietly does nothing. isGen2(nil) here reads the SAME
-    -- generation layout() reads at draw time -- GameVersion.generation(),
-    -- resolved once at schema-definition time because no live game exists
-    -- yet to carry a save. mod.options:define builds this table once per
-    -- boot, so a Red boot with this mod installed still says plain "GRID".
-    { key = "grid", label = isGen2(nil) and "GRID (GEN 1 ONLY)" or "GRID",
-      type = "choice", default = "classic",
+    -- See "the two layouts" above. CLASSIC is what 1.4.0 drew. On a Gold
+    -- boot this row is taken out below rather than shown as a choice that
+    -- quietly does nothing.
+    { key = "grid", label = "GRID", type = "choice", default = "classic",
+      gen1Only = true,
       choices = {
         { "CLASSIC", "classic" },
         { "BIG", "big" },
@@ -187,7 +191,27 @@ return function(mod)
         { "30%", "30" },
         { "15%", "15" },
       } },
-  })
+  }
+
+  -- Published twice, and it has to be. At load time the only thing to ask
+  -- is the ROM version, which is right on a real boot and is exactly what
+  -- layout() will read at draw time. But a game is what really settles it,
+  -- so game.ready publishes again with one in hand -- the same seam every
+  -- other generation branch in this file goes through, and the only one a
+  -- harness can drive. define() replaces the schema and never touches the
+  -- stored values, so re-publishing costs a table and changes no setting.
+  local function publishOptions(game)
+    local rows = {}
+    for _, row in ipairs(schema) do
+      if not (row.gen1Only and isGen2(game)) then rows[#rows + 1] = row end
+    end
+    mod.options:define(rows)
+  end
+
+  publishOptions(nil)
+  mod.events:on("game.ready", function(payload)
+    publishOptions(payload and payload.game)
+  end)
 
   -- GRID BIG asks the renderer for a 320x288 surface, and that ask only
   -- ever reaches anything on Gen 1: Game:draw (src/core/Game.lua:471-478)
@@ -268,6 +292,31 @@ return function(mod)
     local n = tonumber(value)
     if not n then return nil end
     return math.max(0, math.min(100, n)) / 100
+  end
+
+  -- The colour of those bands. Not white: white is a sticker laid on a
+  -- picture, and it is what a player called ugly the first time they saw a
+  -- forest under one. Every scene carries four tones and the lightest of
+  -- them is a near-white of the scene's own hue -- pale blue under SEA,
+  -- cream under CAVE -- so the band reads as part of the painting while
+  -- staying light enough to hold black text.
+  --
+  -- NIGHT is why this looks for the lightest tone rather than taking the
+  -- first: its ramp runs backwards, and palette[1] there is nearly black.
+  -- If nothing in a scene is light enough, white is the honest answer.
+  local function bandTint(paper)
+    local palette = paper and paper.palette
+    if not palette then return nil end
+    local best, bestLuma
+    for i = 1, 4 do
+      local c = palette[i]
+      if type(c) == "table" and c[1] and c[2] and c[3] then
+        local luma = 0.299 * c[1] + 0.587 * c[2] + 0.114 * c[3]
+        if not bestLuma or luma > bestLuma then best, bestLuma = c, luma end
+      end
+    end
+    if best and bestLuma >= 170 then return best end
+    return nil
   end
 
   local function animateOn()
@@ -2339,6 +2388,9 @@ return function(mod)
     -- 160 and a footer at y=132: on the 288-tall BIG canvas that put
     -- "B:EXIT" in the middle of the grid, printed over the Pokemon.
     local TEXT_X = 4
+    -- A caption row: an 8-pixel glyph with a little air over and under it.
+    -- Both bands are this tall, on either grid.
+    local CAPTION_BAND = 14
 
     -- A caption that survives whatever is behind it. With SOLID bands this
     -- is Font.draw and nothing else: the band is white, the letters are
@@ -3107,44 +3159,60 @@ return function(mod)
     -- the 90s shapes at -30, and a strip is tiled until it covers the width
     -- with the last copy hanging off the right. On a Gen 1 boot that costs
     -- nothing, because Game:draw asks the top state for a uiSize and gives
-    -- the UI a canvas of exactly that size, which clips.
+    -- the UI a canvas of exactly that size, which clips. Gold has no such
+    -- hook -- src/core/Game2.lua composes states straight into a
+    -- window-sized canvas under Chrome's scale -- so everything past the
+    -- edge landed on the white surround AROUND the Game Boy screen.
     --
-    -- Gold has no such hook: src/core/Game2.lua composes states straight
-    -- into a window-sized canvas under Chrome's scale, so everything past
-    -- the edge landed on the white surround AROUND the Game Boy screen --
-    -- pink and cyan shapes scattered over the border. The screen has to clip
-    -- itself there.
+    -- Two attempts at this were made with the scissor and both were wrong,
+    -- the second one badly: on Gold every wallpaper disappeared. A scissor
+    -- is a rectangle in some other space than the one being drawn in, and
+    -- working out WHICH space, through a chain of transforms, a canvas and
+    -- a device pixel ratio, is a guess that cannot be tested from here.
     --
-    -- THE SCISSOR IS NOT IN GAME COORDINATES. It is a window rectangle, and
-    -- no transform applies to it: everywhere the engine sets one it works
-    -- out the window rect first (Renderer.scissorClamped does the arithmetic
-    -- by hand, dpi included). BattleState passing 0,0,80,96 looks like a
-    -- counter-example and is not -- it draws into Gen 1's 160x144 UI canvas,
-    -- where the transform is the identity and the two spaces are the same.
-    --
-    -- The first attempt at this took that for the rule and clipped to
-    -- 0,0,w,h under Gold's scale, which is a rectangle in the corner of the
-    -- window with the box nowhere near it: every wallpaper vanished. So the
-    -- corners go through the transform first, and if that cannot be done --
-    -- an older LOVE, a stub -- the clip is skipped rather than guessed. A
-    -- scene that spills over the border is a blemish; a scene clipped to the
-    -- wrong rectangle is no scene at all.
-    local function clipToScreen(w, h, draw)
-      local g = love.graphics
-      local sx, sy, sw, sh
-      local clipped = false
-      if g.getScissor and g.intersectScissor and g.transformPoint then
-        local ok, x1, y1 = pcall(g.transformPoint, 0, 0)
-        local ok2, x2, y2 = pcall(g.transformPoint, w, h)
-        if ok and ok2 and x1 and x2 and x2 > x1 and y2 > y1 then
-          sx, sy, sw, sh = g.getScissor()
-          g.intersectScissor(x1, y1, x2 - x1, y2 - y1)
-          clipped = true
-        end
+    -- So it does not guess. The scene is painted into a surface that is
+    -- exactly the size of the screen and then blitted at the origin: a
+    -- canvas has no coordinates outside itself, so what falls off the edge
+    -- is gone by construction, on any boot, under any transform. If a
+    -- canvas cannot be had the scene is painted straight to the screen as
+    -- it always was -- spilling over the border is a blemish, and a blemish
+    -- is better than a blank box.
+    local paperSurface = nil
+    local function surfaceFor(w, h)
+      if paperSurface and paperSurface.w == w and paperSurface.h == h then
+        return paperSurface.canvas or nil
       end
-      draw()
-      if clipped then
-        if sx then g.setScissor(sx, sy, sw, sh) else g.setScissor() end
+      local ok, made = pcall(love.graphics.newCanvas, w, h)
+      local canvas = (ok and made) or false
+      if canvas then pcall(canvas.setFilter, canvas, "nearest", "nearest") end
+      paperSurface = { w = w, h = h, canvas = canvas }
+      return canvas or nil
+    end
+
+    local function onOwnSurface(w, h, paint)
+      local g = love.graphics
+      local canvas = g.newCanvas and surfaceFor(w, h)
+      if not canvas then return paint() end
+      local ok = pcall(function()
+        local previous = g.getCanvas and g.getCanvas() or nil
+        -- a canvas does not reset the transform, and the scene is drawn in
+        -- its own coordinates from 0,0
+        g.push()
+        g.origin()
+        g.setCanvas(canvas)
+        g.clear(0, 0, 0, 0)
+        paint()
+        g.setCanvas(previous)
+        g.pop()
+        g.setColor(1, 1, 1, 1)
+        g.draw(canvas, 0, 0)
+      end)
+      -- a canvas that failed mid-way has left the target where it found it
+      -- (setCanvas is inside the pcall), so the fallback is the same draw
+      -- again rather than a frame with a hole in it
+      if not ok then
+        pcall(g.setCanvas)
+        paint()
       end
     end
 
@@ -3163,14 +3231,11 @@ return function(mod)
       -- someone else's art first: if it draws, this function is done
       if style and (style.layers or style.image) then
         local drew = false
-        clipToScreen(w, h, function() drew = drawArt(style, w, h, t) end)
+        onOwnSurface(w, h, function() drew = drawArt(style, w, h, t) end)
         if drew then return end
       end
 
-      -- the clip goes OUTSIDE the scale, because a scissor set under a
-      -- doubling transform describes a rect twice the size -- which is not
-      -- the screen, and would clip nothing
-      clipToScreen(w, h, function()
+      onOwnSurface(w, h, function()
         local k = math.max(1, math.floor(math.min(w / 160, h / 144)))
         local scaled = k > 1 and pcall(function()
           love.graphics.push()
@@ -3245,8 +3310,20 @@ return function(mod)
         -- screen, and the captions carry their own halo from there on.
         local band = bandAlpha()
         if band ~= 0 then
-          love.graphics.setColor(1, 1, 1, band or 1)
-          love.graphics.rectangle("fill", 0, 0, L.w, L.gridY - 2)
+          local tint = bandTint(paper)
+          if tint then
+            love.graphics.setColor(tint[1] / 255, tint[2] / 255, tint[3] / 255,
+              band or 1)
+          else
+            love.graphics.setColor(1, 1, 1, band or 1)
+          end
+          -- The band is the height of the CAPTION, not of the margin above
+          -- the grid. In CLASSIC those are the same 14 pixels and always
+          -- were; in BIG the margin is 32, so the title sat on a white slab
+          -- with twenty-two empty pixels under it -- a white border across
+          -- the top of the scene, which is what it was reported as.
+          local capH = math.min(L.gridY - 2, CAPTION_BAND)
+          love.graphics.rectangle("fill", 0, 0, L.w, capH)
           love.graphics.rectangle("fill", 0, footerY() - 2, L.w, L.h - footerY() + 2)
         end
         love.graphics.setColor(0, 0, 0, 1)
