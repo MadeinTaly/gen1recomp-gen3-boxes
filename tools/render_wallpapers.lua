@@ -22,7 +22,10 @@
 package.path = "./?.lua;./?/init.lua;" .. package.path
 if not _G.love then _G.love = require("tests.love_stub") end
 
-local W, H = 160, 144
+-- CLASSIC by default; PAPER_W/PAPER_H render the same call at BIG's 320x288,
+-- which is the only way to see what the other grid size does to a pattern.
+local W = tonumber(os.getenv("PAPER_W") or "160")
+local H = tonumber(os.getenv("PAPER_H") or "144")
 local OUT = os.getenv("PAPER_OUT") or "/tmp/papers"
 
 local buf, cur = {}, { 1, 1, 1, 1 }
@@ -44,11 +47,20 @@ end
 
 local function px(x, y) blend(x, y, cur[1], cur[2], cur[3], cur[4]) end
 
+-- A real transform stack, because BIG is the CLASSIC scene at scale two and
+-- a no-op scale() would render the exact bug it is meant to prove fixed: the
+-- scene sitting in a 160x144 corner of a 320x288 canvas.
+local sc, stack = 1, {}
+
 local G = {}
+function G.push() stack[#stack + 1] = sc end
+function G.pop() sc = table.remove(stack) or 1 end
+function G.scale(s) sc = sc * (s or 1) end
 function G.setColor(r, g, b, a) cur = { r or 1, g or 1, b or 1, a or 1 } end
 function G.getDimensions() return W, H end
 
 function G.rectangle(mode, x, y, w, h)
+  x, y, w, h = x * sc, y * sc, w * sc, h * sc
   if mode == "fill" then
     for yy = y, y + h - 1 do for xx = x, x + w - 1 do px(xx, yy) end end
   else
@@ -58,6 +70,7 @@ function G.rectangle(mode, x, y, w, h)
 end
 
 function G.circle(mode, cx, cy, r)
+  cx, cy, r = cx * sc, cy * sc, r * sc
   local r2 = r * r
   if mode == "fill" then
     for yy = math.floor(cy - r), math.ceil(cy + r) do
@@ -75,6 +88,7 @@ function G.circle(mode, cx, cy, r)
 end
 
 function G.line(x1, y1, x2, y2)
+  x1, y1, x2, y2 = x1 * sc, y1 * sc, x2 * sc, y2 * sc
   local steps = math.max(math.abs(x2 - x1), math.abs(y2 - y1), 1)
   for i = 0, steps do
     px(x1 + (x2 - x1) * i / steps, y1 + (y2 - y1) * i / steps)
@@ -83,6 +97,7 @@ end
 
 function G.polygon(mode, ...)
   local p = { ... }
+  for i = 1, #p do p[i] = p[i] * sc end
   local minY, maxY = math.huge, -math.huge
   for i = 2, #p, 2 do
     minY = math.min(minY, p[i]); maxY = math.max(maxY, p[i])
@@ -139,14 +154,26 @@ end
 local FRAMES = tonumber(os.getenv("PAPER_FRAMES") or "1")
 local STEP = tonumber(os.getenv("PAPER_STEP") or "12")
 
+-- PAPER_ART renders every artist of every scene rather than only the drawn
+-- one: an image style is cropped, scaled and tiled by drawArt, and none of
+-- that is visible from the file on disk.
+local ART = os.getenv("PAPER_ART")
+local ONLY = os.getenv("PAPER_ONLY")
+local art = run.loader.exports.gen3_box.wallpaperArt or {}
+
 for _, w in ipairs(run.loader.exports.gen3_box.wallpapers) do
-  if w.palette then
-    for f = 0, FRAMES - 1 do
-      screen.paperTick = f * STEP
-      clear()
-      screen.drawWallpaper(w, W, H)
-      writeRaw(FRAMES > 1 and (w.id .. "_" .. string.format("%02d", f)) or w.id)
+  if w.palette and (not ONLY or ONLY == w.id) then
+    local styles = (ART and art[w.id]) or { false }
+    for si, style in ipairs(styles) do
+      local tag = w.id
+      if ART then tag = w.id .. "_" .. (style.by or si):gsub("%W", "") end
+      for f = 0, FRAMES - 1 do
+        screen.paperTick = f * STEP
+        clear()
+        screen.drawWallpaper(w, W, H, style or nil)
+        writeRaw(FRAMES > 1 and (tag .. "_" .. string.format("%02d", f)) or tag)
+      end
+      print("rendered: " .. tag .. " (" .. FRAMES .. " frame, " .. W .. "x" .. H .. ")")
     end
-    print("rendered: " .. w.id .. " (" .. FRAMES .. " frame)")
   end
 end

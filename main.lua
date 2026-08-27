@@ -1839,6 +1839,12 @@ return function(mod)
     -- context, which is where the overflow above was found
     self.picScale = picScale
 
+    -- and this one so it can ask which scene a box ended up wearing --
+    -- FAVOURITE resolves to one of the saved favourites, a 1.9.x save
+    -- resolves from a bare string, and neither answer is visible from
+    -- outside once the palette stopped carrying it
+    self.paperIdOf = paperIdOf
+
     -- ------- overworld sprites from Wilds of Kanto
     --
     -- CLASSIC halves a battle pic into its cell (see the header above); a
@@ -2192,9 +2198,33 @@ return function(mod)
       -- pane keeps plain GRAYS, and PLAIN itself carries no palette at all,
       -- so a box nobody has touched renders exactly what 1.5.2 rendered.
       local paper = self.mode == "box" and paperOf(game.save.currentBox) or nil
-      local baseColors = (paper and paper.palette) or PaletteFX.GRAYS
+      if self.mode == "box" and self.paperPick then
+        -- the chooser previews on the background, so the palette has to
+        -- follow the cursor too or the preview is drawn under the saved
+        -- box's colours
+        paper = WALLPAPER_BY_ID[self.paperPick.id] or paper
+      end
+
+      -- A wallpaper is NOT four shades waiting for a palette: shade() sets
+      -- the scene's own RGB, and an artist's strip arrives already coloured.
+      -- Tinting either of them through the shade-remap a second time is what
+      -- made BIG grey -- the scene was painted, then flattened onto four
+      -- tones of the same palette it was already using. So the surface under
+      -- a wallpaper opts OUT of the remap and shows what was drawn.
+      --
+      -- The zone still has to be here and still has to be first: it is what
+      -- covers the whole canvas, and the per-species cells below are drawn
+      -- over it in order. PLAIN and the party pane have no wallpaper and
+      -- keep plain GRAYS, so a box nobody has touched renders exactly what
+      -- 1.5.2 rendered.
+      -- An engine too old to know the opt-out gets the behaviour it always
+      -- had, tint and all, rather than an error.
+      local bare = paper and paper.palette
+        and type(PaletteFX.trueColorZone) == "function"
+        and PaletteFX.trueColorZone(0, 0, L.w / 8 - 1, L.h / 8 - 1)
       local zones = {
-        PaletteFX.zone(baseColors, 0, 0, L.w / 8 - 1, L.h / 8 - 1),
+        bare or PaletteFX.zone((paper and paper.palette) or PaletteFX.GRAYS,
+          0, 0, L.w / 8 - 1, L.h / 8 - 1),
       }
 
       local function add(set, mode)
@@ -2421,9 +2451,19 @@ return function(mod)
             local span = iw * scale
             -- speed 0 is a layer that must not move: the buildings, the
             -- rock, the ground. Only what loops is allowed to slide.
+            --
+            -- A strip is two screens wide, which is what lets a moving layer
+            -- keep its seam off-screen -- but a STILL one then shows its
+            -- left half and nothing else, for ever. Every painted scene in
+            -- the pack was being cropped that way: the artist's composition
+            -- sat half off the right edge of the box. Centring is the whole
+            -- fix, and it is the same crop a wide photograph gets on a
+            -- narrow frame -- the middle, where the picture is.
             local ox = 0
             if (layer.speed or 0) > 0 then
               ox = math.floor(t * layer.speed) % span
+            elseif span > w then
+              ox = math.floor((span - w) / 2)
             end
             local ok = pcall(function()
               love.graphics.setColor(1, 1, 1, 1)
@@ -2442,14 +2482,12 @@ return function(mod)
     end
     self.drawArt = drawArt
 
-    local function drawWallpaper(paper, w, h, style)
+    -- Every scene below is drawn in literal pixels of the 160x144 Game Boy
+    -- screen: `for i = 0, 9` roofs at 18 apart is a street across THAT
+    -- screen and nothing wider. So this takes the size it is given and
+    -- paints at that size -- and the caller is what makes BIG work.
+    local function drawPattern(paper, w, h, t)
       local pattern = paper.pattern
-      if pattern == "PLAIN" or not paper.palette then return end
-      local t = animateOn() and (self.paperTick or 0) or 0
-      -- someone else's art first: if it draws, this function is done
-      if style and (style.layers or style.image)
-         and drawArt(style, w, h, t) then return end
-
       -- The ground colour first: the whole surface, so nothing shows white
       -- except what this screen deliberately paints white on top.
       shade(paper, 1)
@@ -2976,6 +3014,36 @@ return function(mod)
 
       love.graphics.setColor(0, 0, 0, 1)
     end
+
+    -- BIG is the same screen at twice the pixel density -- a 56-pixel cell
+    -- is a 28-pixel cell doubled -- so a scene meant for 160x144 belongs on
+    -- it at scale two, not stretched and not taught a second geometry. What
+    -- shipped instead drew the scene at its literal size in a canvas twice
+    -- as wide: a town in one corner of the box and white everywhere else.
+    --
+    -- Scaling rather than re-deriving every count is also the only version
+    -- of this that stays true: one scene, one composition, and the pixels
+    -- stay square because the factor is a whole number.
+    local function drawWallpaper(paper, w, h, style)
+      if paper.pattern == "PLAIN" or not paper.palette then return end
+      local t = animateOn() and (self.paperTick or 0) or 0
+      -- someone else's art first: if it draws, this function is done
+      if style and (style.layers or style.image)
+         and drawArt(style, w, h, t) then return end
+
+      local k = math.max(1, math.floor(math.min(w / 160, h / 144)))
+      local scaled = k > 1 and pcall(function()
+        love.graphics.push()
+        love.graphics.scale(k, k)
+      end)
+      -- if the transform did not take, draw at the real size rather than
+      -- at a size nothing is applying: a corner of a scene is worse than a
+      -- sparse one
+      if not scaled then k = 1 end
+      drawPattern(paper, w / k, h / k, t)
+      if scaled then pcall(love.graphics.pop) end
+    end
+
     -- Exposed for the same reason picScale and spriteToDraw are: a pattern
     -- is the one part of this screen nobody can judge by reading it, and a
     -- harness that stubs love.graphics can render one to a file and LOOK.

@@ -1641,12 +1641,10 @@ do
 
     -- una box su FAVOURITE indossa uno dei preferiti
     store.boxPapers[1] = { id = "FAVE", art = 1 }
-    local cityPal
-    for _, w in ipairs(run.loader.exports.gen3_box.wallpapers) do
-      if w.id == "CITY" then cityPal = w.palette end
-    end
-    T.check(screen:sgbPalettes(game)[1].colors == cityPal,
+    T.eq(screen.paperIdOf(1), "CITY",
       "con un solo preferito, FAVOURITE mostra quello")
+    T.check(screen:sgbPalettes(game)[1].colors == false,
+      "e la superficie sotto una scena esce dal rimappaggio")
 
     -- svuotando l'insieme non puo' inventarsi niente: torna al neutro
     store.favePapers = {}
@@ -1674,8 +1672,13 @@ do
   store.boxPapers[1] = { id = "SEA", art = 1 }
 
   local zonesAfter = screen:sgbPalettes(game)
-  T.check(zonesAfter[1].colors ~= PaletteFX.GRAYS,
-    "SEA changes the base zone's colours")
+  -- A scene is not four shades waiting for a palette: it is painted in its
+  -- own RGB, and an artist's strip arrives coloured. Remapping either one
+  -- through the shade ramp a second time is what made BIG grey while the
+  -- Pokemon on top of it stayed in colour. So the surface under a wallpaper
+  -- opts OUT (colors == false) and shows what was drawn.
+  T.check(zonesAfter[1].colors == false,
+    "SEA takes the base zone out of the shade-remap")
   T.eq(#zonesAfter, beforeCount,
     "and only the base zone -- the zone count is unchanged")
   local drifted = false
@@ -1701,7 +1704,10 @@ do
   -- blue tint. The exact values are the theme's own now that every wallpaper
   -- carries a scene palette, so what is asserted is the ORDER.
   pickPaper("NIGHT")
-  local night = screen:sgbPalettes(game)[1].colors
+  local night
+  for _, w in ipairs(run.loader.exports.gen3_box.wallpapers) do
+    if w.id == "NIGHT" then night = w.palette end
+  end
   local function luma(c) return 0.299 * c[1] + 0.587 * c[2] + 0.114 * c[3] end
   T.check(luma(night[1]) < 60, "NIGHT's lightest-mapped shade is dark")
   T.check(luma(night[4]) > 200, "and its darkest-mapped shade is light")
@@ -2508,6 +2514,35 @@ do
   local _, cellWashes = frame(screen, 1)
   T.eq(cellWashes, 20,
     "every cell in the box is a pale slot laid over the wallpaper")
+
+  -- ------- BIG draws the same scene, twice the size
+  --
+  -- Every pattern is written in literal pixels of a 160x144 screen: ten
+  -- roofs eighteen apart is a street across THAT screen. Handed BIG's
+  -- 320x288 canvas they painted a town in one corner and left the rest
+  -- white, which is what a player photographed. The scene has to arrive
+  -- scaled -- not stretched, not re-derived -- so both halves are asserted:
+  -- the transform is applied, AND the scene is still composed for 160x144
+  -- underneath it.
+  do
+    local realScale = G.scale
+    local factors = {}
+    G.scale = function(x, y) factors[#factors + 1] = { x, y }; return realScale(x, y) end
+    opts.grid = "big"
+    local bigScreen = factory.new(game)
+    frame(bigScreen, 1)
+    opts.grid = "classic"
+    G.scale = realScale
+
+    local doubled = false
+    for _, f in ipairs(factors) do
+      if f[1] == 2 and f[2] == 2 then doubled = true end
+    end
+    T.check(doubled, "BIG draws the wallpaper at scale two")
+    T.check(fullScreenFills >= 1,
+      "and the scene is still composed for 160x144, so it fills that canvas "
+      .. "instead of sitting in a corner of it")
+  end
 
   -- SLOTS is a ladder, and both of its ends have to mean what they say.
   -- CLEAR draws no slot at all -- the wallpaper straight through -- and a

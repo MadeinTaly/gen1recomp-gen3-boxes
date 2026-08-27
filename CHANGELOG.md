@@ -1,5 +1,31 @@
 # Changelog
 
+## 1.10.2 — GRID BIG gets its wallpapers back
+
+Three separate faults, all of them on BIG, all of them photographed by a
+player rather than caught here:
+
+**The scene was grey while the Pokemon were in colour.** Every wallpaper is
+painted in its own RGB -- `shade()` reads the scene's palette directly, and
+an artist's strip arrives already coloured -- and BIG then ran the finished
+picture through the shade-remap a second time, flattening it onto four tones
+of the palette it was already using. The surface under a wallpaper now opts
+out of that remap and shows what was drawn. The per-species cells are drawn
+over it afterwards exactly as before, so the Pokemon keep their own colours;
+PLAIN and the party pane still take plain greys.
+
+**The drawn scenes sat in one corner.** Ten roofs eighteen pixels apart is a
+street across a 160x144 screen and nothing wider. Handed BIG's 320x288
+canvas, the scenes painted that same street in the bottom-left and left the
+rest white. BIG is the Game Boy screen at twice the density -- a 56-pixel
+cell is a 28-pixel cell doubled -- so the scene is drawn at scale two now
+rather than taught a second geometry: same composition, square pixels.
+
+**Half of every painted picture was off-screen.** A strip is two screens
+wide, which is what keeps a moving layer's seam out of sight; a STILL layer
+then showed its left half for ever, so each artist's composition was cropped
+down the middle. Still layers are centred now.
+
 ## 1.10.2 — ship the tool the changelog promised
 
 1.10.0 said the wallpapers had finally been looked at, and named the thing
