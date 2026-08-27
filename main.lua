@@ -357,6 +357,10 @@ return function(mod)
   -- what you scroll through to pick their work. THIRD_PARTY_NOTICES.md
   -- carries the full text for both.
   local ART = "mods/gen3_box/assets/wallpapers/"
+  -- Pixels per tick for a painted layer's pan. Slow on purpose: a 160-pixel
+  -- margin takes about a minute and a half to cross, which reads as a scene
+  -- that is alive rather than as something sliding past.
+  local STILL_DRIFT = 0.03
   -- Each style is a STACK, not a picture. The pack every one of these comes
   -- from ships its scene in layers, and those layers are the animation: the
   -- clouds loop, the buildings do not. Flattening them into one image threw
@@ -373,8 +377,15 @@ return function(mod)
   -- dragging the join across the box. Which is which is not a guess -- run
   -- `tools/check_wallpaper.py` and it measures every file and says so. The
   -- names carry the verdict: _far and _near loop, _base and _still do not.
-  local function L(image, speed)
-    return { image = ART .. image, speed = speed or 0 }
+  --
+  -- Speed zero does NOT mean a dead picture. A painted layer is wider than
+  -- the screen, and the pixels past the right edge are the artist's work
+  -- nobody was ever going to see: the box pans slowly across that margin
+  -- and turns back before it runs out, so the scene breathes, the whole
+  -- painting comes round in time, and the join at the ends is never on
+  -- screen to be seen. `still = true` opts a layer out of even that.
+  local function L(image, speed, still)
+    return { image = ART .. image, speed = speed or 0, still = still or nil }
   end
 
   local WALLPAPER_ART = {
@@ -382,12 +393,22 @@ return function(mod)
                { by = "SCRIBE",    layers = { L("sea_scribe_near.png", 0.05) } } },
     FOREST = { { by = "GEN3 BOX" },
                { by = "ANSIMUZ",   layers = { L("forest_ansimuz_still.png") } },
-               { by = "MATIASVME", layers = { L("forest_matiasvme_base.png"),
-                                              L("forest_matiasvme_far.png", 0.04),
-                                              L("forest_matiasvme_still.png") } } },
+               -- rebuilt in 1.10.2: the pack is drawn at 1280x360, and
+               -- cutting a 144-row window out of that is not a smaller
+               -- picture, it is a fragment of a big one -- which is why
+               -- this used to be a bare trunk and a green triangle on two
+               -- flat rectangles. Scaled down by two and a half instead,
+               -- so the whole scene is in the frame.
+               { by = "MATIASVME", layers = { L("forest_matiasvme_base.png", 0.02),
+                                              L("forest_matiasvme_near.png", 0.09) } } },
     SKY    = { { by = "GEN3 BOX" },
+               -- 160x144, not 320: this pack is drawn at 160x80, so at its
+               -- own scale the whole valley fits one CLASSIC screen. The
+               -- 320-wide build had 64 rows of nothing under it, which
+               -- shipped as a slab of flat grey across the bottom half.
                { by = "DUSTDFG",   layers = { L("sky_dustdfg_base.png"),
-                                              L("sky_dustdfg_far.png", 0.08) } },
+                                              L("sky_dustdfg_far.png", 0.05),
+                                              L("sky_dustdfg_near.png", 0.11) } },
                { by = "FABINHOSC", layers = { L("sky_fabinhosc_still.png") } } },
     CAVE   = { { by = "GEN3 BOX" },
                { by = "ADMURIN",   layers = { L("cave_admurin_near.png", 0.04) } } },
@@ -2460,10 +2481,22 @@ return function(mod)
             -- fix, and it is the same crop a wide photograph gets on a
             -- narrow frame -- the middle, where the picture is.
             local ox = 0
+            local range = span - w
             if (layer.speed or 0) > 0 then
               ox = math.floor(t * layer.speed) % span
-            elseif span > w then
-              ox = math.floor((span - w) / 2)
+            elseif range > 0 and not layer.still then
+              -- The pan: a triangle wave over the margin, never a wrap. It
+              -- starts at the middle of the picture, so with ANIMATE off
+              -- the box wears the centre of the scene rather than its left
+              -- edge -- and because the offset never leaves 0..range, the
+              -- second copy of the strip always starts at or past the right
+              -- edge of the screen. The join exists; it is simply never
+              -- inside the frame.
+              local sweep = t * STILL_DRIFT + range / 2
+              local u = sweep % (2 * range)
+              ox = math.floor(u <= range and u or (2 * range - u))
+            elseif range > 0 then
+              ox = math.floor(range / 2)
             end
             local ok = pcall(function()
               love.graphics.setColor(1, 1, 1, 1)

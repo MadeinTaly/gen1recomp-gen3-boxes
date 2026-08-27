@@ -23,8 +23,10 @@ distributable, and what puts your name in front of the player.
 
 ## Before you open this
 
-- 320 x 144, or a stack of layers at that size
-- any number of colours: CLASSIC shows it whole, GRID BIG flattens it
+- 144 pixels tall; the width is yours (160 is one CLASSIC screen, 320 or
+  512 is a strip that scrolls past). The check enforces the height only
+- any number of colours, shown as you drew them: CLASSIC shows the art
+  whole, GRID BIG shows it at twice the size
 - if you can, split what loops from what does not — clouds and water in their
   own layer, buildings and rock in another. The check below measures each
   layer and decides which may scroll

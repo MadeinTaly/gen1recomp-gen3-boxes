@@ -1727,6 +1727,49 @@ do
     store.boxPapers[1] = { id = "NIGHT", art = 1 }
   end
 
+  -- ------- una scena dipinta si muove, e la sua cucitura non entra mai
+  --
+  -- Un livello dipinto non puo' ciclare: scorrerlo trascinerebbe il taglio
+  -- attraverso la box ogni pochi secondi. Ma e' piu' largo dello schermo, e
+  -- dentro quel margine puo' andare e tornare senza mai avvolgersi. Le due
+  -- meta' della promessa, e servono entrambe: si muove nel tempo, E lo
+  -- scostamento resta nel margine, cosi' una sola copia della striscia
+  -- copre lo schermo e la seconda -- quella che mostrerebbe la giunta --
+  -- non viene mai disegnata.
+  do
+    local G = love.graphics
+    local realDraw = G.draw
+    local Assets2 = require("src.render.Assets")
+    local realImage = Assets2.image
+    Assets2.image = function()
+      return { getWidth = function() return 320 end,
+               getHeight = function() return 144 end }
+    end
+    local at = {}
+    G.draw = function(_, x) at[#at + 1] = x end
+
+    local painted = { layers = { { image = "painted.png", speed = 0 } } }
+    local screen2 = factory.new(fakeGame({}))
+    local places, copies, escaped = {}, 0, false
+    for tick = 0, 6000, 250 do
+      at = {}
+      screen2.drawArt(painted, 160, 144, tick)
+      if at[1] then
+        places[tostring(at[1])] = true
+        copies = math.max(copies, #at)
+        if at[1] > 0 or at[1] < -160 then escaped = true end
+      end
+    end
+    G.draw, Assets2.image = realDraw, realImage
+
+    local n = 0
+    for _ in pairs(places) do n = n + 1 end
+    T.check(n > 1, "una scena dipinta non e' un'immagine morta: si sposta")
+    T.check(not escaped, "e non esce mai dal proprio margine")
+    T.eq(copies, 1, "quindi una copia sola copre lo schermo, "
+      .. "e la giunta non entra mai nel riquadro")
+  end
+
   T.check(luma(night[1]) < luma(night[4]),
     "so the ramp really is reversed, which is the whole point of NIGHT")
 

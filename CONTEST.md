@@ -14,9 +14,15 @@ not pedantry, it is what keeps the mod distributable.
 
 ## What the art has to be
 
-- **320 x 144**, or a stack of layers at that size
-- any number of colours: the box shows it whole on CLASSIC, and GRID BIG
-  flattens it to four tones through the engine's own palette pass
+- **144 pixels tall.** The width is yours: 160 is one CLASSIC screen and
+  shows a whole scene at once, 320 or 512 is a strip that scrolls past. The
+  check enforces the height and nothing else
+- any number of colours, and they are the colours the player sees: CLASSIC
+  shows the art whole, GRID BIG shows it at twice the size, neither one
+  repaints it
+- a painted layer does not sit dead: the box pans slowly across whatever
+  width it has spare, and turns back before the join could show. Mark a
+  layer `still` in the style table if it must not move at all
 - layers are better than one picture. Split what loops from what does not:
   clouds, water, mist and stars loop; buildings, mountains and rock do not
 

@@ -245,10 +245,10 @@ credit actually gets read.
 | 90S | GEN3 BOX |
 
 The GEN3 BOX ones are drawn procedurally in `main.lua` — no files, no
-imports. Everything else is real pixel art shipped **as its artist made it**:
-CLASSIC shows it whole and in full colour, and GRID BIG flattens it through
-the engine's own palette pass, so one file serves both. Licences are CC0 or
-CC BY and are recorded per item in `THIRD_PARTY_NOTICES.md`.
+imports. Everything else is real pixel art, in **the artist's own colours**:
+CLASSIC shows it whole, GRID BIG shows the same file at twice the size, and
+neither one repaints it. What is done to a pack is mechanical and is stated
+in `THIRD_PARTY_NOTICES.md`, along with each item's licence — CC0 or CC BY.
 
 **Only what loops, moves.** Each wallpaper is a stack of layers, and whether a
 layer scrolls is measured rather than guessed: the mean difference between its

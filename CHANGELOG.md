@@ -24,19 +24,40 @@ rather than taught a second geometry: same composition, square pixels.
 **Half of every painted picture was off-screen.** A strip is two screens
 wide, which is what keeps a moving layer's seam out of sight; a STILL layer
 then showed its left half for ever, so each artist's composition was cropped
-down the middle. Still layers are centred now.
+down the middle. A painted layer now pans slowly across the width it has
+spare and turns back before the join could show -- so the whole picture comes
+round in time, the scene is never dead, and the seam is still never on
+screen. With ANIMATE off it holds at the centre of the painting.
 
-## 1.10.2 — ship the tool the changelog promised
+Three entries were also rebuilt, because looking at them offline is a thing
+this repository can do now and nobody had:
 
-1.10.0 said the wallpapers had finally been looked at, and named the thing
-that made it possible. That file was not in the release: it had been written
-in a scratch directory and deleted before packaging, so the changelog was
-describing a tool nobody could run.
+- `FOREST < MATIASVME >` was a bare trunk and a green triangle on two flat
+  rectangles. The pack is drawn at 1280x360 and the build had cut a 144-row
+  window out of it, which is not a smaller picture but a fragment of a big
+  one. Reduced by two and a half instead: sky, sun, three ranks of mountain,
+  rocks and a moving tree line.
+- `SKY < DUSTDFG >` had a slab of flat grey across its bottom half -- 64
+  rows of nothing under art drawn at 160x80. It ships at its own scale now,
+  160x144, so a CLASSIC screen holds the whole valley.
+- `SEA < SCRIBE >` was an empty blue field. The seabed was in the source
+  file all along, below the crop.
 
-It is `tools/render_wallpapers.lua` now, and it ships. It stubs
-`love.graphics` with a small rasteriser, asks the screen for its real
-`drawWallpaper` and writes the frames out as raw RGB -- no ROM, no window, and
-nothing reimplemented, so what comes out is what the game draws.
+`tools/check_wallpaper.py` reads indexed and greyscale PNGs now, because an
+artist exports what their editor exports, and a check that refuses to look at
+half the pixel art on the internet is a check nobody runs. It also has a
+`--raw` mode that feeds the offline renderer, which is what made all of the
+above visible.
+
+**And the tool the changelog promised.** 1.10.0 credited a renderer for
+finally making these scenes possible to look at, then did not ship it: the
+file had been written in a scratch directory and deleted before packaging, so
+the changelog was describing something nobody could run. It is
+`tools/render_wallpapers.lua` in the repository now. It stubs `love.graphics`
+with a small rasteriser, asks the screen for its real `drawWallpaper` and
+writes frames as raw RGB -- no ROM, no window, nothing reimplemented -- and
+it renders at either grid size, which is how the corner bug above was caught
+and confirmed fixed.
 
 ## 1.10.1 — the check caught what 1.10.0 shipped
 

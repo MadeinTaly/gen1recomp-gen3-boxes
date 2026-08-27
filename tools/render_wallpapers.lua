@@ -119,6 +119,56 @@ function G.polygon(mode, ...)
   end
 end
 
+-- ------- an artist's layer, drawn the way the box draws it
+--
+-- PAPER_RAW points at a directory of layers dumped by
+--   python3 tools/check_wallpaper.py assets/wallpapers --raw <dir>
+-- because this file is a rasteriser and has no business growing a PNG
+-- decoder. Without it the image styles render as nothing at all, which is
+-- how a still layer went four releases showing only its left half: the
+-- scaling, the tiling and the crop all happen HERE, not in the file.
+local RAW = os.getenv("PAPER_RAW")
+
+local function u32(s, i)
+  local a, b, c, d = s:byte(i, i + 3)
+  return ((a * 256 + b) * 256 + c) * 256 + d
+end
+
+function G.newImage(path)
+  local name = tostring(path):match("([^/\\]+)%.png$")
+  local f = RAW and name and io.open(RAW .. "/" .. name .. ".rgba", "rb")
+  if not f then return setmetatable({}, { __index = function() return function() return 0 end end }) end
+  local d = f:read("*a"); f:close()
+  local iw, ih = u32(d, 1), u32(d, 5)
+  return {
+    _w = iw, _h = ih, _d = d,
+    getWidth = function(self) return self._w end,
+    getHeight = function(self) return self._h end,
+  }
+end
+
+function G.draw(img, x, y, _, sx, sy)
+  if not (img and img._d) then return end
+  sx = sx or 1; sy = sy or sx
+  x, y = (x or 0) * sc, (y or 0) * sc
+  local step = sx * sc
+  for iy = 0, img._h - 1 do
+    for ix = 0, img._w - 1 do
+      local o = 8 + (iy * img._w + ix) * 4
+      local a = img._d:byte(o + 4) / 255
+      if a > 0 then
+        local r, g, b = img._d:byte(o + 1), img._d:byte(o + 2), img._d:byte(o + 3)
+        for py = 0, step - 1 do
+          for pxx = 0, step - 1 do
+            blend(x + ix * step + pxx, y + iy * sy * sc + py,
+              r / 255, g / 255, b / 255, a)
+          end
+        end
+      end
+    end
+  end
+end
+
 -- anything else the screen reaches for is a no-op: this draws wallpapers,
 -- not text or sprites
 love.graphics = setmetatable(G, { __index = function() return function() end end })
