@@ -199,11 +199,72 @@ to eight glyphs. The name shows in the header and in JUMP TO BOX. An empty
 confirm keeps the current name unchanged; to return to the numbered default
 (`BOX 1`, `BOX 2`, etc), type `BOX n` back.
 
-Choose WALLPAPER to change the background pattern and colours for the current
-box. Six options are available: PLAIN (the default, no colour change), STRIPES,
-CHECKS, DOTS, WAVES, and NIGHT (a dark mode where the background is dark and
-the text is light). Names and wallpapers are saved with the save file, so they
-travel between screens.
+Choose WALLPAPER to change the box's background. It does not open a list over
+the box: the chooser borrows the footer and lets the box itself be the
+preview, so what you are scrolling through is drawn full size behind your
+Pokémon while you decide.
+
+```
+FOREST                            < ADMURIN > FAV
+```
+
+The place is on the left, the hand that drew it on the right.
+
+| Key | In the chooser |
+| --- | --- |
+| UP / DOWN | change the scene |
+| LEFT / RIGHT | change the artist |
+| SELECT | add this one to your FAVOURITES — press again to take it out |
+| START | shuffle: a random scene and a random artist at once |
+| A | keep it for this box |
+| B | leave everything as it was |
+
+Until you touch the D-pad the footer tells you which keys do what, then gets
+out of the way.
+
+**Every box keeps its own pair**, so two boxes can both be FOREST in two
+different hands. **FAVOURITE** is a category with no look of its own: it wears
+one of the wallpapers you have marked, so changing your favourites redecorates
+every box set to it without touching any of them.
+
+### The scenes, and who drew them
+
+Nine wallpapers by seven pixel artists ship with the mod, alongside the ones
+drawn here. The artist's name is the label you scroll through, which is where
+credit actually gets read.
+
+| Scene | Hands |
+| --- | --- |
+| SEA | GEN3 BOX · **Scribe** |
+| FOREST | GEN3 BOX · **ansimuz** · **MatiasVME** |
+| SKY | GEN3 BOX · **DustDFG** · **FabinhoSC** |
+| CAVE | GEN3 BOX · **Admurin** |
+| CITY | GEN3 BOX · **FabinhoSC** |
+| SNOW | GEN3 BOX · **Admurin** |
+| NIGHT | GEN3 BOX · **leyren** |
+| 90S | GEN3 BOX |
+
+The GEN3 BOX ones are drawn procedurally in `main.lua` — no files, no
+imports. Everything else is real pixel art shipped **as its artist made it**:
+CLASSIC shows it whole and in full colour, and GRID BIG flattens it through
+the engine's own palette pass, so one file serves both. Licences are CC0 or
+CC BY and are recorded per item in `THIRD_PARTY_NOTICES.md`.
+
+**Only what loops, moves.** Each wallpaper is a stack of layers, and whether a
+layer scrolls is measured rather than guessed: the mean difference between its
+first and last columns says whether it continues into itself. Clouds, water,
+mist and stars loop, so they drift at their own speeds; buildings, mountains
+and rock do not, so they hold still. Sliding a picture that does not continue
+into itself drags a visible seam across the box every few seconds, which is
+worse than not moving at all.
+
+Want your own in here? `CONTEST.md` says how, and the answer is short: a pull
+request, CC0 or CC BY, and the check tells you in a minute whether your layers
+can scroll.
+
+Names and wallpapers are saved with the save file, so they travel between
+screens. A save written before 1.10.0 still reads: a bare scene name means
+that scene, drawn here.
 
 ## PLACE CRY
 

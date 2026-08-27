@@ -367,37 +367,39 @@ return function(mod)
   -- a layer's first and last columns says whether it continues into itself.
   -- Cyclic layers scroll, painted ones hold still, and the file names carry
   -- the verdict -- _far and _near loop, _base does not.
-  local function stack(prefix, far, near)
-    local layers = {}
-    if far then layers[#layers + 1] = { image = ART .. prefix .. "_far.png", speed = far } end
-    layers[#layers + 1] = { image = ART .. prefix .. "_base.png", speed = 0 }
-    if near then layers[#layers + 1] = { image = ART .. prefix .. "_near.png", speed = near } end
-    return layers
-  end
-  -- a scene whose every layer loops: no still base at all
-  local function drift(prefix, speed)
-    return { { image = ART .. prefix .. "_near.png", speed = speed } }
+  -- Each style is a list of layers drawn back to front, with the speed each
+  -- one is allowed to move at. Zero means still, and most of them are: only
+  -- a layer whose right edge continues into its left can be scrolled without
+  -- dragging the join across the box. Which is which is not a guess -- run
+  -- `tools/check_wallpaper.py` and it measures every file and says so. The
+  -- names carry the verdict: _far and _near loop, _base and _still do not.
+  local function L(image, speed)
+    return { image = ART .. image, speed = speed or 0 }
   end
 
   local WALLPAPER_ART = {
     SEA    = { { by = "GEN3 BOX" },
-               { by = "SCRIBE",    layers = drift("sea_scribe", 0.05) } },
+               { by = "SCRIBE",    layers = { L("sea_scribe_near.png", 0.05) } } },
     FOREST = { { by = "GEN3 BOX" },
-               { by = "ANSIMUZ",   layers = drift("forest_ansimuz", 0.05) },
-               { by = "MATIASVME", layers = stack("forest_matiasvme", 0.04, 0.12) } },
+               { by = "ANSIMUZ",   layers = { L("forest_ansimuz_still.png") } },
+               { by = "MATIASVME", layers = { L("forest_matiasvme_base.png"),
+                                              L("forest_matiasvme_far.png", 0.04),
+                                              L("forest_matiasvme_still.png") } } },
     SKY    = { { by = "GEN3 BOX" },
-               { by = "DUSTDFG",   layers = stack("sky_dustdfg", 0.08, nil) },
-               { by = "FABINHOSC", layers = drift("sky_fabinhosc", 0.06) } },
+               { by = "DUSTDFG",   layers = { L("sky_dustdfg_base.png"),
+                                              L("sky_dustdfg_far.png", 0.08) } },
+               { by = "FABINHOSC", layers = { L("sky_fabinhosc_still.png") } } },
     CAVE   = { { by = "GEN3 BOX" },
-               { by = "ADMURIN",   layers = drift("cave_admurin", 0.04) } },
+               { by = "ADMURIN",   layers = { L("cave_admurin_near.png", 0.04) } } },
     CITY   = { { by = "GEN3 BOX" },
-               { by = "FABINHOSC", layers = stack("city_fabinhosc", 0.05, 0.14) } },
+               { by = "FABINHOSC", layers = { L("city_fabinhosc_still.png"),
+                                              L("city_fabinhosc_base.png"),
+                                              L("city_fabinhosc_near.png", 0.12) } } },
     SNOW   = { { by = "GEN3 BOX" },
-               { by = "ADMURIN",   layers = stack("snow_admurin", 0.07, nil) } },
+               { by = "ADMURIN",   layers = { L("snow_admurin_base.png"),
+                                              L("snow_admurin_still.png") } } },
     NIGHT  = { { by = "GEN3 BOX" },
-               -- leyren's nebula is painted rather than pixelled, and it does
-               -- not tile: it hangs still, which a night sky can afford
-               { by = "LEYREN",    layers = { { image = ART .. "night_leyren_near.png", speed = 0 } } } },
+               { by = "LEYREN",    layers = { L("night_leyren_base.png") } } },
     ["90S"] = { { by = "GEN3 BOX" } },
     PLAIN  = { { by = "GEN3 BOX" } },
     FAVE   = { { by = "GEN3 BOX" } },

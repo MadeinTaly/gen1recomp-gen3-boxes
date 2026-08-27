@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.10.1 — the check caught what 1.10.0 shipped
+
+`tools/check_wallpaper.py` exists because CONTEST.md promises entrants a
+measurement rather than a review: it reports every layer's size, colours and
+SEAM -- the mean difference between its first and last columns -- and says
+whether that layer may scroll.
+
+Run over the art 1.10.0 had already published, it failed six files. The fault
+was mine and it was upstream of the art: the build forced every strip to 320
+pixels wide by repeating a narrower source, which cuts the last copy in half
+and destroys exactly the edge-to-edge continuity that makes scrolling
+possible. Those layers were being slid anyway, dragging a visible join across
+the box every few seconds.
+
+They are named for what they are now -- `_still` rather than `_far`/`_near` --
+and they hold still. Nothing was repainted; six wallpapers simply stopped
+moving in a way they were never able to move properly.
+
+Also here: the README's wallpaper section, which still described STRIPES,
+CHECKS, DOTS and WAVES -- options that have not existed for two releases --
+and now documents the chooser, the keys, the favourites and every artist by
+name. Plus the pull request template for wallpaper entries.
+
 ## 1.10.0 — a wallpaper is a place and a hand
 
 The seven scenes were drawn here, badly, and nobody had ever looked at them.
