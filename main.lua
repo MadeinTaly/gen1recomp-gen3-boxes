@@ -174,12 +174,18 @@ return function(mod)
     -- and the only real objection is legibility, which is answerable: below
     -- SOLID every caption gets a light halo, so the letters keep an edge
     -- over a night sky the same way they do over a white band.
+    -- The bottom of the ladder is 15%, not nothing. A whisper of white is
+    -- still the wallpaper edge to edge -- you read the row as scene rather
+    -- than as a band -- but it stops the captions from having to fight the
+    -- one scene that happens to be exactly their colour. Zero is honoured
+    -- if a save carries it; it is simply not offered, because the halo is a
+    -- rescue and this is not needing one.
     { key = "bands", label = "BANDS", type = "choice", default = "SOLID",
       choices = {
         { "SOLID", "SOLID" },
         { "60%", "60" },
         { "30%", "30" },
-        { "CLEAR", "0" },
+        { "15%", "15" },
       } },
   })
 

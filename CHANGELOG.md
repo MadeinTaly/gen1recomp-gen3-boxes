@@ -41,9 +41,12 @@ border AROUND the Game Boy screen. The screen clips itself there now.
 white because they are black text, and Gen 3 keeps its header on a solid band
 for the same reason -- but the scene running under them is what people
 actually want, so now it can: `SOLID` (the default, unchanged), `60%`, `30%`
-or `CLEAR`, where the wallpaper takes the whole screen edge to edge. Below
+or `15%`, where the wallpaper takes the whole screen edge to edge. Below
 `SOLID` every caption is drawn with a one-pixel white halo, which is what
-keeps a black caption readable over a night sky.
+keeps a black caption readable over a night sky. The bottom of the ladder is
+a whisper of white rather than nothing: it still reads as scene rather than
+as a band, and it stops a caption having to fight the one wallpaper that
+happens to be exactly its colour.
 
 Three entries were also rebuilt, because looking at them offline is a thing
 this repository can do now and nobody had:

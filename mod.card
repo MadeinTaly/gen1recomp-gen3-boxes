@@ -9,7 +9,7 @@ return {
   differences = {
     added = {
       "SLOTS: how opaque each cell is over the wallpaper -- CLEAR, 25%, 40%, 60%, 80% -- because how much scene you want behind your Pokemon is a taste with no right answer",
-      "BANDS: how much of the title row and the footer the wallpaper gets -- SOLID, 60%, 30%, CLEAR. Gen 3 keeps its header on a solid band because the captions are black text; below SOLID the scene runs edge to edge over the whole screen and every caption takes a one-pixel white halo instead, which is what keeps it readable over a night sky",
+      "BANDS: how much of the title row and the footer the wallpaper gets -- SOLID, 60%, 30%, 15%. Gen 3 keeps its header on a solid band because the captions are black text; below SOLID the scene runs edge to edge over the whole screen and every caption takes a one-pixel white halo instead, which is what keeps it readable over a night sky. The bottom of the ladder is a whisper of white rather than nothing, so a caption never has to fight a scene that is exactly its own colour",
       "ANIMATE (on by default): the wallpaper drifts; off pins every scene at phase zero, which is pixel-for-pixel a still wallpaper for anyone who cannot look at motion",
       "GRID BIG: a 320x288 surface through the engine's own uiSize hook -- battle pics at scale 1 instead of half, and a palette zone per cell so every Pokemon in the grid wears its own species colours, twenty-one at once where the Game Boy could show four",
       "BOX HEALS (off by default): closing the screen rests everything in storage -- full HP, status cleared, PP restored -- through Pokemon.heal, the same routine the Pokemon Centre nurse calls",

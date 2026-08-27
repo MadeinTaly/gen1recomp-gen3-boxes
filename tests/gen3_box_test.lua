@@ -2662,11 +2662,18 @@ do
     T.check(math.abs((half[1] or 0) - 0.6) < 0.001,
       "ma la scena si vede attraverso")
 
-    local none, haloGlyphs = drawn("0")
-    T.eq(#none, 0, "CLEAR non ne dipinge nessuna: lo sfondo prende tutto")
+    local thin, haloGlyphs = drawn("15")
+    T.check(math.abs((thin[1] or 0) - 0.15) < 0.001,
+      "in fondo alla scala resta un velo, non il nulla: una didascalia non "
+      .. "deve combattere con la scena che ha esattamente il suo colore")
     T.check(haloGlyphs > solidGlyphs * 2,
       "e ogni didascalia si disegna con l'alone attorno, o sarebbe "
       .. "illeggibile su una scena scura")
+
+    -- zero resta onorato per un save che se lo porta dietro, anche se il
+    -- menu non lo offre piu'
+    local none = drawn("0")
+    T.eq(#none, 0, "e uno zero scritto a mano toglie le bande del tutto")
 
     opts.bands = nil
     G.rectangle, G.setColor, Font.draw = realRect, realColor, realFont
