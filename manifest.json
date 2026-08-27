@@ -1,7 +1,7 @@
 {
   "id": "gen3_box",
   "name": "Gen 3 Box",
-  "version": "1.9.3",
+  "version": "1.10.0",
   "api": 2,
   "games": [
     "gen1",

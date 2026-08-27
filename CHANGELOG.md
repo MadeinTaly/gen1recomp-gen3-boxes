@@ -1,5 +1,55 @@
 # Changelog
 
+## 1.10.0 — a wallpaper is a place and a hand
+
+The seven scenes were drawn here, badly, and nobody had ever looked at them.
+This release does two things about that: it makes them possible to look at,
+and it stops them being the only choice.
+
+**A renderer that did not exist.** A pattern that lives only as code cannot
+be judged by reading it, and these never had been — the forest was a field of
+green dots, the snow was invisible, the cave was a beige wall with teeth at
+the edges. `tests/_render.lua` stubs `love.graphics`, calls the real drawing
+code and writes the frames out, so every scene in this release was looked at
+before it shipped. It found a bug on its first run: NIGHT was passing a
+NEGATIVE alpha to `setColor`, which LOVE tolerates in silence.
+
+**All seven redrawn**, as tile motifs rather than vector shapes: trees with
+trunks, waves with crests, a town under snowfall, a cave with pillars and
+crystals, a crescent moon over the city, a sun over blocky clouds, stars that
+are actually scattered rather than marching in diagonal columns. And **90S**,
+which is not a place: two layers of shapes crossing in opposite directions,
+the pattern that was on every folder in 1994.
+
+**Other people's art, chosen by hand.** Nine wallpapers by seven pixel
+artists ship alongside — ansimuz, MatiasVME, DustDFG, FabinhoSC, Admurin,
+Scribe and leyren — under CC0 or CC BY, credited in `THIRD_PARTY_NOTICES.md`
+and, more usefully, in the menu itself. The art ships **as the artist made
+it**: CLASSIC shows it whole, and GRID BIG flattens it through the engine's
+own palette pass, so one file serves both.
+
+**The chooser is a place and a hand.** WALLPAPER no longer opens a list over
+the box; it borrows the footer and lets the box itself be the preview:
+
+    FOREST                     < ADMURIN > FAV
+
+Up and down change the scene, left and right change the artist, and the
+wallpaper behind is exactly what you will get. Every box keeps its own pair,
+so two boxes can both be FOREST in two different hands. SELECT adds what you
+are looking at to your FAVOURITES — press it again to take it out — and the
+FAVOURITE category wears one of them. START shuffles both at once. Until you
+touch the D-pad the footer says which keys do what, then gets out of the way.
+
+**Only what loops, moves.** Each style ships as a stack of layers, and
+whether a layer scrolls is measured rather than guessed: the mean difference
+between its first and last columns says whether it continues into itself.
+Clouds, water, mist and stars loop, so they drift; buildings, mountains and
+rock do not, so they hold still. An earlier build slid everything and dragged
+a visible seam across the box every few seconds.
+
+Saves written by 1.9.x still work: a bare wallpaper name means that scene,
+drawn here.
+
 ## 1.9.3 — a way out, the right colours, and the cell behind you
 
 Three reports, three seams, none of them the same bug. 1.9.3-beta.1 went out

@@ -326,19 +326,206 @@ return function(mod)
       palette = { { 250, 252, 255 }, { 216, 230, 244 }, { 158, 184, 212 }, { 70, 96, 130 } } },
     { id = "NIGHT",  pattern = "NIGHT",
       palette = { { 30, 30, 40 }, { 70, 70, 92 }, { 140, 140, 168 }, { 226, 226, 240 } } },
+    -- The one wallpaper that is not a place. 1998 is what this whole mod is
+    -- about, and 1998 had a look: shapes scattered on a pale ground for no
+    -- reason at all, on every folder, cup and school jumper.
+    -- FAVOURITE is a category that has no look of its own: it wears whatever
+    -- was last marked with SELECT in the chooser. A box set to it follows
+    -- the mark, so changing your favourite changes every box that trusts it
+    -- -- one press, and the whole PC redecorates.
+    { id = "FAVE", pattern = "PLAIN", palette = nil },
+    { id = "90S",    pattern = "90S",
+      palette = { { 250, 246, 236 }, { 236, 108, 148 }, { 84, 196, 196 }, { 60, 56, 108 } } },
   }
   local WALLPAPER_BY_ID = {}
   for _, w in ipairs(WALLPAPERS) do WALLPAPER_BY_ID[w.id] = w end
 
+  -- ------- who drew it
+  --
+  -- A wallpaper is now a PLACE and a HAND: FOREST says what you are looking
+  -- at, the artist says how it looks. Every category starts with the one
+  -- drawn here -- that is the default, and the only one that needs no files
+  -- -- and then lists the pixel artists whose work ships with the mod.
+  --
+  -- The art is real pixel art, quantised to each category's own four
+  -- colours at build time (tools/build_art.py), so what the file holds is
+  -- already what the SGB pass would make of it: BIG's remap finds nothing
+  -- left to change, and CLASSIC draws it as it is.
+  --
+  -- Licences travel with the names. CC0 asks for nothing; CC BY asks for
+  -- credit, and the credit is in the menu itself -- the artist's name is
+  -- what you scroll through to pick their work. THIRD_PARTY_NOTICES.md
+  -- carries the full text for both.
+  local ART = "mods/gen3_box/assets/wallpapers/"
+  -- Each style is a STACK, not a picture. The pack every one of these comes
+  -- from ships its scene in layers, and those layers are the animation: the
+  -- clouds loop, the buildings do not. Flattening them into one image threw
+  -- that away, and scrolling the flattened result dragged a seam across the
+  -- box -- which is why an earlier build had to freeze most of them.
+  --
+  -- Which layer moves is measured, not guessed: the mean difference between
+  -- a layer's first and last columns says whether it continues into itself.
+  -- Cyclic layers scroll, painted ones hold still, and the file names carry
+  -- the verdict -- _far and _near loop, _base does not.
+  local function stack(prefix, far, near)
+    local layers = {}
+    if far then layers[#layers + 1] = { image = ART .. prefix .. "_far.png", speed = far } end
+    layers[#layers + 1] = { image = ART .. prefix .. "_base.png", speed = 0 }
+    if near then layers[#layers + 1] = { image = ART .. prefix .. "_near.png", speed = near } end
+    return layers
+  end
+  -- a scene whose every layer loops: no still base at all
+  local function drift(prefix, speed)
+    return { { image = ART .. prefix .. "_near.png", speed = speed } }
+  end
+
+  local WALLPAPER_ART = {
+    SEA    = { { by = "GEN3 BOX" },
+               { by = "SCRIBE",    layers = drift("sea_scribe", 0.05) } },
+    FOREST = { { by = "GEN3 BOX" },
+               { by = "ANSIMUZ",   layers = drift("forest_ansimuz", 0.05) },
+               { by = "MATIASVME", layers = stack("forest_matiasvme", 0.04, 0.12) } },
+    SKY    = { { by = "GEN3 BOX" },
+               { by = "DUSTDFG",   layers = stack("sky_dustdfg", 0.08, nil) },
+               { by = "FABINHOSC", layers = drift("sky_fabinhosc", 0.06) } },
+    CAVE   = { { by = "GEN3 BOX" },
+               { by = "ADMURIN",   layers = drift("cave_admurin", 0.04) } },
+    CITY   = { { by = "GEN3 BOX" },
+               { by = "FABINHOSC", layers = stack("city_fabinhosc", 0.05, 0.14) } },
+    SNOW   = { { by = "GEN3 BOX" },
+               { by = "ADMURIN",   layers = stack("snow_admurin", 0.07, nil) } },
+    NIGHT  = { { by = "GEN3 BOX" },
+               -- leyren's nebula is painted rather than pixelled, and it does
+               -- not tile: it hangs still, which a night sky can afford
+               { by = "LEYREN",    layers = { { image = ART .. "night_leyren_near.png", speed = 0 } } } },
+    ["90S"] = { { by = "GEN3 BOX" } },
+    PLAIN  = { { by = "GEN3 BOX" } },
+    FAVE   = { { by = "GEN3 BOX" } },
+  }
+  mod.exports.wallpaperArt = WALLPAPER_ART
+
+  -- ------- FAVOURITES
+  --
+  -- A set, not a single mark: SELECT adds what you are looking at, SELECT
+  -- again on the same pair takes it back out. FAVOURITE then means "one of
+  -- mine" rather than "the one", which is the difference between a shortcut
+  -- and a shelf.
+  --
+  -- A beta shipped this as one saved pair under `favePaper`. That save is
+  -- read once and folded into the list, so nobody who tried it loses the
+  -- wallpaper they marked.
+  local function faveList()
+    local list = mod.save:get("favePapers")
+    if type(list) ~= "table" then
+      list = {}
+      local old = mod.save:get("favePaper")
+      if type(old) == "table" and type(old.id) == "string" then
+        list[1] = { id = old.id, art = tonumber(old.art) or 1 }
+      end
+      mod.save:set("favePapers", list)
+    end
+    return list
+  end
+
+  local function faveIndexOf(id, art)
+    for i, f in ipairs(faveList()) do
+      if f.id == id and (tonumber(f.art) or 1) == art then return i end
+    end
+    return nil
+  end
+
+  -- returns the new state: true if it is now a favourite, false if removed
+  local function toggleFave(id, art)
+    local list = faveList()
+    local at = faveIndexOf(id, art)
+    if at then
+      table.remove(list, at)
+      mod.save:set("favePapers", list)
+      return false
+    end
+    list[#list + 1] = { id = id, art = art }
+    mod.save:set("favePapers", list)
+    return true
+  end
+
+  -- Which favourite a box wearing FAVOURITE is showing. Drawn per box and
+  -- held for the life of the screen: a wallpaper that reshuffled every frame
+  -- would be a strobe, and one that never changed would make the set
+  -- pointless. Open the PC again and the draw is new.
+  local faveRoll = {}
+  local function favePick(n)
+    local list = faveList()
+    if #list == 0 then return nil end
+    local key = tostring(n or 0)
+    local at = faveRoll[key]
+    if not at or at > #list then
+      at = math.random(#list)
+      faveRoll[key] = at
+    end
+    local f = list[at]
+    return f.id, tonumber(f.art) or 1
+  end
+
+  -- every reader goes through this: FAVE is never a look, it is a pointer
+  local function resolvePaper(id, art, n)
+    if id == "FAVE" then
+      local fid, fart = favePick(n)
+      if fid then return fid, fart end
+      return "PLAIN", 1
+    end
+    return id, art
+  end
+
+  local function artFor(paperId)
+    return WALLPAPER_ART[paperId] or { { by = "GEN3 BOX" } }
+  end
+  mod.exports.wallpaperArt = WALLPAPER_ART
+  -- The list itself, for a harness that renders every pattern to a file --
+  -- see self.drawWallpaper. Read-only in practice: nothing here writes to it.
+  mod.exports.wallpapers = WALLPAPERS
+
   -- boxPapers, the same string-key-tolerant shape as boxNames above.
-  local function paperIdOf(n)
+  -- ------- what a box remembers
+  --
+  -- 1.9.x stored a bare id string per box. It now stores the artist too, and
+  -- both shapes have to keep working: a save written before this release
+  -- names a category and means "the one drawn here", which is index 1.
+  local function paperEntry(n)
     local papers = mod.save:get("boxPapers")
-    local id = papers and (papers[n] or papers[tostring(n)])
-    return (type(id) == "string" and WALLPAPER_BY_ID[id]) and id or "PLAIN"
+    local e = papers and (papers[n] or papers[tostring(n)])
+    if type(e) == "string" then return { id = e, art = 1 } end
+    if type(e) == "table" and type(e.id) == "string" then
+      return { id = e.id, art = tonumber(e.art) or 1 }
+    end
+    return { id = "PLAIN", art = 1 }
+  end
+
+  local function setPaperEntry(n, id, art)
+    local papers = mod.save:get("boxPapers")
+    if not papers then
+      papers = {}
+      mod.save:set("boxPapers", papers)
+    end
+    papers[n] = { id = id, art = art }
+    papers[tostring(n)] = nil
+  end
+
+  local function paperIdOf(n)
+    local e = paperEntry(n)
+    local id = resolvePaper(e.id, e.art, n)
+    return WALLPAPER_BY_ID[id] and id or "PLAIN"
   end
 
   local function paperOf(n)
     return WALLPAPER_BY_ID[paperIdOf(n)] or WALLPAPER_BY_ID.PLAIN
+  end
+
+  -- which hand drew the paper this box is wearing
+  local function artOf(n)
+    local e = paperEntry(n)
+    local id, art = resolvePaper(e.id, e.art, n)
+    local list = artFor(id)
+    return list[math.max(1, math.min(#list, art))] or list[1]
   end
 
   -- ------- the pic for ONE Pokemon, not for its species (issue #2)
@@ -1424,33 +1611,31 @@ return function(mod)
       }))
     end
 
-    -- WALLPAPER: a ListMenu of the named wallpapers above, each a pattern
-    -- and a palette together. Choosing one writes boxPapers for THIS box
-    -- only -- every other box keeps its own.
+    -- WALLPAPER: not a ListMenu but a chooser this screen draws ITSELF, and
+    -- that is the whole point. A pushed menu is a state of its own with the
+    -- box frozen behind it; this one lives inside the screen, so the
+    -- wallpaper under the cursor is drawn as the real background while you
+    -- scroll -- the preview IS the box.
+    --
+    -- Each row is a place and a hand: FOREST < ANSIMUZ >. Up and down change
+    -- the place, left and right change who drew it, and every box keeps its
+    -- own pair -- two boxes can both be FOREST in two different hands.
     local function openWallpaperMenu(parent)
       local n = game.save.currentBox
-      local items = {}
-      for _, w in ipairs(WALLPAPERS) do
-        table.insert(items, { label = Strings(w.id), value = w.id })
+      local current = paperEntry(n)
+      local cat = 1
+      for i, w in ipairs(WALLPAPERS) do
+        if w.id == current.id then cat = i end
       end
-      local sub
-      sub = mod.ui.ListMenu.new(game, Strings("WALLPAPER"), items, {
-        kind = "gen3_box_wallpaper",
-        onChoose = function(item)
-          local papers = mod.save:get("boxPapers")
-          if not papers then
-            papers = {}
-            mod.save:set("boxPapers", papers)
-          end
-          papers[n] = item.value
-          papers[tostring(n)] = nil
-          self.header = false
-          say(Strings("WALLPAPER SET."))
-          sub:close()
-          parent:close()
-        end,
-      })
-      game.stack:push(sub)
+      -- the artist remembered per category, so moving up and down does not
+      -- lose the hand you had already picked for the place you left
+      local art = {}
+      for _, w in ipairs(WALLPAPERS) do art[w.id] = 1 end
+      art[current.id] = current.art
+      self.paperPick = { cat = cat, art = art[WALLPAPERS[cat].id],
+                         artBy = art, box = n, id = WALLPAPERS[cat].id }
+      self.header = false
+      if parent then parent:close() end
     end
 
     local function openBoxMenu()
@@ -1529,6 +1714,53 @@ return function(mod)
       -- Before the early returns below: the box behind an open menu keeps
       -- breathing rather than freezing the moment you press A.
       self.paperTick = (self.paperTick or 0) + 1
+
+      -- the wallpaper chooser owns the keys while it is open, and nothing
+      -- else on this screen moves: the cursor in the grid must not wander
+      -- behind a menu the player is reading.
+      if self.paperPick then
+        local input = game.input
+        local pick = self.paperPick
+        local function styles() return artFor(WALLPAPERS[pick.cat].id) end
+        if input:wasPressed("up") or input:wasPressed("down") then
+          local step = input:wasPressed("up") and -1 or 1
+          pick.moved = true
+          pick.cat = ((pick.cat - 1 + step) % #WALLPAPERS) + 1
+          pick.id = WALLPAPERS[pick.cat].id
+          pick.art = pick.artBy[pick.id] or 1
+        elseif input:wasPressed("left") or input:wasPressed("right") then
+          local step = input:wasPressed("left") and -1 or 1
+          local list = styles()
+          pick.art = ((pick.art - 1 + step) % #list) + 1
+          pick.artBy[pick.id] = pick.art
+        elseif input:wasPressed("select") then
+          -- SELECT marks what you are looking at as THE favourite: not for
+          -- this box, for the mod. Any box set to FAVOURITE follows it from
+          -- now on, which is what makes that category worth having.
+          if pick.id == "FAVE" then
+            say(Strings("PICK A REAL ONE."))
+          else
+            local added = toggleFave(pick.id, pick.art)
+            say(Strings(added and "ADDED TO FAVOURITES." or "REMOVED."))
+          end
+        elseif input:wasPressed("start") then
+          pick.moved = true
+          -- RANDOM moved here when SELECT took on the favourite. A place and
+          -- a hand at once: drawing only one of the two is a half-measure.
+          pick.cat = math.random(#WALLPAPERS)
+          pick.id = WALLPAPERS[pick.cat].id
+          local list = artFor(pick.id)
+          pick.art = math.random(#list)
+          pick.artBy[pick.id] = pick.art
+        elseif input:wasPressed("a") then
+          setPaperEntry(pick.box, pick.id, pick.art)
+          self.paperPick = nil
+          say(Strings("WALLPAPER SET."))
+        elseif input:wasPressed("b") then
+          self.paperPick = nil
+        end
+        return
+      end
 
       if self.markWindow then
         updateMarkWindow()
@@ -1866,13 +2098,13 @@ return function(mod)
       elseif name == "SQUARE" then
         love.graphics.rectangle("fill", cx - size / 2, cy - size / 2, size, size)
       elseif name == "TRIANGLE" then
-        love.graphics.polygon("fill", cx, cy - size / 2,
+        poly("fill", cx, cy - size / 2,
           cx - size / 2, cy + size / 2, cx + size / 2, cy + size / 2)
       elseif name == "HEART" then
         local r = size / 4
         love.graphics.circle("fill", cx - r, cy - r, r)
         love.graphics.circle("fill", cx + r, cy - r, r)
-        love.graphics.polygon("fill", cx - size / 2, cy - r,
+        poly("fill", cx - size / 2, cy - r,
           cx + size / 2, cy - r, cx, cy + size / 2)
       end
     end
@@ -2034,6 +2266,41 @@ return function(mod)
 
     local function fit(text) return fitTo(text, textMax()) end
 
+    -- ------- the wallpaper chooser, which draws almost nothing
+    --
+    -- The first cut of this put a panel over the grid, and the panel covered
+    -- the one thing the player is trying to judge: the wallpaper. So the
+    -- chooser has no window at all. It borrows the footer -- the line that
+    -- normally names the Pokemon under the cursor -- and says the place and
+    -- the hand, with the arrows that work:
+    --
+    --     FOREST        < ADMURIN >
+    --
+    -- Up and down move through the places, left and right through the hands,
+    -- and the whole screen behind stays exactly what it will be if you press
+    -- A. Nothing is hidden while you choose, which is the point of choosing
+    -- on the box rather than in a menu.
+    local function paperPickLine()
+      local pick = self.paperPick
+      if not pick then return nil end
+      -- Until you move, the footer explains itself. The chooser has no
+      -- window and no arrows drawn on the grid, which is what keeps the
+      -- wallpaper visible -- and the price of that is that nothing on
+      -- screen says the D-pad does anything. So the first thing it says is
+      -- what to press; the moment you press it, it gets out of the way and
+      -- shows the choice instead.
+      if not pick.moved then
+        return Strings("UP/DOWN SCENE"), Strings("L/R ARTIST")
+      end
+      local list = artFor(pick.id)
+      local by = (list[math.max(1, math.min(#list, pick.art))] or list[1]).by
+      if #list > 1 then by = "<" .. by .. ">" end
+      -- a star would be a glyph this font does not have, so the mark is a
+      -- word: you can see at a glance whether SELECT would add or remove
+      if faveIndexOf(pick.id, pick.art) then by = by .. " FAV" end
+      return pick.id, by
+    end
+
     -- ------- the marking window
     --
     -- Drawn by the box screen itself, not a ChoiceBox (PLAN.md "3. MARKS"):
@@ -2092,10 +2359,94 @@ return function(mod)
       love.graphics.setColor(c[1] / 255, c[2] / 255, c[3] / 255, alpha or 1)
     end
 
-    local function drawWallpaper(paper, w, h)
+    -- A round shape the way a Game Boy makes one: rows of rectangles whose
+    -- widths follow the circle, so the edge steps instead of feathering.
+    -- love.graphics.circle at these radii comes out either as a dot or, when
+    -- something lighter is drawn inside it, as a doughnut.
+    -- love.graphics.polygon is not on every surface this file is drawn
+    -- through -- the headless harness stubs a subset -- and a wallpaper is
+    -- not worth a crash: no polygon, no shape, everything else still draws.
+    local function poly(...)
+      local f = love.graphics.polygon
+      if f then f(...) end
+    end
+
+    local function disc(cx, cy, r)
+      for dy = -r, r do
+        local half = math.floor(math.sqrt(math.max(0, r * r - dy * dy)))
+        if half > 0 then
+          love.graphics.rectangle("fill", cx - half, cy + dy, half * 2, 1)
+        end
+      end
+    end
+
+    -- ------- a wallpaper someone else drew
+    --
+    -- An art style is one wide strip -- two screens across -- scrolled at
+    -- its own speed and drawn twice so the seam is always off-screen. That
+    -- is the whole animation: no parallax layers, because a second layer
+    -- doubles the files shipped for a motion nobody looks straight at while
+    -- moving Pokemon around.
+    --
+    -- The strip is 144 tall, which is CLASSIC's own height, so BIG scales it
+    -- by exactly two: an integer, so the pixels stay square and hard-edged
+    -- instead of being resampled into mush.
+    local artImages = {}
+    local function artImage(style)
+      if not (style and style.image) then return nil end
+      local hit = artImages[style.image]
+      if hit ~= nil then return hit or nil end
+      local ok, img = pcall(Assets.image, style.image)
+      artImages[style.image] = (ok and img) or false
+      return (ok and img) or nil
+    end
+
+    local function drawArt(style, w, h, t)
+      local layers = style and style.layers
+      if not layers and style and style.image then
+        layers = { { image = style.image, speed = style.speed or 0 } }
+      end
+      if not layers then return false end
+      local drew = false
+      for _, layer in ipairs(layers) do
+        local img = artImage(layer)
+        if img then
+          local okDim, iw, ih = pcall(function()
+            return img:getWidth(), img:getHeight()
+          end)
+          if okDim and iw and iw > 0 then
+            local scale = math.max(1, math.floor(h / ih))
+            local span = iw * scale
+            -- speed 0 is a layer that must not move: the buildings, the
+            -- rock, the ground. Only what loops is allowed to slide.
+            local ox = 0
+            if (layer.speed or 0) > 0 then
+              ox = math.floor(t * layer.speed) % span
+            end
+            local ok = pcall(function()
+              love.graphics.setColor(1, 1, 1, 1)
+              local x = -ox
+              while x < w do
+                love.graphics.draw(img, x, 0, 0, scale, scale)
+                x = x + span
+              end
+            end)
+            drew = drew or ok
+          end
+        end
+      end
+      love.graphics.setColor(0, 0, 0, 1)
+      return drew
+    end
+    self.drawArt = drawArt
+
+    local function drawWallpaper(paper, w, h, style)
       local pattern = paper.pattern
       if pattern == "PLAIN" or not paper.palette then return end
       local t = animateOn() and (self.paperTick or 0) or 0
+      -- someone else's art first: if it draws, this function is done
+      if style and (style.layers or style.image)
+         and drawArt(style, w, h, t) then return end
 
       -- The ground colour first: the whole surface, so nothing shows white
       -- except what this screen deliberately paints white on top.
@@ -2103,78 +2454,315 @@ return function(mod)
       love.graphics.rectangle("fill", 0, 0, w, h)
 
       if pattern == "SEA" then
-        -- Bands of water, each rolling the opposite way to the one above, and
-        -- bubbles rising through them.
-        for i = 0, math.ceil(h / 10) do
-          local y = i * 10
-          local dir = (i % 2 == 0) and 1 or -1
-          shade(paper, 2, 0.55)
-          local prevX, prevY
-          for x = 0, w, 4 do
-            local wy = y + 3 * math.sin((x + dir * t * 0.5) / 11)
-            if prevX then love.graphics.line(prevX, prevY, x, wy) end
-            prevX, prevY = x, wy
+        -- UNDER the water, not the surface of it. 1.9.3 drew bands of waves
+        -- and 1.10.0's first attempt made those bands chunky, which fixed
+        -- the hairlines and left the screen reading as knitting. What a box
+        -- called SEA wants is the thing you look INTO: light on the surface
+        -- overhead, weed on the floor, and something swimming between them.
+        --
+        -- Nothing here is copied from anywhere. A fish at this size is a
+        -- body and a tail, and that shape belongs to nobody.
+
+        -- the surface, rolling, along the top only
+        for i = 0, 2 do
+          local y = i * 6
+          for x = -8, w + 8, 8 do
+            local phase = math.sin((x + t * 0.6 + i * 13) / 15)
+            local wy = y + math.floor(phase * 2) * 2
+            shade(paper, 2, 0.5 - i * 0.12)
+            love.graphics.rectangle("fill", x, wy, 8, 3)
           end
         end
-        shade(paper, 3, 0.5)
+        -- shafts of light coming down through it
+        shade(paper, 1, 0.5)
+        for i = 0, 3 do
+          local x = (i * 47 + math.floor(t * 0.12)) % (w + 40) - 20
+          poly("fill", x, 8, x + 10, 8, x + 22, h, x + 6, h)
+        end
+
+        -- the floor: weed that sways, and anemones sitting in it
+        for i = 0, math.ceil(w / 11) do
+          local x = i * 11 + 3
+          local tall = 16 + ((i * 13) % 20)
+          shade(paper, 3, 0.75)
+          for seg = 0, tall, 4 do
+            local bend = math.floor(2 * math.sin((t + i * 30 + seg * 9) / 38))
+            love.graphics.rectangle("fill", x + bend, h - seg - 4, 3, 4)
+          end
+        end
+        for i = 0, 3 do
+          local x = 14 + i * 41
+          local pulse = math.floor(1.5 + 1.5 * math.sin((t + i * 50) / 30))
+          shade(paper, 4, 0.55)
+          for arm = -4, 4 do
+            love.graphics.rectangle("fill", x + arm * 3, h - 12 - pulse - math.abs(arm),
+              2, 8 + pulse - math.abs(arm))
+          end
+          shade(paper, 4, 0.75)
+          disc(x, h - 7, 6)
+        end
+
+        -- a fish: body, tail, eye. Two shoals crossing at different depths,
+        -- so something is always moving under something else.
+        local function fish(fx, fy, dir, tone, alpha, size)
+          shade(paper, tone, alpha)
+          disc(fx, fy, 2 * size)
+          love.graphics.rectangle("fill", fx - 3 * size, fy - size, 6 * size, 2 * size)
+          -- tail, behind the direction of travel
+          poly("fill",
+            fx - dir * 3 * size, fy,
+            fx - dir * 6 * size, fy - 2 * size,
+            fx - dir * 6 * size, fy + 2 * size)
+          shade(paper, 1, 0.9)
+          love.graphics.rectangle("fill", fx + dir * size, fy - size, size, size)
+        end
+        for i = 0, 4 do
+          local y = 34 + i * 17
+          local x = ((t * 0.5 + i * 43) % (w + 40)) - 20
+          fish(x, y, 1, 3, 0.65, 1)
+        end
+        for i = 0, 2 do
+          local y = 46 + i * 26
+          local x = w - (((t * 0.75 + i * 61) % (w + 50)) - 25)
+          fish(x, y, -1, 2, 0.9, 2)
+        end
+
+        -- a jellyfish drifting up through the lot
+        for i = 0, 1 do
+          local x = 30 + i * 74
+          local y = h - ((t * 0.3 + i * 90) % (h + 40))
+          shade(paper, 2, 0.55)
+          disc(x, y, 6)
+          love.graphics.rectangle("fill", x - 6, y, 12, 3)
+          for k = -2, 2 do
+            local wob = math.floor(2 * math.sin((t + k * 20 + i * 40) / 25))
+            love.graphics.rectangle("fill", x + k * 3 + wob, y + 3, 1, 8)
+          end
+        end
+
+        -- bubbles, still rising
+        shade(paper, 1, 0.8)
         for i = 0, 11 do
-          local bx = (i * 37 % w)
+          local bx = (i * 37) % w
           local by = h - ((t * 0.35 + i * 23) % (h + 12))
-          love.graphics.circle("line", bx, by, 2 + (i % 2))
+          love.graphics.rectangle("fill", bx, by, 2, 2)
         end
       elseif pattern == "FOREST" then
-        -- A canopy: overlapping round crowns in two depths, swaying.
-        for row = 0, math.ceil(h / 22) do
-          for col = -1, math.ceil(w / 26) do
-            local sway = 2 * math.sin((t + row * 30 + col * 17) / 40)
-            local cx = col * 26 + (row % 2) * 13 + sway
-            local cy = row * 22 + 8
-            shade(paper, 3, 0.45)
-            love.graphics.circle("fill", cx, cy, 9)
-            shade(paper, 2, 0.75)
-            love.graphics.circle("fill", cx - 2, cy - 2, 6)
+        -- TREES, drawn the way a Game Boy draws a tree: a stack of
+        -- rectangles on the 8-pixel grid, widest at the bottom, with a trunk
+        -- under it. 1.9.3 drew filled CIRCLES here, and a filled circle at
+        -- this size on a four-tone surface is a dot -- the screen came out a
+        -- field of green polka dots rather than a wood.
+        --
+        -- Two depths: a darker row behind, offset half a tree along and
+        -- sitting higher, so the canopy reads as having something behind it
+        -- rather than as one row of shapes. The sway moves whole PIXELS, not
+        -- fractions -- a sub-pixel sway on a lattice this coarse just makes
+        -- the edges shimmer.
+        local function tree(cx, cy, scale, tone, alpha)
+          shade(paper, tone, alpha)
+          -- canopy: three tiers, each wider and shorter than the one above
+          love.graphics.rectangle("fill", cx - 3 * scale, cy, 6 * scale, 3 * scale)
+          love.graphics.rectangle("fill", cx - 5 * scale, cy + 3 * scale,
+            10 * scale, 3 * scale)
+          love.graphics.rectangle("fill", cx - 7 * scale, cy + 6 * scale,
+            14 * scale, 3 * scale)
+          -- trunk
+          love.graphics.rectangle("fill", cx - scale, cy + 9 * scale,
+            2 * scale, 3 * scale)
+        end
+
+        local STEP_X, STEP_Y = 24, 26
+        for row = -1, math.ceil(h / STEP_Y) + 1 do
+          -- the row behind, higher and darker
+          for col = -1, math.ceil(w / STEP_X) + 1 do
+            local sway = math.floor(2 * math.sin((t + row * 37 + col * 19) / 45))
+            tree(col * STEP_X + 12 + sway, row * STEP_Y - 6, 1, 3, 0.5)
+          end
+          -- and the row in front, offset half a tree along
+          for col = -1, math.ceil(w / STEP_X) + 1 do
+            local sway = math.floor(2 * math.sin((t + row * 23 + col * 31) / 40))
+            -- every third tree is a sapling: a lattice of identical trees is
+            -- a wallpaper pattern, and a wood is not
+            local small = ((row * 7 + col * 3) % 3 == 0)
+            local x = col * STEP_X + sway
+            if small then
+              shade(paper, 2, 0.85)
+              love.graphics.rectangle("fill", x - 3, row * STEP_Y + 12, 6, 3)
+              love.graphics.rectangle("fill", x - 5, row * STEP_Y + 15, 10, 3)
+              love.graphics.rectangle("fill", x - 1, row * STEP_Y + 18, 2, 3)
+            else
+              tree(x, row * STEP_Y + 6, 1, 2, 0.85)
+            end
           end
         end
       elseif pattern == "SKY" then
         -- Clouds drifting right, two layers at different speeds so the sky
         -- has depth rather than a single sliding sheet.
-        local function cloud(cx, cy, r, tone, alpha)
+        -- A cloud built from RECTANGLES: three overlapping circles came out
+        -- as one soft lump, and three of them left most of the sky empty.
+        -- This is the shape a Game Boy draws -- a wide flat base with two
+        -- steps stacked on it -- and there are enough of them to be weather
+        -- rather than decoration.
+        local function cloud(cx, cy, u, tone, alpha)
           shade(paper, tone, alpha)
-          love.graphics.circle("fill", cx, cy, r)
-          love.graphics.circle("fill", cx + r, cy + 1, r * 0.8)
-          love.graphics.circle("fill", cx - r, cy + 1, r * 0.7)
+          love.graphics.rectangle("fill", cx, cy + 2 * u, 10 * u, 2 * u)
+          love.graphics.rectangle("fill", cx + u, cy + u, 7 * u, u)
+          love.graphics.rectangle("fill", cx + 3 * u, cy, 4 * u, u)
+          -- the lit top edge, one row, which is what sells it as volume
+          shade(paper, 1, 0.8)
+          love.graphics.rectangle("fill", cx + 3 * u, cy, 4 * u, 1)
         end
-        for i = 0, 5 do
-          local y = 12 + i * 26
-          local x = ((t * 0.20 + i * 47) % (w + 60)) - 30
-          cloud(x, y, 8, 2, 0.55)
+        -- a sun, high and to one side, because an empty sky is not weather.
+        -- Solid, with a ring of its own colour around it rather than a paler
+        -- middle -- a lighter core turned it into a doughnut.
+        shade(paper, 3, 0.35)
+        disc(w - 30, 20, 13)
+        shade(paper, 2, 0.9)
+        disc(w - 30, 20, 10)
+
+        -- the far layer: smaller, paler, slower
+        for i = 0, 10 do
+          local y = 4 + i * 14
+          local x = ((t * 0.18 + i * 43) % (w + 80)) - 40
+          cloud(x, y, 2, 3, 0.45)
         end
-        for i = 0, 3 do
-          local y = 26 + i * 34
-          local x = ((t * 0.35 + i * 71) % (w + 80)) - 40
-          cloud(x, y, 11, 3, 0.35)
+        -- and the near one, big enough to pass in front of the sun
+        for i = 0, 7 do
+          local y = 10 + i * 19
+          local x = ((t * 0.34 + i * 57) % (w + 110)) - 55
+          cloud(x, y, 3, 2, 0.8)
         end
       elseif pattern == "CAVE" then
-        -- Stalactites from the ceiling, stalagmites from the floor, and a
-        -- drip that falls and starts again. The rock does not move: caves do
-        -- not, and a wall that drifted would read as the room tilting.
-        shade(paper, 2, 0.6)
-        for i = 0, math.ceil(w / 18) do
-          local x = i * 18
-          local d = 10 + ((i * 7) % 9)
-          love.graphics.polygon("fill", x, 0, x + 9, 0, x + 4, d)
-          love.graphics.polygon("fill", x + 4, h, x + 13, h, x + 9, h - d + 2)
+        -- Third attempt, and the first two failed for the same reason in
+        -- opposite directions: one was a flat beige wall with teeth on it,
+        -- the other was a full scene -- arch, pool, dither, the lot -- which
+        -- on a 160x144 field behind twenty Pokemon is just noise the sprites
+        -- have to fight.
+        --
+        -- A wallpaper is not a painting. What it needs is a surface with a
+        -- top, a bottom and enough going on between them to be a place:
+        -- rock above, rock below, a seam of crystal that breathes, and the
+        -- steady drip that says the room is alive. Middle contrast
+        -- throughout, so a Pokemon standing on it still reads.
+
+        -- the rock face, a shade under the ground colour
+        shade(paper, 2, 0.4)
+        love.graphics.rectangle("fill", 0, 0, w, h)
+
+        -- texture: short horizontal strata, scattered rather than tiled, so
+        -- the wall has grain without turning into a chessboard
+        shade(paper, 3, 0.18)
+        for i = 0, 45 do
+          local hx = (i * 2654435761) % 4294967296
+          local x = math.floor(hx / 65536) % w
+          local y = math.floor(hx / 23) % h
+          love.graphics.rectangle("fill", x, y, 5 + (i % 4) * 3, 2)
         end
-        shade(paper, 3, 0.5)
+
+        -- the ceiling: one unbroken dark band, its underside ragged
+        shade(paper, 4, 0.75)
+        for x = 0, w, 4 do
+          local d = 10 + math.floor(6 * math.sin(x / 17) + 4 * math.sin(x / 7))
+          love.graphics.rectangle("fill", x, 0, 4, d)
+        end
+        -- stalactites hanging from it
+        for i = 0, 8 do
+          local x = 4 + i * 19
+          local len = 10 + ((i * 13) % 22)
+          for k = 0, len do
+            local half = math.max(1, math.floor(4 * (1 - k / len)))
+            love.graphics.rectangle("fill", x - half, 12 + k, half * 2, 1)
+          end
+        end
+
+        -- and the floor, the same band the other way up
+        for x = 0, w, 4 do
+          local u = 8 + math.floor(5 * math.cos(x / 15) + 3 * math.sin(x / 9))
+          love.graphics.rectangle("fill", x, h - u, 4, u)
+        end
+        for i = 0, 6 do
+          local x = 12 + i * 25
+          local len = 8 + ((i * 17) % 16)
+          for k = 0, len do
+            local half = math.max(1, math.floor(4 * (1 - k / len)))
+            love.graphics.rectangle("fill", x - half, h - 8 - k, half * 2, 1)
+          end
+        end
+
+        -- mid-depth pillars: floor to ceiling, a shade lighter than the
+        -- near rock, which is what stops the middle of the screen being a
+        -- beige field with things at the edges of it
+        shade(paper, 3, 0.26)
+        for i = 0, 1 do
+          local x = 26 + i * 82
+          local width = 9 + (i % 2) * 4
+          for y = 14, h - 12 do
+            local waist = math.floor(3 * math.sin((y + i * 40) / 26))
+            love.graphics.rectangle("fill", x + waist, y, width, 1)
+          end
+        end
+
+        -- crystals GROWING OUT OF THE FLOOR, in clusters, glowing in and
+        -- out. Floating them in mid-air made them read as little mountains
+        -- hanging in the dark.
+        local pulse = 0.35 + 0.3 * math.sin(t / 34)
+        for i = 0, 4 do
+          local x = 10 + i * 33
+          local base = h - 10 - ((i * 7) % 5)
+          for k = -1, 1 do
+            local tall = 9 + ((i * 13 + k * 5) % 9) - math.abs(k) * 3
+            local cx = x + k * 5
+            shade(paper, 1, pulse + 0.2 - math.abs(k) * 0.08)
+            poly("fill", cx - 2, base, cx, base - tall, cx + 2, base)
+          end
+          -- the light they throw on the floor around them
+          shade(paper, 1, pulse * 0.35)
+          love.graphics.rectangle("fill", x - 9, base, 20, 2)
+        end
+
+        -- drips, from a stalactite to the floor, one ring where they land
         for i = 0, 3 do
-          local x = 20 + i * 41
-          local y = (t * 0.8 + i * 33) % h
-          love.graphics.circle("fill", x, y, 1.5)
+          local x = 4 + i * 19 * 2
+          local period = h - 20
+          local fall = (t * 1.2 + i * 41) % period
+          shade(paper, 1, 0.7)
+          love.graphics.rectangle("fill", x, 20 + fall, 1, 4)
+          if fall > period - 8 then
+            local age = fall - (period - 8)
+            shade(paper, 1, 0.55 - age * 0.06)
+            love.graphics.rectangle("fill", x - 2 - age, h - 14, 5 + age * 2, 1)
+          end
         end
       elseif pattern == "CITY" then
         -- A skyline with lit windows, and the lights come on and go off.
-        shade(paper, 2, 0.65)
+        -- The skyline worked; the sky above it did not exist. A moon, a few
+        -- stars and a second row of towers behind the first give the top
+        -- two thirds of the screen something to be.
         local base = h
+        -- a crescent: a disc with a bite taken out of it by the ground colour
+        -- a crescent: the disc, then the SAME disc again in the sky's own
+        -- colour, offset -- which is how the shape is cut on hardware
+        shade(paper, 4, 0.7)
+        disc(w - 30, 18, 11)
+        shade(paper, 1, 1)
+        disc(w - 25, 15, 11)
+        shade(paper, 4, 0.6)
+        for i = 0, 23 do
+          local hx = (i * 2654435761) % 4294967296
+          local x = math.floor(hx / 65536) % w
+          local y = 3 + math.floor(hx / 11) % 52
+          love.graphics.rectangle("fill", x, y, 1, 1)
+        end
+        -- the far towers: taller, darker, no windows, so the near row reads
+        -- as being in front of something rather than against blank sky
+        shade(paper, 3, 0.6)
+        for i = 0, math.ceil(w / 22) do
+          local x = i * 22 + 8
+          local bh = 48 + ((i * 17) % 34)
+          love.graphics.rectangle("fill", x, base - bh, 18, bh)
+        end
+        shade(paper, 2, 0.65)
         for i = 0, math.ceil(w / 16) do
           local x = i * 16
           local bh = 26 + ((i * 13) % 34)
@@ -2192,26 +2780,204 @@ return function(mod)
           end
         end
       elseif pattern == "SNOW" then
-        -- Flakes falling and drifting sideways as they fall.
-        shade(paper, 2, 0.7)
-        for i = 0, 39 do
-          local x = (i * 29 + 6 * math.sin((t + i * 40) / 45)) % w
-          local y = (t * 0.30 + i * 17) % (h + 8)
-          love.graphics.circle("fill", x, y, 1 + (i % 3) * 0.5)
+        -- Rooftops under falling snow, which is what a snow scene actually
+        -- looks like: a town seen from above the eaves, chimneys smoking,
+        -- and the fall thick enough to be weather. The palette is four
+        -- colours, but in CLASSIC nothing remaps the canvas -- so the tones
+        -- in between are the mod's own blending, and the scene can carry
+        -- more depth than a four-shade sprite would.
+        --
+        -- Three ranks of roofs, each darker and lower than the one behind,
+        -- so the town has distance in it.
+        local horizon = math.floor(h * 0.52)
+
+        -- HOUSES, not a fence of identical triangles. Each one gets its own
+        -- width, its own height and its own roof pitch out of the same
+        -- hash, so the row reads as a street rather than as a pattern; the
+        -- two roof slopes take different tones, because a lit side and a
+        -- shaded side is what makes a roof look like a roof; and the snow
+        -- sits on the ridge as a thin cap with a lip, not as a white
+        -- triangle laid over the whole thing.
+        local function house(x, y, bw, bh, tone, alpha, snowAlpha)
+          local half = math.floor(bw / 2)
+          local peak = y - math.floor(bw * 0.42)
+          -- wall
+          shade(paper, tone, alpha)
+          love.graphics.rectangle("fill", x, y, bw, bh)
+          -- the two slopes: the left one catches the light
+          shade(paper, tone, alpha * 0.8)
+          poly("fill", x, y, x + half, peak, x + half, y)
+          shade(paper, 4, math.min(1, alpha * 1.15))
+          poly("fill", x + half, peak, x + bw, y, x + half, y)
+          -- snow along both slopes, a couple of pixels thick, with the lip
+          shade(paper, 1, snowAlpha)
+          poly("fill", x - 1, y, x + half, peak - 2,
+            x + half, peak + 1, x + 3, y + 1)
+          poly("fill", x + bw + 1, y, x + half, peak - 2,
+            x + half, peak + 1, x + bw - 3, y + 1)
+          return peak
+        end
+
+        -- the far rank: small, pale, no detail
+        for i = 0, 9 do
+          local hx = (i * 2654435761) % 4294967296
+          local bw = 14 + math.floor(hx / 65536) % 10
+          local x = i * 18 - 6
+          house(x, horizon, bw, h - horizon, 3, 0.4, 0.55)
+        end
+
+        -- the middle rank, with windows
+        for i = 0, 6 do
+          local hx = (i * 2246822519) % 4294967296
+          local bw = 20 + math.floor(hx / 65536) % 12
+          local x = i * 26 - 10
+          local peak = house(x, horizon + 14, bw, h - horizon - 14, 3, 0.7, 0.8)
+          local lit = math.sin((t + i * 61) / 80) > -0.2
+          shade(paper, lit and 1 or 4, lit and 0.9 or 0.5)
+          love.graphics.rectangle("fill", x + math.floor(bw / 2) - 2,
+            horizon + 20, 4, 4)
+          -- a chimney on some of them, smoking
+          if i % 2 == 0 then
+            shade(paper, 4, 0.85)
+            love.graphics.rectangle("fill", x + bw - 7, peak + 2, 4, 10)
+            for k = 0, 4 do
+              local rise = (t * 0.45 + k * 11 + i * 17) % 40
+              local drift = math.floor(math.sin((t + k * 26 + i * 20) / 24) * (1 + k))
+              shade(paper, 2, 0.45 - k * 0.08)
+              love.graphics.rectangle("fill", x + bw - 7 + drift, peak + 2 - rise,
+                2 + math.floor(k / 2), 2 + math.floor(k / 2))
+            end
+          end
+        end
+
+        -- the near rank: big, dark, two rows of windows
+        for i = 0, 4 do
+          local hx = (i * 3266489917) % 4294967296
+          local bw = 28 + math.floor(hx / 65536) % 14
+          local x = i * 36 - 12
+          house(x, horizon + 34, bw, h - horizon - 34, 4, 0.8, 0.95)
+          for row = 0, 1 do
+            for col = 0, 1 do
+              local lit = math.sin((t + i * 43 + row * 31 + col * 17) / 70) > -0.1
+              shade(paper, lit and 1 or 4, lit and 0.95 or 0.55)
+              love.graphics.rectangle("fill", x + 6 + col * 12,
+                horizon + 42 + row * 11, 5, 6)
+            end
+          end
+        end
+
+        -- and the fall itself: three depths, the near flakes bigger and
+        -- quicker, so the snow has volume rather than being one sheet
+        for depth = 1, 3 do
+          local count = 16 + depth * 8
+          local speed = 0.18 + depth * 0.16
+          local size = depth
+          shade(paper, depth == 3 and 1 or 2, 0.35 + depth * 0.2)
+          for i = 0, count do
+            local hx = (i * 2654435761 + depth * 7919) % 4294967296
+            local x = math.floor((math.floor(hx / 65536) % w)
+              + 5 * math.sin((t + i * 37) / (30 + depth * 10)))
+            local y = math.floor((t * speed + i * 23 + depth * 11) % (h + 10))
+            love.graphics.rectangle("fill", x % w, y, size, size)
+          end
         end
       elseif pattern == "NIGHT" then
         -- Stars, a few of them twinkling out of phase with each other.
-        for i = 0, 47 do
-          local x = (i * 53) % w
-          local y = (i * 37) % h
-          local tw = 0.45 + 0.45 * math.sin((t + i * 61) / 30)
+        -- `(i * 53) % w` with `(i * 37) % h` is a lattice, not a sky: the
+        -- stars marched in diagonal columns. Hashing the index scatters
+        -- them, and a moon gives the eye somewhere to land.
+        -- the same crescent the city sky gets: a disc, then the night's own
+        -- colour cutting it. Built from rectangles it came out a domino.
+        shade(paper, 4, 0.9)
+        disc(30, 24, 12)
+        shade(paper, 1, 1)
+        disc(36, 20, 12)
+        for i = 1, 59 do
+          local hx = (i * 2654435761) % 4294967296
+          local x = math.floor(hx / 65536) % w
+          local y = math.floor(hx / 7) % h
+          -- clamped: an alpha below zero is not a fainter star, it is an
+          -- undefined colour the renderer is entitled to do anything with
+          local tw = math.max(0.05, 0.35 + 0.5 * math.sin((t + i * 61) / 30))
           shade(paper, 4, tw)
-          love.graphics.circle("fill", x, y, (i % 7 == 0) and 1.5 or 1)
+          if i % 9 == 0 then
+            -- the bright ones get a cross, the way a twinkle is drawn
+            love.graphics.rectangle("fill", x - 1, y, 3, 1)
+            love.graphics.rectangle("fill", x, y - 1, 1, 3)
+          else
+            love.graphics.rectangle("fill", x, y, 1, 1)
+          end
+        end
+      elseif pattern == "90S" then
+        -- Two layers of shapes going opposite ways: the big ones behind,
+        -- slowly, right to left; the small ones in front, quickly, left to
+        -- right. That crossing IS the pattern -- one sheet of confetti
+        -- sliding is a screensaver, two passing each other has depth.
+        local function shape(kind, x, y, size, tone, alpha)
+          shade(paper, tone, alpha)
+          if kind == 0 then
+            -- triangle
+            poly("fill", x, y + size, x + size, y - size,
+              x + size * 2, y + size)
+          elseif kind == 1 then
+            -- circle
+            disc(x + size, y, size)
+          elseif kind == 2 then
+            -- zigzag, the lightning bolt off every 1994 pencil case
+            for k = 0, 3 do
+              love.graphics.rectangle("fill", x + k * size, y - size + k * size,
+                size, size)
+              love.graphics.rectangle("fill", x + k * size, y + k * size, size, size)
+            end
+          elseif kind == 3 then
+            -- squiggle: three steps of a wave
+            for k = 0, 5 do
+              local dy = math.floor(math.sin(k * 1.1) * size)
+              love.graphics.rectangle("fill", x + k * size, y + dy, size, size)
+            end
+          else
+            -- cross / star
+            love.graphics.rectangle("fill", x, y - size, size * 3, size)
+            love.graphics.rectangle("fill", x + size, y - size * 2, size, size * 3)
+          end
+        end
+
+        -- a band of colour across the middle, because everything in 1994 had
+        -- one: it sits still while both layers cross it
+        shade(paper, 3, 0.35)
+        for x = 0, w, 8 do
+          local dy = math.floor(math.sin((x + 20) / 18) * 5)
+          love.graphics.rectangle("fill", x, h / 2 + dy - 8, 8, 16)
+        end
+
+        -- behind: BIG, slow, right to left
+        for i = 0, 11 do
+          local y = 14 + ((i * 41) % (h - 28))
+          local x = w - (((t * 0.22 + i * 47) % (w + 90)) - 45)
+          shape(i % 5, x, y, 6, 3, 0.75)
+        end
+        -- in front: smaller, quicker, left to right, in the loud colour
+        for i = 0, 17 do
+          local y = 8 + ((i * 31) % (h - 16))
+          local x = ((t * 0.55 + i * 37) % (w + 60)) - 30
+          shape((i + 2) % 5, x, y, 4, 2, 1)
+        end
+        -- and a few dots that stay put, so the eye has something still to
+        -- measure the movement against
+        shade(paper, 4, 0.35)
+        for i = 0, 23 do
+          local hx = (i * 2654435761) % 4294967296
+          love.graphics.rectangle("fill", math.floor(hx / 65536) % w,
+            math.floor(hx / 19) % h, 2, 2)
         end
       end
 
       love.graphics.setColor(0, 0, 0, 1)
     end
+    -- Exposed for the same reason picScale and spriteToDraw are: a pattern
+    -- is the one part of this screen nobody can judge by reading it, and a
+    -- harness that stubs love.graphics can render one to a file and LOOK.
+    self.drawWallpaper = drawWallpaper
 
     -- ------- the slots, laid ON the wallpaper
     --
@@ -2248,8 +3014,20 @@ return function(mod)
       -- runs edge to edge, including the margins around the grid.
       local L = layout(game)
       if self.mode == "box" then
-        local paper = paperOf(game.save.currentBox)
-        drawWallpaper(paper, L.w, L.h)
+        -- while the WALLPAPER chooser is open the box wears whatever the
+        -- cursor is sitting on, not what it was saved with: that IS the
+        -- preview, and it costs nothing because this screen draws its own
+        -- background anyway
+        local paper, style
+        if self.paperPick then
+          paper = WALLPAPER_BY_ID[self.paperPick.id] or WALLPAPER_BY_ID.PLAIN
+          local list = artFor(self.paperPick.id)
+          style = list[math.max(1, math.min(#list, self.paperPick.art))]
+        else
+          paper = paperOf(game.save.currentBox)
+          style = artOf(game.save.currentBox)
+        end
+        drawWallpaper(paper, L.w, L.h, style)
         love.graphics.setColor(1, 1, 1, 1)
         love.graphics.rectangle("fill", 0, 0, L.w, L.gridY - 2)
         love.graphics.rectangle("fill", 0, footerY() - 2, L.w, L.h - footerY() + 2)
@@ -2369,6 +3147,17 @@ return function(mod)
       -- MARK MODE it says so instead -- "there is no state you can be in
       -- without being told" (PLAN.md "3. MARKS") -- for as long as the mode
       -- stays on, ahead of the usual per-cell hint.
+      -- while the chooser is open the footer belongs to it: the place on the
+      -- left, the hand on the right, and the grid untouched behind
+      local pickId, pickBy = paperPickLine()
+      if pickId then
+        Font.draw(fit(pickId), TEXT_X, footerY())
+        local w = Font.width(pickBy)
+        Font.draw(pickBy, layout(game).w - TEXT_X - w, footerY())
+        drawMarkWindow()
+        return
+      end
+
       local line
       if self.notice then
         local now = love.timer and love.timer.getTime() or 0

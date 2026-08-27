@@ -8,3 +8,4 @@ data/generated/
 assets/generated/
 dist/
 *.zip
+.claude/

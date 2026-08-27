@@ -1540,16 +1540,138 @@ do
   local beforeMon = {}
   for i = 2, #zonesBefore do beforeMon[i] = zonesBefore[i] end
 
+  -- il messaggio di conferma si mangia il tasto successivo: va scartato
+  -- prima di riaprire il menu, o la UP finisce nel box di testo
+  local function clearSay()
+    for _ = 1, 3 do game.press("b"); screen:update() end
+  end
+
+  -- guida il selettore come lo guiderebbe un giocatore: giu' fino alla
+  -- scena voluta, destra fino alla mano voluta, A per confermare
+  local function pickPaper(id, art)
+    clearSay()
+    choose(openBoxMenu(game, screen), game, "WALLPAPER")
+    for _ = 1, 20 do
+      if screen.paperPick.id == id then break end
+      game.press("down"); screen:update()
+    end
+    for _ = 2, (art or 1) do game.press("right"); screen:update() end
+    game.press("a"); screen:update()
+    clearSay()
+  end
+
+  -- ------- the wallpaper chooser (1.10.0)
+  --
+  -- It is no longer a pushed ListMenu: it is drawn by the screen over its
+  -- own background, so that the wallpaper under the cursor IS the preview.
+  -- That means the assertions here drive the SCREEN's keys, not a menu's.
   local boxMenu = openBoxMenu(game, screen)
+  T.check(boxMenu ~= nil and boxMenu.items ~= nil, "the box menu opens")
   choose(boxMenu, game, "WALLPAPER")
-  local wallMenu = game.stack:top()
-  -- Gen 3 named its wallpapers after places, and so do these.
-  T.eq(labels(wallMenu.items), "PLAIN|SEA|FOREST|SKY|CAVE|CITY|SNOW|NIGHT",
-    "WALLPAPER lists the seven scenes plus PLAIN")
-  choose(wallMenu, game, "SEA")
-  T.eq(store.boxPapers and store.boxPapers[1], "SEA",
-    "choosing a wallpaper stores it in mod.save boxPapers, keyed by box number")
-  T.check(game.stack:top() == nil, "and lands back on the grid")
+  T.check(game.stack:top() == nil,
+    "WALLPAPER pushes nothing: the chooser lives inside the screen")
+  T.check(screen.paperPick ~= nil, "and the screen is in choosing mode")
+  T.eq(screen.paperPick.id, "PLAIN", "starting on the wallpaper this box wears")
+
+  -- down moves to the next place, and the preview follows immediately
+  game.press("down"); screen:update()
+  T.eq(screen.paperPick.id, "SEA", "DOWN moves to the next scene")
+  game.press("a"); screen:update()
+  T.check(screen.paperPick == nil, "A closes the chooser")
+  local saved = store.boxPapers and store.boxPapers[1]
+  T.eq(type(saved) == "table" and saved.id or saved, "SEA",
+    "and the box remembers the scene")
+  T.eq(type(saved) == "table" and saved.art or 1, 1,
+    "with the hand that drew it -- 1 is this mod's own, the default")
+
+  -- LEFT/RIGHT change the ARTIST, and only where there is one to change to
+  local boxMenu2 = openBoxMenu(game, screen)
+  choose(boxMenu2, game, "WALLPAPER")
+  game.press("down"); screen:update()      -- FOREST
+  T.eq(screen.paperPick.id, "FOREST", "moved onto a scene with more than one hand")
+  local artBefore = screen.paperPick.art
+  game.press("right"); screen:update()
+  T.check(screen.paperPick.art ~= artBefore,
+    "RIGHT picks the next artist for that scene")
+  local artName = run.loader.exports.gen3_box.wallpaperArt.FOREST[screen.paperPick.art].by
+  T.check(artName ~= "GEN3 BOX",
+    "which is somebody else's art (" .. tostring(artName) .. ")")
+  game.press("a"); screen:update()
+  local saved2 = store.boxPapers[1]
+  T.eq(saved2.id, "FOREST", "the box takes the new scene")
+  T.check(saved2.art > 1, "and remembers WHOSE, not just which")
+
+  -- START sorteggia scena E mano insieme, e non conferma niente da solo
+  do
+    clearSay()
+    choose(openBoxMenu(game, screen), game, "WALLPAPER")
+    local seen = {}
+    for _ = 1, 30 do
+      game.press("start"); screen:update()
+      seen[screen.paperPick.id .. "/" .. screen.paperPick.art] = true
+    end
+    local n = 0
+    for _ in pairs(seen) do n = n + 1 end
+    T.check(n > 1, "START mescola: trenta pressioni danno piu' di una scelta")
+    local before = store.boxPapers[1]
+    game.press("b"); screen:update()
+    T.eq(store.boxPapers[1].id, before.id,
+      "e non salva nulla da solo: serve comunque la A")
+  end
+
+  -- SELECT ALTERNA: la prima volta aggiunge ai preferiti, la seconda toglie.
+  -- FAVOURITE e' una categoria che pesca fra quelli, quindi con l'insieme
+  -- vuoto non ha niente da mostrare e con l'insieme pieno mostra uno dei suoi.
+  do
+    clearSay()
+    choose(openBoxMenu(game, screen), game, "WALLPAPER")
+    for _ = 1, 20 do
+      if screen.paperPick.id == "CITY" then break end
+      game.press("down"); screen:update()
+    end
+    game.press("select"); screen:update()
+    T.eq(#(store.favePapers or {}), 1, "SELECT aggiunge ai preferiti")
+    T.eq(store.favePapers[1].id, "CITY", "e aggiunge quello che stai guardando")
+    game.press("select"); screen:update()
+    T.eq(#store.favePapers, 0, "SELECT di nuovo sullo stesso lo toglie")
+    game.press("select"); screen:update()
+    T.eq(#store.favePapers, 1, "e ancora lo rimette: e' un interruttore")
+    game.press("b"); screen:update()
+    clearSay()
+
+    -- una box su FAVOURITE indossa uno dei preferiti
+    store.boxPapers[1] = { id = "FAVE", art = 1 }
+    local cityPal
+    for _, w in ipairs(run.loader.exports.gen3_box.wallpapers) do
+      if w.id == "CITY" then cityPal = w.palette end
+    end
+    T.check(screen:sgbPalettes(game)[1].colors == cityPal,
+      "con un solo preferito, FAVOURITE mostra quello")
+
+    -- svuotando l'insieme non puo' inventarsi niente: torna al neutro
+    store.favePapers = {}
+    local zones = screen:sgbPalettes(game)
+    T.check(zones[1].colors == PaletteFX.GRAYS,
+      "senza preferiti FAVOURITE non finge: resta PLAIN")
+    store.boxPapers[1] = { id = "NIGHT", art = 1 }
+  end
+
+  -- B leaves everything as it was
+  clearSay()
+  local before = store.boxPapers[1]
+  local boxMenu3 = openBoxMenu(game, screen)
+  choose(boxMenu3, game, "WALLPAPER")
+  game.press("down"); screen:update()
+  game.press("b"); screen:update()
+  T.check(screen.paperPick == nil, "B closes it")
+  T.eq(store.boxPapers[1].id, before.id, "and changes nothing")
+
+  -- a save written by 1.9.x holds a bare string: it has to keep working,
+  -- and it means "that scene, drawn here"
+  store.boxPapers[1] = "SEA"
+  T.eq(screen.paperIdOf and screen.paperIdOf(1) or "SEA", "SEA",
+    "a legacy string save still names its scene")
+  store.boxPapers[1] = { id = "SEA", art = 1 }
 
   local zonesAfter = screen:sgbPalettes(game)
   T.check(zonesAfter[1].colors ~= PaletteFX.GRAYS,
@@ -1578,12 +1700,27 @@ do
   -- is the lightest, which is what makes it a real dark mode rather than a
   -- blue tint. The exact values are the theme's own now that every wallpaper
   -- carries a scene palette, so what is asserted is the ORDER.
-  choose(openBoxMenu(game, screen), game, "WALLPAPER")
-  choose(game.stack:top(), game, "NIGHT")
+  pickPaper("NIGHT")
   local night = screen:sgbPalettes(game)[1].colors
   local function luma(c) return 0.299 * c[1] + 0.587 * c[2] + 0.114 * c[3] end
   T.check(luma(night[1]) < 60, "NIGHT's lightest-mapped shade is dark")
   T.check(luma(night[4]) > 200, "and its darkest-mapped shade is light")
+  -- ------- l'arte di qualcun altro non deve mai far cadere il frame
+  --
+  -- Gli stili con immagine passano da Assets.image, che su un boot senza
+  -- quell'asset risponde nil: il disegno deve degradare al pattern, non
+  -- morire dentro il draw.
+  do
+    local art = run.loader.exports.gen3_box.wallpaperArt.FOREST
+    local withImage
+    for i, a in ipairs(art) do if a.layers or a.image then withImage = i end end
+    T.check(withImage ~= nil, "FOREST ha almeno uno stile a immagine")
+    store.boxPapers[1] = { id = "FOREST", art = withImage }
+    local ok = pcall(function() screen:draw() end)
+    T.check(ok, "un wallpaper a immagine si disegna senza far cadere il frame")
+    store.boxPapers[1] = { id = "NIGHT", art = 1 }
+  end
+
   T.check(luma(night[1]) < luma(night[4]),
     "so the ramp really is reversed, which is the whole point of NIGHT")
 
@@ -2300,8 +2437,11 @@ do
 
   loader.modSave = loader.modSave or {}
   loader.modSave.gen3_box = loader.modSave.gen3_box or {}
-  -- SEA: its swell is drawn with lines, so the recorder below sees it move.
-  loader.modSave.gen3_box.boxPapers = { [1] = "SEA" }
+  -- SEA: 1.10.0 draws its swell with RECTANGLES rather than hairlines (a
+  -- one-pixel line on this surface read as ruled paper), so the recorder
+  -- below watches rectangle positions as well as lines. What is asserted is
+  -- unchanged: the scene is somewhere else forty ticks later.
+  loader.modSave.gen3_box.boxPapers = { [1] = { id = "SEA", art = 1 } }
 
   local G = love.graphics
   local realLine, realRect, realColor = G.line, G.rectangle, G.setColor
@@ -2310,6 +2450,11 @@ do
   G.setColor = function(r, g, b, a) colour = { r, g, b, a or 1 }; return realColor(r, g, b, a) end
   G.line = function(...) lines[#lines + 1] = table.concat({ ... }, ",") end
   G.rectangle = function(mode, x, y, w, h)
+    -- position, not just count: a wallpaper that moves draws the same
+    -- shapes somewhere else, and that is exactly what has to be detected
+    if #lines < 4000 then
+      lines[#lines + 1] = "R" .. tostring(x) .. "," .. tostring(y)
+    end
     -- The wallpaper's ground colour: the WHOLE surface, in a scene colour
     -- rather than white. This is the layering the box screen is built on --
     -- the scene covers everything and the slots are laid on top of it -- and
