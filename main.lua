@@ -3112,20 +3112,38 @@ return function(mod)
     -- Gold has no such hook: src/core/Game2.lua composes states straight
     -- into a window-sized canvas under Chrome's scale, so everything past
     -- the edge landed on the white surround AROUND the Game Boy screen --
-    -- pink and cyan shapes scattered over the border, reported on both
-    -- grids. The screen has to clip itself there. intersectScissor is what
-    -- the engine's own battle code uses for this and it takes game
-    -- coordinates, so 0,0,w,h means the box and nothing outside it.
+    -- pink and cyan shapes scattered over the border. The screen has to clip
+    -- itself there.
+    --
+    -- THE SCISSOR IS NOT IN GAME COORDINATES. It is a window rectangle, and
+    -- no transform applies to it: everywhere the engine sets one it works
+    -- out the window rect first (Renderer.scissorClamped does the arithmetic
+    -- by hand, dpi included). BattleState passing 0,0,80,96 looks like a
+    -- counter-example and is not -- it draws into Gen 1's 160x144 UI canvas,
+    -- where the transform is the identity and the two spaces are the same.
+    --
+    -- The first attempt at this took that for the rule and clipped to
+    -- 0,0,w,h under Gold's scale, which is a rectangle in the corner of the
+    -- window with the box nowhere near it: every wallpaper vanished. So the
+    -- corners go through the transform first, and if that cannot be done --
+    -- an older LOVE, a stub -- the clip is skipped rather than guessed. A
+    -- scene that spills over the border is a blemish; a scene clipped to the
+    -- wrong rectangle is no scene at all.
     local function clipToScreen(w, h, draw)
       local g = love.graphics
-      local can = g.getScissor and g.intersectScissor
       local sx, sy, sw, sh
-      if can then
-        sx, sy, sw, sh = g.getScissor()
-        g.intersectScissor(0, 0, w, h)
+      local clipped = false
+      if g.getScissor and g.intersectScissor and g.transformPoint then
+        local ok, x1, y1 = pcall(g.transformPoint, 0, 0)
+        local ok2, x2, y2 = pcall(g.transformPoint, w, h)
+        if ok and ok2 and x1 and x2 and x2 > x1 and y2 > y1 then
+          sx, sy, sw, sh = g.getScissor()
+          g.intersectScissor(x1, y1, x2 - x1, y2 - y1)
+          clipped = true
+        end
       end
       draw()
-      if can then
+      if clipped then
         if sx then g.setScissor(sx, sy, sw, sh) else g.setScissor() end
       end
     end

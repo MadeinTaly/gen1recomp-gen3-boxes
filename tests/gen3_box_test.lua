@@ -2601,26 +2601,43 @@ do
     local G = love.graphics
     local realGet, realSet = G.getScissor, G.setScissor
     local clips, restored = {}, 0
-    -- lo stub non ha intersectScissor: qui si fornisce quello che LOVE vera
-    -- ha davvero, e si guarda cosa ne fa lo schermo
+    -- lo stub non ha ne' intersectScissor ne' transformPoint: qui si
+    -- forniscono quelli che LOVE vera ha davvero, e si guarda cosa ne fa
+    -- lo schermo. La trasformata finta e' quella di Gold: lo schermo Game
+    -- Boy scalato per tre e centrato nella finestra.
+    local SCALE, OX, OY = 3, 60, 24
     G.intersectScissor = function(x, y, w, h) clips[#clips + 1] = { x, y, w, h } end
+    G.transformPoint = function(x, y) return OX + x * SCALE, OY + y * SCALE end
     G.getScissor = function() return nil end
     G.setScissor = function(x) if x == nil then restored = restored + 1 end end
 
     opts.grid = "classic"
-    local clipped = factory.new(game)
-    clipped:draw()
+    factory.new(game):draw()
 
-    G.intersectScissor, G.getScissor, G.setScissor = nil, realGet, realSet
+    G.intersectScissor, G.transformPoint = nil, nil
+    G.getScissor, G.setScissor = realGet, realSet
 
     T.check(#clips > 0, "il wallpaper si ritaglia allo schermo")
+    -- il punto di tutto: il rettangolo e' quello della FINESTRA, non
+    -- 0,0,160,144. Lo scissor non conosce la trasformata, e un ritaglio
+    -- nell'angolo della finestra fa sparire lo sfondo invece di contenerlo
     local strayed = false
     for _, c in ipairs(clips) do
-      if c[1] ~= 0 or c[2] ~= 0 or c[3] ~= 160 or c[4] ~= 144 then strayed = true end
+      if c[1] ~= OX or c[2] ~= OY or c[3] ~= 160 * SCALE or c[4] ~= 144 * SCALE then
+        strayed = true
+      end
     end
     T.check(not strayed,
-      "e il rettangolo e' lo schermo, non qualcosa di piu' grande")
+      "e ha le coordinate della finestra, non quelle di gioco")
     T.eq(restored, #clips, "e ogni ritaglio viene rimesso com'era")
+
+    -- senza transformPoint non si tira a indovinare: meglio una scena che
+    -- sborda di una ritagliata sul rettangolo sbagliato, che non si vede
+    clips = {}
+    G.intersectScissor = function(x, y, w, h) clips[#clips + 1] = { x, y, w, h } end
+    factory.new(game):draw()
+    G.intersectScissor = nil
+    T.eq(#clips, 0, "e senza un modo di mappare il rettangolo non ritaglia")
   end
 
   -- ------- BANDS: quanto schermo prende la scena

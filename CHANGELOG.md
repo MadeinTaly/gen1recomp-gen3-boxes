@@ -35,7 +35,13 @@ and on a Gen 1 boot that costs nothing, because `Game:draw` asks the top
 state for a `uiSize` and gives the UI a canvas of exactly that size, which
 clips. Gold has no such hook: `Game2` composes states straight into a
 window-sized canvas, so pink and cyan shapes were scattered over the white
-border AROUND the Game Boy screen. The screen clips itself there now.
+border AROUND the Game Boy screen. The screen clips itself there now -- and
+the clip is a WINDOW rectangle, because that is what a scissor is: no
+transform applies to it, which is why every place the engine sets one works
+the rect out by hand first. The corners go through `transformPoint`, and if
+that cannot be done the clip is skipped rather than guessed. A scene that
+spills over the border is a blemish; a scene clipped to the wrong rectangle
+is no scene at all.
 
 **BANDS, a new option.** The title row and the footer are painted back to
 white because they are black text, and Gen 3 keeps its header on a solid band
