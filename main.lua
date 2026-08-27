@@ -2393,20 +2393,32 @@ return function(mod)
     local CAPTION_BAND = 14
 
     -- A caption that survives whatever is behind it. With SOLID bands this
-    -- is Font.draw and nothing else: the band is white, the letters are
-    -- black, and there is nothing to solve. Once the scene runs under the
-    -- header the letters need their own edge, so they get a one-pixel white
-    -- halo -- eight offsets in white, the glyph in black on top. Gen 3 does
-    -- the same with the box name it lays over a wallpaper, and it costs
-    -- nine draws on two short strings.
+    -- is Font.draw and nothing else: the band is opaque, the letters are
+    -- black, there is nothing to solve.
+    --
+    -- Once the scene runs under the header it is. The first answer was a
+    -- one-pixel halo around each glyph, and it was not enough -- a
+    -- photograph of a sunset behind BOX 1 3/20 settled that: black letters
+    -- on pink cloud, outlined or not, are letters nobody reads. Type needs
+    -- a surface, not an edge.
+    --
+    -- So each caption gets a plate exactly its own size: opaque, in the
+    -- scene's own lightest tone, the same colour the full-width band uses.
+    -- The row still shows the wallpaper either side of the words -- which
+    -- is the whole point of turning the band down -- and the words sit on
+    -- something. Gen 3 does this too: the box name has its own plate over
+    -- the wallpaper rather than a band across the screen.
+    local plateColour = nil
     local function caption(text, x, y)
-      if bandAlpha() then
-        love.graphics.setColor(1, 1, 1, 1)
-        for dx = -1, 1 do
-          for dy = -1, 1 do
-            if dx ~= 0 or dy ~= 0 then Font.draw(text, x + dx, y + dy) end
-          end
+      if bandAlpha() and text and text ~= "" then
+        local c = plateColour
+        if c then
+          love.graphics.setColor(c[1] / 255, c[2] / 255, c[3] / 255, 1)
+        else
+          love.graphics.setColor(1, 1, 1, 1)
         end
+        love.graphics.rectangle("fill", x - 2, y - 2,
+          Font.width(text) + 4, CAPTION_BAND - 2)
         love.graphics.setColor(0, 0, 0, 1)
       end
       return Font.draw(text, x, y)
@@ -3309,8 +3321,11 @@ return function(mod)
         -- below it lets the wallpaper run edge to edge over the WHOLE
         -- screen, and the captions carry their own halo from there on.
         local band = bandAlpha()
+        -- the plates under the captions wear the same colour as the band,
+        -- so a turned-down band reads as the same surface in two sizes
+        plateColour = bandTint(paper)
         if band ~= 0 then
-          local tint = bandTint(paper)
+          local tint = plateColour
           if tint then
             love.graphics.setColor(tint[1] / 255, tint[2] / 255, tint[3] / 255,
               band or 1)

@@ -2719,24 +2719,29 @@ do
     local Font = require("src.render.Font")
     local realRect, realColor, realFont = G.rectangle, G.setColor, Font.draw
     local tone = { 0, 0, 0, 1 }
-    local bands, glyphs = {}, 0
+    local bands, glyphs, plates = {}, 0, 0
     G.setColor = function(r, g, b, a) tone = { r, g, b, a or 1 } end
     G.rectangle = function(mode, x, y, w, h)
       -- le due bande e nient'altro: piena larghezza, alte 14
       if mode == "fill" and x == 0 and w == 160 and h == 14 then
         bands[#bands + 1] = { tone[1], tone[2], tone[3], tone[4] }
+      -- un piano sotto una didascalia: alto come la riga, largo come la
+      -- scritta, e opaco qualunque cosa faccia la banda
+      elseif mode == "fill" and h == 12 and w < 160 and tone[4] == 1 then
+        plates = plates + 1
       end
     end
     Font.draw = function() glyphs = glyphs + 1; return 0 end
 
     local function drawn(setting)
       opts.bands = setting
-      bands, glyphs = {}, 0
+      bands, glyphs, plates = {}, 0, 0
       factory.new(game):draw()
       return bands, glyphs
     end
 
     local solid, solidGlyphs = drawn("SOLID")
+    local platesSolid = plates
     T.eq(#solid, 2, "SOLID dipinge le due bande")
     T.check(solid[1] and solid[1][4] == 1 and solid[2][4] == 1,
       "e le dipinge piene")
@@ -2765,9 +2770,13 @@ do
     T.check(math.abs((thin[1][4] or 0) - 0.15) < 0.001,
       "in fondo alla scala resta un velo, non il nulla: una didascalia non "
       .. "deve combattere con la scena che ha esattamente il suo colore")
-    T.check(haloGlyphs > solidGlyphs * 2,
-      "e ogni didascalia si disegna con l'alone attorno, o sarebbe "
-      .. "illeggibile su una scena scura")
+    -- e ogni didascalia si prende un piano suo, opaco, della sua misura:
+    -- un alone da un pixel non bastava -- lettere nere su una nuvola rosa,
+    -- bordate o no, non le legge nessuno. Il tipo vuole una superficie,
+    -- non un bordo
+    T.check(plates > 0, "e ogni didascalia si siede su un piano opaco suo")
+    T.check(platesSolid == 0,
+      "mentre con SOLID non serve: la banda e' gia' una superficie")
 
     -- zero resta onorato per un save che se lo porta dietro, anche se il
     -- menu non lo offre piu'

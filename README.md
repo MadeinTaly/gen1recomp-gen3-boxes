@@ -85,7 +85,7 @@ in 1.5.2.
 | `PLACE CRY` | on / off | play the Pokémon's cry every time one lands in a slot |
 | `GRID` | `CLASSIC` / `BIG` | a 320×288 surface, full-size pics, and a palette per Pokémon |
 | `SLOTS` | `CLEAR` / `25%` / `40%` / `60%` / `80%` | how opaque each cell is over the wallpaper |
-| `BANDS` | `SOLID` / `60%` / `30%` / `15%` | how much of the title row and the footer the wallpaper gets. Below `SOLID` the scene runs edge to edge over the whole screen, and the captions take a white halo so they stay readable over a night sky. 15% is the bottom of the ladder rather than nothing: a whisper of white still reads as scene, and keeps a caption off a wallpaper that happens to be its own colour |
+| `BANDS` | `SOLID` / `60%` / `30%` / `15%` | how much of the title row and the footer the wallpaper gets. Below `SOLID` the scene runs edge to edge over the whole screen and each caption sits on a plate of its own size instead — type needs a surface, not an outline. The bands and the plates are painted in the scene's own lightest tone rather than in white |
 | `ANIMATE` | on / off | whether the wallpaper drifts (off is a still wallpaper, pixel for pixel) |
 | `OW SPRITES` | on / off | draw Wilds of Kanto's overworld sprites in the `CLASSIC` grid instead of the half-scale battle pics (on by default; does nothing without that mod — see below) |
 
