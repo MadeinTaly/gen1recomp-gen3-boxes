@@ -16,6 +16,10 @@ done to each pack is mechanical, and it is the same three things every time:
   pack is drawn larger than that (MatiasVME's forest is drawn at 1280x360
   and is reduced by two and a half) and at its own scale where it is not
   (DustDFG's valley is drawn at 160x80 and ships at 1:1);
+- where a pack is taller than one screen, the 144 rows kept are chosen by
+  measurement rather than by habit -- the busiest band for a landscape, the
+  brightest for a nebula -- because always taking the bottom of a 1280-tall
+  drawing returns a strip of flat colour rather than a picture;
 - colours are reduced where the reduction leaves the scene intact.
 
 On screen it is then shown as drawn: whole on the CLASSIC grid, and at twice
@@ -42,6 +46,28 @@ a house style.
   https://opengameart.org/content/underwater-scene-loopable
 - **leyren** — *Stars/Space Background*, used for `NIGHT < LEYREN >`.
   https://opengameart.org/content/starsspace-background
+- **Emcee Flesher** — *Rocky desert landscape* and *Ice planet landscape*
+  (both layered and looping), used for `DESERT < EMCEE >` and
+  `SNOW < EMCEE >`.
+  https://opengameart.org/content/rocky-desert-landscape-layered-looping
+  https://opengameart.org/content/ice-planet-landscape-layered-looping
+- **Tio Aimar** — *2D Platformer Volcano Pack 1.1*, used for
+  `VOLCANO < TIOAIMAR >`.
+  https://opengameart.org/content/2d-platformer-volcano-pack-11
+- **TheClicketyBoom** — *3 Layer Parallax Star and Nebula Field*, used for
+  `SPACE < CLICKETY >`.
+  https://opengameart.org/content/3-layer-parallax-star-and-nebula-field
+- **Jetrel** — *castle platformer* backgrounds, used for `CASTLE < JETREL >`
+  and `SNOW < JETREL >`.
+  https://opengameart.org/content/castle-platformer
+- **GrumpyDiamond** — *Parallax Mountain Background*, used for
+  `SKY < GRUMPY >`.
+  https://opengameart.org/content/parallax-mountain-background
+- **Fupi** — *Mountains and trees parallax background detail*, used for
+  `SKY < FUPI >`. 
+  https://opengameart.org/content/mountains-and-trees-parallax-background-detail
+- **LLGD** — *Desert Forest*, used for `NIGHT < LLGD >`.
+  https://opengameart.org/content/desert-forest
 
 CC0 asks for nothing at all. These credits are here because taking someone's
 work without saying whose it is would be shabby, not because it is required.

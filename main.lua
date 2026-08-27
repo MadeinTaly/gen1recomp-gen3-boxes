@@ -418,6 +418,17 @@ return function(mod)
     { id = "FAVE", pattern = "PLAIN", palette = nil },
     { id = "90S",    pattern = "90S",
       palette = { { 250, 246, 236 }, { 236, 108, 148 }, { 84, 196, 196 }, { 60, 56, 108 } } },
+    -- Four more places, and two of them run their ramp backwards the way
+    -- NIGHT does: a volcano and deep space are dark rooms, and a palette
+    -- that starts light would make them grey rooms instead.
+    { id = "DESERT", pattern = "DESERT",
+      palette = { { 252, 238, 208 }, { 240, 196, 130 }, { 202, 142, 86 }, { 116, 72, 52 } } },
+    { id = "VOLCANO", pattern = "VOLCANO",
+      palette = { { 38, 26, 32 }, { 92, 44, 52 }, { 208, 96, 44 }, { 252, 206, 128 } } },
+    { id = "SPACE",  pattern = "SPACE",
+      palette = { { 14, 12, 30 }, { 54, 46, 96 }, { 128, 118, 196 }, { 238, 238, 255 } } },
+    { id = "CASTLE", pattern = "CASTLE",
+      palette = { { 236, 234, 240 }, { 178, 176, 192 }, { 112, 112, 132 }, { 44, 46, 60 } } },
   }
   local WALLPAPER_BY_ID = {}
   for _, w in ipairs(WALLPAPERS) do WALLPAPER_BY_ID[w.id] = w end
@@ -491,7 +502,11 @@ return function(mod)
                { by = "DUSTDFG",   layers = { L("sky_dustdfg_base.png"),
                                               L("sky_dustdfg_far.png", 0.05),
                                               L("sky_dustdfg_near.png", 0.11) } },
-               { by = "FABINHOSC", layers = { L("sky_fabinhosc_still.png") } } },
+               { by = "FABINHOSC", layers = { L("sky_fabinhosc_still.png") } },
+               { by = "GRUMPY",    layers = { L("sky_grumpydiamond_base.png", 0.02),
+                                              L("sky_grumpydiamond_far.png", 0.06) } },
+               { by = "FUPI",      layers = { L("sky_fupi_base.png", 0.02),
+                                              L("sky_fupi_near.png", 0.08) } } },
     CAVE   = { { by = "GEN3 BOX" },
                { by = "ADMURIN",   layers = { L("cave_admurin_near.png", 0.04) } } },
     CITY   = { { by = "GEN3 BOX" },
@@ -500,10 +515,23 @@ return function(mod)
                                               L("city_fabinhosc_near.png", 0.12) } } },
     SNOW   = { { by = "GEN3 BOX" },
                { by = "ADMURIN",   layers = { L("snow_admurin_base.png"),
-                                              L("snow_admurin_still.png") } } },
+                                              L("snow_admurin_still.png") } },
+               { by = "EMCEE",     layers = { L("snow_emcee_base.png", 0.02) } },
+               { by = "JETREL",    layers = { L("snow_jetrel_base.png", 0.02) } } },
     NIGHT  = { { by = "GEN3 BOX" },
-               { by = "LEYREN",    layers = { L("night_leyren_base.png") } } },
+               { by = "LEYREN",    layers = { L("night_leyren_base.png") } },
+               { by = "LLGD",      layers = { L("night_llgd_base.png", 0.05) } } },
     ["90S"] = { { by = "GEN3 BOX" } },
+    DESERT = { { by = "GEN3 BOX" },
+               { by = "EMCEE",     layers = { L("desert_emcee_base.png", 0.02),
+                                              L("desert_emcee_near.png", 0.07) } } },
+    VOLCANO = { { by = "GEN3 BOX" },
+               { by = "TIOAIMAR",  layers = { L("volcano_tioaimar_base.png", 0.02),
+                                              L("volcano_tioaimar_near.png", 0.06) } } },
+    SPACE  = { { by = "GEN3 BOX" },
+               { by = "CLICKETY",  layers = { L("space_theclicketyboom_base.png", 0.03) } } },
+    CASTLE = { { by = "GEN3 BOX" },
+               { by = "JETREL",    layers = { L("castle_jetrel_base.png") } } },
     PLAIN  = { { by = "GEN3 BOX" } },
     FAVE   = { { by = "GEN3 BOX" } },
   }
@@ -2541,6 +2569,26 @@ return function(mod)
       if f then f(...) end
     end
 
+    -- A silhouette drawn COLUMN by column from a smooth profile, rather than
+    -- as a row of triangles. Triangles are what a horizon looks like when
+    -- nobody has looked at it: the dunes came out a zigzag and the volcano
+    -- came out a fence. Two sines of different periods, plus a hashed
+    -- wobble, give a ridge that repeats without reading as a pattern.
+    local function ridge(w, h, baseY, amp, seed, step)
+      step = step or 2
+      for x = 0, w, step do
+        local hx = ((x + seed) * 2654435761) % 4294967296
+        local jitter = (math.floor(hx / 65536) % 5) - 2
+        local y = baseY
+          - math.floor(amp * math.sin((x + seed * 7) / 37))
+          - math.floor(amp * 0.45 * math.sin((x + seed * 13) / 11))
+          + jitter
+        if y < h then
+          love.graphics.rectangle("fill", x, y, step, h - y)
+        end
+      end
+    end
+
     local function disc(cx, cy, r)
       for dy = -r, r do
         local half = math.floor(math.sqrt(math.max(0, r * r - dy * dy)))
@@ -3159,6 +3207,226 @@ return function(mod)
           local hx = (i * 2654435761) % 4294967296
           love.graphics.rectangle("fill", math.floor(hx / 65536) % w,
             math.floor(hx / 19) % h, 2, 2)
+        end
+
+      elseif pattern == "DESERT" then
+        -- Late afternoon rather than noon: the sun low and huge, the dunes
+        -- reading as bands of light and shade, and the air over the sand
+        -- moving. A desert at midday is a flat orange rectangle, which is a
+        -- colour and not a place.
+        local horizon = math.floor(h * 0.46)
+
+        -- the sun, sitting ON the horizon and cut by it
+        shade(paper, 2, 0.85)
+        disc(math.floor(w * 0.68), horizon - 6, 18)
+        -- three bars across it, the way a low sun reads through haze
+        for i = 0, 2 do
+          shade(paper, 1, 0.5)
+          love.graphics.rectangle("fill", math.floor(w * 0.68) - 20,
+            horizon - 14 + i * 6, 40, 2)
+        end
+
+        -- dunes: four ranks of smooth crest, each one lower, darker and
+        -- rougher than the one behind it, so the sand has distance in it
+        for rank = 0, 3 do
+          local base = horizon + 6 + rank * math.floor((h - horizon) / 5)
+          shade(paper, 2 + math.min(2, rank), 0.55 + rank * 0.15)
+          ridge(w, h, base, 4 + rank * 2, rank * 31 + 5, 2)
+          -- the lit crest: a pale line following the same profile, one
+          -- pixel up, which is what makes a dune a shape and not a blob
+          shade(paper, 1, 0.35 - rank * 0.07)
+          for x = 0, w, 2 do
+            local hx = ((x + rank * 31 + 5) * 2654435761) % 4294967296
+            local jitter = (math.floor(hx / 65536) % 5) - 2
+            local y = base
+              - math.floor((4 + rank * 2) * math.sin((x + (rank * 31 + 5) * 7) / 37))
+              - math.floor((4 + rank * 2) * 0.45 * math.sin((x + (rank * 31 + 5) * 13) / 11))
+              + jitter
+            love.graphics.rectangle("fill", x, y, 2, 1)
+          end
+        end
+
+        -- cacti, on the second rank so they have sand in front of them
+        for i = 0, 3 do
+          local hx = (i * 2246822519) % 4294967296
+          local x = (math.floor(hx / 65536) % (w - 20)) + 6
+          local y = horizon + 14 + (i % 2) * 8
+          local tall = 10 + i * 3
+          shade(paper, 4, 0.8)
+          love.graphics.rectangle("fill", x, y - tall, 3, tall)
+          love.graphics.rectangle("fill", x - 4, y - tall + 4, 4, 2)
+          love.graphics.rectangle("fill", x - 4, y - tall + 4, 2, 5)
+          love.graphics.rectangle("fill", x + 3, y - tall + 7, 4, 2)
+          love.graphics.rectangle("fill", x + 5, y - tall + 3, 2, 6)
+        end
+
+        -- the air over the sand: short pale lines that slide and fade, which
+        -- is the whole reason this scene is not still
+        for i = 0, 13 do
+          local y = horizon + 4 + ((i * 13) % (h - horizon - 8))
+          local phase = math.sin((t + i * 29) / 26)
+          local x = ((t * 0.3 + i * 41) % (w + 30)) - 15
+          shade(paper, 1, 0.18 + 0.12 * phase)
+          love.graphics.rectangle("fill", x, y, 10 + i % 7, 1)
+        end
+
+      elseif pattern == "VOLCANO" then
+        -- The palette runs dark-first like NIGHT, so shade 1 is the rock and
+        -- shade 4 is the fire. What makes it a volcano rather than a dark
+        -- cave is that the light comes from BELOW: the glow is on the
+        -- underside of everything.
+        local floor = math.floor(h * 0.72)
+
+        -- the sky, banded, lighter towards the crater
+        for i = 0, 5 do
+          shade(paper, 2, 0.25 + i * 0.09)
+          love.graphics.rectangle("fill", 0, floor - (i + 1) * 8, w, 8)
+        end
+
+        -- two ridges, the far one paler, both drawn as a profile rather
+        -- than as a row of triangles
+        for rank = 0, 1 do
+          local base = floor - 18 + rank * 10
+          shade(paper, rank == 0 and 2 or 1, rank == 0 and 0.8 or 1)
+          ridge(w, h, base, 9 + rank * 5, rank * 47 + 11, 2)
+        end
+
+        -- the lava: orange, not cream. The pale tone is the LIGHT on it --
+        -- a bright line where it meets the rock and a shimmer that moves --
+        -- and using it for the whole pool made a beach.
+        shade(paper, 3, 1)
+        love.graphics.rectangle("fill", 0, floor, w, h - floor)
+        for i = 0, 5 do
+          local y = floor + 3 + i * 4
+          local x = ((t * (0.5 + i * 0.15) + i * 37) % (w + 60)) - 30
+          shade(paper, 4, 0.55 - i * 0.07)
+          love.graphics.rectangle("fill", x, y, 26 + i * 6, 2)
+        end
+        shade(paper, 4, 0.9)
+        love.graphics.rectangle("fill", 0, floor, w, 2)
+        for i = 0, 9 do
+          local hx = (i * 2246822519) % 4294967296
+          local x = ((t * 0.12 + math.floor(hx / 65536)) % (w + 40)) - 20
+          local y = floor + 4 + (math.floor(hx / 37) % math.max(1, h - floor - 6))
+          shade(paper, 1, 0.85)
+          love.graphics.rectangle("fill", x, y, 12 + i % 9, 3)
+        end
+
+        -- embers, rising and drifting, brightest near the lava
+        for i = 0, 21 do
+          local hx = (i * 2654435761) % 4294967296
+          local span = floor + 10
+          local rise = (t * (0.25 + (i % 4) * 0.08) + i * 23) % span
+          local y = floor + 6 - rise
+          local x = (math.floor(hx / 65536) % w)
+            + math.floor(math.sin((t + i * 31) / 22) * 6)
+          local life = 1 - (rise / span)
+          shade(paper, 4, 0.15 + 0.75 * life)
+          love.graphics.rectangle("fill", x % w, y, 1 + (i % 3 == 0 and 1 or 0),
+            1 + (i % 3 == 0 and 1 or 0))
+        end
+
+      elseif pattern == "SPACE" then
+        -- Dark-first palette again. Stars in three depths so the field has
+        -- some distance in it, one planet with a lit limb, and a nebula that
+        -- drifts across rather than sitting there being a gradient.
+        for depth = 1, 3 do
+          local count = 18 + depth * 12
+          for i = 0, count do
+            local hx = (i * 2654435761 + depth * 7919) % 4294967296
+            local x = (math.floor(hx / 65536) + math.floor(t * 0.04 * depth)) % w
+            local y = math.floor(hx / 11) % h
+            local tw = 0.35 + 0.45 * math.sin((t + i * 47) / (18 + depth * 9))
+            shade(paper, depth == 3 and 4 or 3, math.max(0.08, tw * depth / 3))
+            love.graphics.rectangle("fill", x, y, depth == 3 and 2 or 1,
+              depth == 3 and 2 or 1)
+          end
+        end
+
+        -- the nebula: three soft bands crossing slowly, in the mid tones so
+        -- the stars stay on top of it
+        for i = 0, 2 do
+          local y = 16 + i * math.floor(h / 4)
+          local x = ((t * (0.06 + i * 0.03) + i * 53) % (w + 120)) - 60
+          shade(paper, 2, 0.5 - i * 0.1)
+          for k = 0, 5 do
+            local band = 10 + k * 3
+            love.graphics.rectangle("fill", x - band * 2, y + k * 3,
+              band * 6, 3)
+          end
+        end
+
+        -- a planet, low and to one side, with its lit edge towards the light
+        local px, py, pr = math.floor(w * 0.24), math.floor(h * 0.68), 22
+        shade(paper, 2, 1)
+        disc(px, py, pr)
+        shade(paper, 3, 0.9)
+        disc(px + 5, py - 4, pr - 5)
+        shade(paper, 1, 1)
+        disc(px + 12, py - 9, pr - 4)
+        -- a ring, flattened: two bars either side rather than an ellipse
+        shade(paper, 4, 0.55)
+        love.graphics.rectangle("fill", px - pr - 8, py + 3, pr + 4, 2)
+        love.graphics.rectangle("fill", px + 6, py + 3, pr + 4, 2)
+
+      elseif pattern == "CASTLE" then
+        -- Inside, not outside: a stone wall, an arched window with weather
+        -- behind it, and torches. The motion is the flame and what the
+        -- window shows, because a wall that moves is not a wall.
+        local course = 12
+        for row = 0, math.ceil(h / course) do
+          local y = row * course
+          local offset = (row % 2) * 14
+          for x = -14, w, 28 do
+            local hx = ((x + row * 131) * 2654435761) % 4294967296
+            shade(paper, 2 + math.floor(hx / 65536) % 2, 0.55)
+            love.graphics.rectangle("fill", x + offset + 1, y + 1, 26, course - 2)
+          end
+        end
+        -- the mortar reading as lines between the courses
+        shade(paper, 4, 0.35)
+        for row = 0, math.ceil(h / course) do
+          love.graphics.rectangle("fill", 0, row * course, w, 1)
+        end
+
+        -- the window: an arch of sky, with rain crossing it
+        local wx, wy, ww, wh2 = math.floor(w * 0.62), 18, 34, 46
+        shade(paper, 4, 0.9)
+        love.graphics.rectangle("fill", wx - 3, wy - 3, ww + 6, wh2 + 6)
+        shade(paper, 1, 1)
+        love.graphics.rectangle("fill", wx, wy + 10, ww, wh2 - 10)
+        disc(wx + math.floor(ww / 2), wy + 10, math.floor(ww / 2))
+        for i = 0, 15 do
+          local rx = wx + ((i * 13 + math.floor(t * 0.9)) % ww)
+          local ry = wy + 2 + ((i * 17 + math.floor(t * 1.7)) % (wh2 - 4))
+          shade(paper, 2, 0.7)
+          love.graphics.rectangle("fill", rx, ry, 1, 3)
+        end
+        -- the bars
+        shade(paper, 4, 0.8)
+        for i = 1, 3 do
+          love.graphics.rectangle("fill", wx + i * math.floor(ww / 4), wy, 2, wh2)
+        end
+
+        -- two torches, flickering out of phase
+        for i = 0, 1 do
+          local tx = math.floor(w * (0.16 + i * 0.16))
+          local ty = math.floor(h * 0.42)
+          shade(paper, 4, 0.9)
+          love.graphics.rectangle("fill", tx, ty, 3, 12)
+          local flick = math.sin((t + i * 37) / 9)
+          local tall = 10 + math.floor(flick * 4)
+          -- the glow first, so the flame sits in it rather than on it
+          shade(paper, 1, 0.30 + 0.08 * flick)
+          disc(tx + 1, ty - 6, 18)
+          shade(paper, 1, 0.18 + 0.06 * flick)
+          disc(tx + 1, ty - 6, 26)
+          -- a flame on a pale wall can only read by being PALER: the body
+          -- in the lightest tone, a mid-tone edge to give it a shape
+          shade(paper, 2, 0.9)
+          poly("fill", tx - 4, ty, tx + 1, ty - tall, tx + 6, ty)
+          shade(paper, 1, 1)
+          poly("fill", tx - 2, ty - 1, tx + 1, ty - tall + 4, tx + 4, ty - 1)
         end
       end
 

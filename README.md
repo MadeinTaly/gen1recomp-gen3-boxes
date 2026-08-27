@@ -230,20 +230,31 @@ every box set to it without touching any of them.
 
 ### The scenes, and who drew them
 
-Nine wallpapers by seven pixel artists ship with the mod, alongside the ones
-drawn here. The artist's name is the label you scroll through, which is where
+**Twelve places and fifteen hands.** Every scene is drawn here in code
+first — that is the GEN3 BOX entry, and it is what a box wears until you
+change it — and then the same place again by pixel artists whose work is CC0
+or CC BY. The artist's name is the label you scroll through, which is where
 credit actually gets read.
 
 | Scene | Hands |
 | --- | --- |
 | SEA | GEN3 BOX · **Scribe** |
 | FOREST | GEN3 BOX · **ansimuz** · **MatiasVME** |
-| SKY | GEN3 BOX · **DustDFG** · **FabinhoSC** |
+| SKY | GEN3 BOX · **DustDFG** · **FabinhoSC** · **GrumpyDiamond** · **Fupi** |
 | CAVE | GEN3 BOX · **Admurin** |
 | CITY | GEN3 BOX · **FabinhoSC** |
-| SNOW | GEN3 BOX · **Admurin** |
-| NIGHT | GEN3 BOX · **leyren** |
+| SNOW | GEN3 BOX · **Admurin** · **Emcee Flesher** · **Jetrel** |
+| NIGHT | GEN3 BOX · **leyren** · **LLGD** |
+| DESERT | GEN3 BOX · **Emcee Flesher** |
+| VOLCANO | GEN3 BOX · **Tio Aimar** |
+| SPACE | GEN3 BOX · **TheClicketyBoom** |
+| CASTLE | GEN3 BOX · **Jetrel** |
 | 90S | GEN3 BOX |
+
+**Want your own in the list?** That is what
+[CONTEST.md](CONTEST.md) is for: one pull request, one wallpaper, your name in
+the menu next to it. The check on the pull request measures your layers and
+tells you which of them the box will let move.
 
 The GEN3 BOX ones are drawn procedurally in `main.lua` — no files, no
 imports. Everything else is real pixel art, in **the artist's own colours**:

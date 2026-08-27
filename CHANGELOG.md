@@ -1,5 +1,37 @@
 # Changelog
 
+## 1.11.0 — four more places, seven more hands
+
+**DESERT, VOLCANO, SPACE and CASTLE.** Four scenes the box did not have,
+drawn here in code the way the other eight are: dunes under a low sun with
+the air moving over them, a lava floor with the crust drifting on it and
+embers going up, three depths of star with a ringed planet low on one side,
+and a castle wall with weather in the window and two torches out of phase.
+VOLCANO and SPACE run their ramp backwards the way NIGHT does, because a
+volcano and deep space are dark rooms and a palette that starts light would
+have made them grey ones.
+
+**Seven new artists**, all CC0, all credited in the menu and in
+`THIRD_PARTY_NOTICES.md`: Emcee Flesher (DESERT and SNOW), Tio Aimar
+(VOLCANO), TheClicketyBoom (SPACE), Jetrel (CASTLE and SNOW), GrumpyDiamond
+and Fupi (SKY), LLGD (NIGHT). SKY now has five hands on it, SNOW four.
+
+**How the strip is cut matters more than the scale.** A pack drawn at 1280
+on a side does not keep its scene at the bottom: it has sky above, ground
+below and the picture in between, and taking the bottom 144 rows returns
+flat colour. The 144 rows kept are chosen by measurement now -- the busiest
+band for a landscape, the brightest for a nebula -- and a layer shorter than
+the strip is settled onto its floor rather than left floating. A nebula is
+composited over the black it was drawn against first, because thresholding a
+glow's alpha erases it, and it is not quantised at all: on a nebula the most
+frequent colours are all nearly black, so reducing the palette paints the
+light black too.
+
+**Horizons are drawn as a profile, not as triangles.** The first pass at the
+dunes and at the volcano's ridges came out as a zigzag fence. Two sines of
+different periods with a hashed wobble give a ridge that repeats without
+reading as a pattern.
+
 ## 1.10.2 — GRID BIG gets its wallpapers back
 
 Three separate faults, all of them on BIG, all of them photographed by a
