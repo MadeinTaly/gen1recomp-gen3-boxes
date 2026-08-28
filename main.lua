@@ -159,13 +159,17 @@ return function(mod)
     -- right answer -- how much scene you want behind your Pokemon -- so it
     -- is a row rather than a number picked here on everyone's behalf.
     --
-    -- 40% is the default: enough to lift a Pokemon off a busy scene, light
-    -- enough that SEA still reads as water underneath. CLEAR is the honest
-    -- end of the ladder: no slot at all, the wallpaper straight through, for
-    -- anyone who wants the scene and nothing over it.
-    { key = "slots", label = "SLOTS", type = "choice", default = "25",
+    -- 15% is the default, down from 40 and then 25. Twenty cells at 40%
+    -- white is a sheet of milk over the picture -- the grid reads first and
+    -- the scene reads as a smudge behind it, which is backwards: the cell
+    -- outline is what says "slot", and the wash only has to lift a Pokemon
+    -- off a busy patch. CLEAR is the honest end of the ladder: no slot at
+    -- all, the wallpaper straight through.
+    { key = "slots", label = "SLOTS", type = "choice", default = "15",
       choices = {
         { "CLEAR", "0" },
+        { "10%", "10" },
+        { "15%", "15" },
         { "25%", "25" },
         { "40%", "40" },
         { "60%", "60" },
@@ -275,9 +279,9 @@ return function(mod)
   -- vanished because an option failed to load would look broken.
   local function slotAlpha()
     local ok, value = pcall(function() return mod.options:get("slots") end)
-    if not ok then return 0.25 end
+    if not ok then return 0.15 end
     local n = tonumber(value)
-    if not n then return 0.25 end
+    if not n then return 0.15 end
     return math.max(0, math.min(100, n)) / 100
   end
 

@@ -35,16 +35,42 @@ that does not continue into itself drags a visible join across the box every
 few seconds. You get the verdict on the PR in a minute, and it is a
 measurement rather than an opinion.
 
-## Voting
+## Who decides, and how
 
-A GitHub Discussion poll per round. Each entry is posted twice: **the scene
-alone, and the scene with the grid over it.** The second one is what decides
-it — a beautiful wallpaper that swallows twenty sprites is a bad wallpaper,
-and that is only visible with the Pokémon on top.
+**There is no deadline and no round to wait for.** Entries are taken as they
+arrive. Open the pull request when the art is ready; if it is good and the
+licence line is there, it is merged and it ships in the next release with
+your name on it.
+
+**The check is automatic. The decision is not.** CI measures your layers and
+says what the box will do with them — it never says whether the art is any
+good, and it cannot merge anything. The repository owner
+([@MadeinTaly](https://github.com/MadeinTaly)) merges, and that is the whole
+approval process today.
+
+**Two things get an entry turned down**, and both are avoidable:
+
+- a licence that is not CC0 or CC BY, or a source that cannot be checked;
+- art that swallows the grid. This is the one people are surprised by: a
+  wallpaper is looked at **with twenty Pokémon on top of it**, and something
+  gorgeous that hides them is a bad wallpaper. Busy in the corners, quiet
+  behind the cells.
+
+If something is close but not there, the pull request says so and stays open
+rather than being closed. Nobody's work is thrown away for being early.
+
+**Voting exists for when there is a crowd**, and only then: if more entries
+arrive for one scene than the shelf holds, they go up as comments on the
+[contest issue](../../issues/6) — the scene alone, and the scene with the
+grid over it — and thumbs on those comments decide it. Ties are broken by
+the owner. Until that happens, "does it look good with Pokémon on it and is
+the licence clean" is the whole bar.
 
 ## The shelf
 
-Each category holds a fixed number of wallpapers. When a new one wins, the
-one with the fewest votes that round leaves the shipped set — it stays in the
-repository and in `THIRD_PARTY_NOTICES.md`, it just is not in the zip. There
-is no vote to remove anybody's work: the shelf is simply full.
+Each scene holds at most ten wallpapers, and none holds fewer than five. When
+a scene is full and something better arrives, the weakest entry leaves the
+shipped set — it stays in the repository and in `THIRD_PARTY_NOTICES.md`, it
+just is not in the zip. There is no vote to remove anybody's work: the shelf
+is simply full. A scene that is not full yet takes everything that clears the
+bar.

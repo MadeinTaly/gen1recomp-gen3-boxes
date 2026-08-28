@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.14.2 — the grid stops being a sheet of milk
+
+`SLOTS` defaults to **15%**, down from 40 and then 25, and the ladder gains
+10% and 15% steps. Twenty cells of white over a painting is a wash the grid
+wins: what says "slot" is the cell OUTLINE, and the wash only has to lift a
+Pokemon off a busy patch. Anyone who liked it heavier has every old setting
+still there.
+
+`CONTEST.md` also says how the contest actually works, which it never did:
+entries are taken as they arrive rather than in rounds, the check measures
+and cannot merge, the repository owner merges, and the two things that get an
+entry turned down are a licence that is not CC0/CC BY and art that swallows
+the grid. Voting is what happens if more entries arrive for one scene than
+the shelf holds -- thumbs on the contest issue, scene alone and scene with
+the Pokemon over it -- and until then the bar is "clean licence, and it looks
+good with twenty sprites on top".
+
 ## 1.14.1 — four things a player saw that the harness could not
 
 **AURORA ran like a screensaver.** Its curtains crossed the frame in a few
