@@ -84,7 +84,7 @@ in 1.5.2.
 | `BOX HEALS` | on / off | rest everything in storage when the screen closes |
 | `PLACE CRY` | on / off | play the Pokémon's cry every time one lands in a slot |
 | `GRID` | `CLASSIC` / `BIG` | a 320×288 surface, full-size pics, and a palette per Pokémon |
-| `SLOTS` | `CLEAR` / `25%` / `40%` / `60%` / `80%` | how opaque each cell is over the wallpaper |
+| `SLOTS` | `CLEAR` / `25%` / `40%` / `60%` / `80%` | how opaque each cell is over the wallpaper (25% by default: ninety-four wallpapers is a lot of work to hide behind a wash) |
 | `BANDS` | `SOLID` / `60%` / `30%` / `15%` | how much of the title row and the footer the wallpaper gets. Below `SOLID` the scene runs edge to edge over the whole screen and each caption is written in the scene's own two ends — the letters in one, a one-pixel edge in the other — so the contrast is between two colours out of the same four the picture was painted with. The bands themselves are painted in the scene's lightest tone rather than in white |
 | `ANIMATE` | on / off | whether the wallpaper drifts (off is a still wallpaper, pixel for pixel) |
 | `OW SPRITES` | on / off | draw Wilds of Kanto's overworld sprites in the `CLASSIC` grid instead of the half-scale battle pics (on by default; does nothing without that mod — see below) |
@@ -230,41 +230,42 @@ every box set to it without touching any of them.
 
 ### The scenes, and who drew them
 
-**Seventeen places, forty-eight entries, twenty-nine hands.** Every scene is drawn here in code
+**Sixteen places, ninety-four wallpapers, twenty-nine outside hands.** Every scene is drawn here in code
 first — that is the GEN3 BOX entry, and it is what a box wears until you
 change it — and then the same place again by pixel artists whose work is CC0
 or CC BY. The artist's name is the label you scroll through, which is where
 credit actually gets read.
 
-| Scene | Hands |
-| --- | --- |
-| SEA | GEN3 BOX · **Scribe** · **Reactorcore** |
-| FOREST | GEN3 BOX · **ansimuz** · **MatiasVME** · **marcavis** |
-| SKY | GEN3 BOX · **DustDFG** · **FabinhoSC** · **GrumpyDiamond** · **Fupi** |
-| CAVE | GEN3 BOX · **Admurin** · **PWL** · **JonathanPalmerGD** |
-| CITY | GEN3 BOX · **FabinhoSC** · **ansimuz** · **ansimuz (Warped City 2)** |
-| SNOW | GEN3 BOX · **Admurin** · **Emcee Flesher** · **Jetrel** · **Tio Aimar** · **rubberduck** |
-| NIGHT | GEN3 BOX · **leyren** · **LLGD** · **fridaruiz** · **tigitalart** |
-| DESERT | GEN3 BOX · **Emcee Flesher** · **Cethiel** · **bevouliin.com** |
-| VOLCANO | GEN3 BOX · **Tio Aimar** |
-| SPACE | GEN3 BOX · **TheClicketyBoom** · **Rawdanitsu** · **Bonsaiheldin** · **Screaming Brain Studios** |
-| CASTLE | GEN3 BOX · **Jetrel** · **rubberduck** · **ansimuz** |
-| SAKURA | GEN3 BOX |
-| AURORA | GEN3 BOX |
-| STORM | GEN3 BOX |
-| CIRCUIT | GEN3 BOX |
-| TRAIN | GEN3 BOX |
-| 90S | GEN3 BOX |
+| Scene | Hands | |
+| --- | --- | --- |
+| SEA | GEN3 BOX · **Scribe** · **Reactorcore** | + DEEP, DAWN |
+| FOREST | GEN3 BOX · **ansimuz** · **MatiasVME** · **marcavis** | + AUTUMN, NIGHT |
+| SKY | GEN3 BOX · **DustDFG** · **FabinhoSC** · **GrumpyDiamond** · **Fupi** | + AURORA, DUSK |
+| CAVE | GEN3 BOX · **Admurin** · **PWL** · **JonathanPalmerGD** | + ICE, EMBER |
+| CITY | GEN3 BOX · **FabinhoSC** · **ansimuz** · **ansimuz (Warped City 2)** | + NEON, DAWN |
+| SNOW | GEN3 BOX · **Admurin** · **Emcee Flesher** · **Jetrel** · **Tio Aimar** · **rubberduck** | + DUSK |
+| NIGHT | GEN3 BOX · **leyren** · **LLGD** · **fridaruiz** · **tigitalart** | + BLOOD, MOSS |
+| DESERT | GEN3 BOX · **Emcee Flesher** · **Cethiel** · **bevouliin.com** | + DUSK, MOON |
+| VOLCANO | GEN3 BOX · **Tio Aimar** | + ASH, NIGHT, EMBER |
+| SPACE | GEN3 BOX · **TheClicketyBoom** · **Rawdanitsu** · **Bonsaiheldin** · **Screaming Brain Studios** | + RED |
+| CASTLE | GEN3 BOX · **Jetrel** · **rubberduck** · **ansimuz** | + DUSK, NIGHT |
+| SAKURA | GEN3 BOX | + NIGHT, DUSK, SNOW, EMBER |
+| STORM | GEN3 BOX | + NIGHT, DUSK, SEA, MONO |
+| CIRCUIT | GEN3 BOX | + AMBER, BLUE, RED, MONO |
+| TRAIN | GEN3 BOX | + NIGHT, DUSK, SNOW, SEPIA |
+| 90S | GEN3 BOX | + MINT, SUNSET, GRAPE, MONO |
+
+The right-hand column is the same scene drawn here through another palette —
+`SAKURA < GEN3 NIGHT >` is a night hanami, not a toggle — so every place has
+at least five wallpapers behind it and none has more than seven.
 
 FAVOURITE comes after all of them and stays there: it is a pointer to
 whatever you marked with SELECT rather than a place of its own, so it belongs
 at the end of the walk rather than in the middle of the real scenes.
 
-SNOW, SKY, NIGHT and SPACE have five or more hands on them. SAKURA, AURORA,
-STORM, CIRCUIT and TRAIN have one each — CC0 parallax art for a cherry tree,
-an aurora, a circuit board or a train window is not a thing that exists in
-quantity, and pretending otherwise would mean shipping bad crops of the wrong
-picture. Those five are the most open doors in the mod.
+CC0 parallax art for a cherry tree, a circuit board or a train window barely
+exists, which is why those places lean on drawn variants rather than on bad
+crops of the wrong picture. They are the most open doors in the mod.
 
 **Want your own in the list?** That is what
 [CONTEST.md](CONTEST.md) is for: one pull request, one wallpaper, your name in

@@ -2749,9 +2749,7 @@ do
     Font.draw = function()
       glyphs = glyphs + 1
       -- di che colore e' l'inchiostro nel momento in cui si scrive
-      if not (tone[1] == 0 and tone[2] == 0 and tone[3] == 0) then
-        inks[#inks + 1] = { tone[1], tone[2], tone[3] }
-      end
+      inks[#inks + 1] = { tone[1], tone[2], tone[3] }
       return 0
     end
 
@@ -2763,7 +2761,7 @@ do
     end
 
     local solid, solidGlyphs = drawn("SOLID")
-    local platesSolid, inksSolid = plates, #inks
+    local platesSolid, inksSolid = plates, inks
     T.eq(#solid, 2, "SOLID dipinge le due bande")
     T.check(solid[1] and solid[1][4] == 1 and solid[2][4] == 1,
       "e le dipinge piene")
@@ -2792,25 +2790,26 @@ do
     T.check(math.abs((thin[1][4] or 0) - 0.15) < 0.001,
       "in fondo alla scala resta un velo, non il nulla: una didascalia non "
       .. "deve combattere con la scena che ha esattamente il suo colore")
-    -- e le didascalie si scrivono con DUE toni della scena -- le lettere in
-    -- un capo della sua palette, il bordino nell'altro -- invece che in nero
-    -- su un piano bianco. Il piano funzionava e sembrava un adesivo; questo
-    -- sta dentro al quadro, e il contrasto e' fra due colori usciti dalla
-    -- stessa tavolozza.
-    local seaPal
-    for _, w in ipairs(run.loader.exports.gen3_box.wallpapers) do
-      if w.id == "SEA" then seaPal = w.palette end
-    end
-    local usedInk, usedEdge = false, false
+    -- e le didascalie si scrivono con UN inchiostro solo: nero su una scena
+    -- chiara, bianco su una scura. Prima erano un piano bianco (un adesivo)
+    -- e poi due toni della palette con un bordino (grasse e sdoppiate su un
+    -- cielo pallido). Sopra un quadro il tipo vuole la cosa piu' semplice
+    -- che resti leggibile.
+    local flat = 0
     for _, c in ipairs(inks) do
-      if math.abs(c[1] - seaPal[4][1] / 255) < 0.005
-          and math.abs(c[3] - seaPal[4][3] / 255) < 0.005 then usedInk = true end
-      if math.abs(c[1] - seaPal[1][1] / 255) < 0.005
-          and math.abs(c[3] - seaPal[1][3] / 255) < 0.005 then usedEdge = true end
+      if (c[1] == 1 and c[2] == 1 and c[3] == 1) or (c[1] == 0 and c[2] == 0 and c[3] == 0) then
+        flat = flat + 1
+      end
     end
-    T.check(usedInk and usedEdge,
-      "e le didascalie si scrivono nei due capi della palette della scena")
-    T.eq(inksSolid, 0,
+    T.eq(flat, #inks,
+      "e ogni didascalia si scrive in un inchiostro piatto, mai in un tono "
+      .. "della scena")
+    T.check(#inks > 0, "SEA e' una scena chiara, quindi le scritte sono nere")
+    local blackSolid = 0
+    for _, c in ipairs(inksSolid) do
+      if c[1] == 0 and c[2] == 0 and c[3] == 0 then blackSolid = blackSolid + 1 end
+    end
+    T.eq(blackSolid, #inksSolid,
       "mentre con SOLID restano nere sulla banda, come sempre")
 
     -- zero resta onorato per un save che se lo porta dietro, anche se il

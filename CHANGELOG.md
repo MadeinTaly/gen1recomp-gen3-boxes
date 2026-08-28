@@ -1,5 +1,42 @@
 # Changelog
 
+## 1.14.0 — five ways into every place
+
+**Ninety-four wallpapers, and no scene with fewer than five.** Sixteen
+places, five to seven entries each, and every one of them is a different
+picture rather than a setting: SAKURA at night is not SAKURA with a toggle
+on, it is a night hanami, and the menu lists it as its own hand because
+that is what it is to whoever is scrolling.
+
+The unlock was allowing more than one drawn entry per place. A style may now
+carry its own four colours, and optionally another scene's pattern: CIRCUIT
+comes in amber, blue, red and mono; 90S in mint, sunset, grape and mono;
+STORM at night, at dusk, in sea green and in grey. They are named GEN3 so
+nobody reads them as somebody else's work -- they are drawn here, in this
+file, like the first one.
+
+**AURORA moved into SKY.** A sky with the lights in it is still a sky, and
+one hand on a category is not a category.
+
+**Captions: black, or white over a dark scene. Nothing else.** This is the
+third answer to the same question and the first plain one. A white plate
+read as a sticker; letters in two tones of the scene's palette came out fat
+and doubled over a pale sky. Type over a picture wants the simplest thing
+that stays legible.
+
+**STORM runs at a quarter speed.** Rain crossing a 160-pixel screen at a
+plausible rate is not rain, it is static -- the drops are gone before the
+eye resolves them. Slowed down you watch individual drops fall, which is
+what weather looks like through a window.
+
+**SLOTS defaults to 25% instead of 40%.** Ninety-four wallpapers is a lot of
+work to hide behind a wash.
+
+One bug worth naming: STORM's timebase was declared halfway down its own
+branch, after the clouds that used it, so every STORM entry raised on the
+first frame. The suite was green throughout -- it draws SEA -- and the
+offline renderer is what caught it, because it draws all ninety-four.
+
 ## 1.13.0 — sixteen more hands
 
 Forty-eight entries across seventeen places now, by twenty-nine different

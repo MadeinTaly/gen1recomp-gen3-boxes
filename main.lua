@@ -163,7 +163,7 @@ return function(mod)
     -- enough that SEA still reads as water underneath. CLEAR is the honest
     -- end of the ladder: no slot at all, the wallpaper straight through, for
     -- anyone who wants the scene and nothing over it.
-    { key = "slots", label = "SLOTS", type = "choice", default = "40",
+    { key = "slots", label = "SLOTS", type = "choice", default = "25",
       choices = {
         { "CLEAR", "0" },
         { "25%", "25" },
@@ -275,9 +275,9 @@ return function(mod)
   -- vanished because an option failed to load would look broken.
   local function slotAlpha()
     local ok, value = pcall(function() return mod.options:get("slots") end)
-    if not ok then return 0.40 end
+    if not ok then return 0.25 end
     local n = tonumber(value)
-    if not n then return 0.40 end
+    if not n then return 0.25 end
     return math.max(0, math.min(100, n)) / 100
   end
 
@@ -316,25 +316,27 @@ return function(mod)
   -- per frame for a decision that changes only when the wallpaper does; the
   -- palette says the same thing for nothing, because the pixels underneath
   -- were painted out of it.
+  -- Black, or white when the scene is dark. That is the whole rule.
+  --
+  -- Two cleverer versions shipped before it: a white plate under each
+  -- caption, which read as a sticker, and letters in one end of the scene's
+  -- palette with a one-pixel edge in the other, which came out fat and
+  -- doubled on a pale sky. Type over a picture wants the plainest thing
+  -- that stays legible, and on a four-tone scene that is one flat ink.
   local function captionInk(paper)
     local palette = paper and paper.palette
     if not palette then return nil end
-    local light, dark, lightL, darkL
     local total, n = 0, 0
     for i = 1, 4 do
       local c = palette[i]
       if type(c) == "table" and c[1] and c[2] and c[3] then
-        local luma = 0.299 * c[1] + 0.587 * c[2] + 0.114 * c[3]
-        total, n = total + luma, n + 1
-        if not lightL or luma > lightL then light, lightL = c, luma end
-        if not darkL or luma < darkL then dark, darkL = c, luma end
+        total = total + 0.299 * c[1] + 0.587 * c[2] + 0.114 * c[3]
+        n = n + 1
       end
     end
-    if not (light and dark and n > 0) then return nil end
-    -- a scene whose four colours average dark is a dark room: write in its
-    -- light end. Otherwise write in its dark end.
-    if total / n < 128 then return light, dark end
-    return dark, light
+    if n == 0 then return nil end
+    if total / n < 110 then return { 255, 255, 255 } end
+    return { 0, 0, 0 }
   end
 
   local function bandTint(paper)
@@ -463,8 +465,6 @@ return function(mod)
     -- window at speed.
     { id = "SAKURA", pattern = "SAKURA",
       palette = { { 255, 244, 248 }, { 250, 202, 220 }, { 214, 126, 164 }, { 92, 60, 84 } } },
-    { id = "AURORA", pattern = "AURORA",
-      palette = { { 12, 18, 34 }, { 40, 72, 96 }, { 96, 214, 176 }, { 214, 246, 226 } } },
     { id = "STORM",  pattern = "STORM",
       palette = { { 226, 230, 238 }, { 150, 160, 180 }, { 84, 94, 118 }, { 34, 38, 52 } } },
     { id = "CIRCUIT", pattern = "CIRCUIT",
@@ -530,6 +530,16 @@ return function(mod)
   -- and turns back before it runs out, so the scene breathes, the whole
   -- painting comes round in time, and the join at the ends is never on
   -- screen to be seen. `still = true` opts a layer out of even that.
+  -- A drawn ENTRY: the same scene through another palette, or another
+  -- scene's pattern under this place's name. Both are hands in the menu,
+  -- because that is what they are to whoever is scrolling: SAKURA by day
+  -- and SAKURA at night are two wallpapers, not one wallpaper and a
+  -- setting. The names say GEN3 so nobody reads them as somebody else's
+  -- work -- these are drawn here, in this file, like the first one.
+  local function V(name, palette, pattern)
+    return { by = name, palette = palette, pattern = pattern }
+  end
+
   local function L(image, speed, still)
     return { image = ART .. image, speed = speed or 0, still = still or nil }
   end
@@ -537,7 +547,9 @@ return function(mod)
   local WALLPAPER_ART = {
     SEA    = { { by = "GEN3 BOX" },
                { by = "SCRIBE",    layers = { L("sea_scribe_near.png", 0.05) } },
-               { by = "REACTOR",   layers = { L("sea_reactorcore_base.png", 0.06) } } },
+               { by = "REACTOR",   layers = { L("sea_reactorcore_base.png", 0.06) } },
+               V("GEN3 DEEP", { { 18, 40, 72 }, { 30, 74, 122 }, { 66, 140, 190 }, { 150, 220, 236 } }),
+               V("GEN3 DAWN", { { 254, 238, 226 }, { 244, 186, 168 }, { 176, 132, 156 }, { 60, 52, 92 } }) },
     FOREST = { { by = "GEN3 BOX" },
                { by = "ANSIMUZ",   layers = { L("forest_ansimuz_still.png") } },
                -- rebuilt in 1.10.2: the pack is drawn at 1280x360, and
@@ -548,7 +560,9 @@ return function(mod)
                -- so the whole scene is in the frame.
                { by = "MATIASVME", layers = { L("forest_matiasvme_base.png", 0.02),
                                               L("forest_matiasvme_near.png", 0.09) } },
-               { by = "MARCAVIS",  layers = { L("forest_marcavis_base.png", 0.03) } } },
+               { by = "MARCAVIS",  layers = { L("forest_marcavis_base.png", 0.03) } },
+               V("GEN3 AUTUMN", { { 252, 238, 214 }, { 232, 176, 100 }, { 186, 106, 56 }, { 74, 46, 34 } }),
+               V("GEN3 NIGHT", { { 22, 32, 34 }, { 40, 62, 58 }, { 92, 130, 104 }, { 196, 226, 198 } }) },
     SKY    = { { by = "GEN3 BOX" },
                -- 160x144, not 320: this pack is drawn at 160x80, so at its
                -- own scale the whole valley fits one CLASSIC screen. The
@@ -561,56 +575,95 @@ return function(mod)
                { by = "GRUMPY",    layers = { L("sky_grumpydiamond_base.png", 0.02),
                                               L("sky_grumpydiamond_far.png", 0.06) } },
                { by = "FUPI",      layers = { L("sky_fupi_base.png", 0.02),
-                                              L("sky_fupi_near.png", 0.08) } } },
+                                              L("sky_fupi_near.png", 0.08) } },
+               -- AURORA lives here rather than as a place of its own: a sky
+               -- with the lights in it is still a sky, and one hand on a
+               -- category is not a category
+               V("GEN3 AURORA", { { 12, 18, 34 }, { 40, 72, 96 }, { 96, 214, 176 }, { 214, 246, 226 } }, "AURORA"),
+               V("GEN3 DUSK", { { 254, 226, 196 }, { 244, 158, 128 }, { 156, 100, 140 }, { 44, 40, 78 } }) },
     CAVE   = { { by = "GEN3 BOX" },
                { by = "ADMURIN",   layers = { L("cave_admurin_near.png", 0.04) } },
                { by = "PWL",       layers = { L("cave_pwl_base.png", 0.02) } },
-               { by = "JONATHAN",  layers = { L("cave_jonathan_base.png", 0.02) } } },
+               { by = "JONATHAN",  layers = { L("cave_jonathan_base.png", 0.02) } },
+               V("GEN3 ICE", { { 232, 244, 252 }, { 176, 208, 232 }, { 104, 146, 190 }, { 40, 56, 88 } }),
+               V("GEN3 EMBER", { { 30, 22, 24 }, { 74, 44, 40 }, { 168, 92, 56 }, { 244, 196, 132 } }) },
     CITY   = { { by = "GEN3 BOX" },
                { by = "FABINHOSC", layers = { L("city_fabinhosc_still.png"),
                                               L("city_fabinhosc_base.png"),
                                               L("city_fabinhosc_near.png", 0.12) } },
                { by = "ANSIMUZ",   layers = { L("city_ansimuz_base.png", 0.02) } },
-               { by = "ANSIMUZ 2", layers = { L("city_ansimuz2_base.png") } } },
+               { by = "ANSIMUZ 2", layers = { L("city_ansimuz2_base.png") } },
+               V("GEN3 NEON", { { 16, 12, 32 }, { 62, 30, 88 }, { 214, 62, 150 }, { 92, 240, 236 } }),
+               V("GEN3 DAWN", { { 252, 234, 222 }, { 232, 178, 168 }, { 152, 122, 148 }, { 52, 46, 70 } }) },
     SNOW   = { { by = "GEN3 BOX" },
                { by = "ADMURIN",   layers = { L("snow_admurin_base.png"),
                                               L("snow_admurin_still.png") } },
                { by = "EMCEE",     layers = { L("snow_emcee_base.png", 0.02) } },
                { by = "JETREL",    layers = { L("snow_jetrel_base.png", 0.02) } },
                { by = "TIOAIMAR",  layers = { L("snow_tioaimar_base.png", 0.02) } },
-               { by = "RUBBERDUCK", layers = { L("snow_rubberduck_base.png", 0.02) } } },
+               { by = "RUBBERDUCK", layers = { L("snow_rubberduck_base.png", 0.02) } },
+               V("GEN3 DUSK", { { 250, 226, 232 }, { 208, 178, 210 }, { 140, 128, 176 }, { 52, 50, 84 } }) },
     NIGHT  = { { by = "GEN3 BOX" },
                { by = "LEYREN",    layers = { L("night_leyren_base.png") } },
                { by = "LLGD",      layers = { L("night_llgd_base.png", 0.05) } },
                { by = "FRIDARUIZ", layers = { L("night_fridaruiz_base.png", 0.02) } },
-               { by = "TIGITAL",   layers = { L("night_tigital_base.png", 0.03) } } },
-    ["90S"] = { { by = "GEN3 BOX" } },
+               { by = "TIGITAL",   layers = { L("night_tigital_base.png", 0.03) } },
+               V("GEN3 BLOOD", { { 26, 14, 20 }, { 72, 26, 36 }, { 160, 58, 62 }, { 244, 196, 168 } }),
+               V("GEN3 MOSS", { { 14, 24, 22 }, { 34, 58, 50 }, { 84, 132, 104 }, { 206, 232, 200 } }) },
+    ["90S"] = { { by = "GEN3 BOX" },
+               V("GEN3 MINT", { { 236, 252, 246 }, { 92, 210, 186 }, { 244, 148, 96 }, { 42, 66, 88 } }),
+               V("GEN3 SUNSET", { { 254, 240, 220 }, { 246, 132, 92 }, { 122, 106, 200 }, { 44, 38, 70 } }),
+               V("GEN3 GRAPE", { { 244, 238, 252 }, { 176, 132, 220 }, { 96, 200, 176 }, { 52, 40, 84 } }),
+               V("GEN3 MONO", { { 246, 246, 244 }, { 176, 176, 176 }, { 104, 104, 104 }, { 36, 36, 36 } }) },
     -- The five newest places have one hand each so far. CC0 parallax art
     -- for a cherry tree, an aurora, a circuit board or a train window is
     -- not a thing that exists in quantity -- which is exactly what the
     -- contest in CONTEST.md is for.
-    SAKURA = { { by = "GEN3 BOX" } },
-    AURORA = { { by = "GEN3 BOX" } },
-    STORM  = { { by = "GEN3 BOX" } },
-    CIRCUIT = { { by = "GEN3 BOX" } },
-    TRAIN  = { { by = "GEN3 BOX" } },
+    SAKURA = { { by = "GEN3 BOX" },
+               V("GEN3 NIGHT", { { 26, 22, 44 }, { 62, 48, 86 }, { 176, 108, 154 }, { 250, 216, 232 } }),
+               V("GEN3 DUSK", { { 252, 226, 214 }, { 244, 168, 156 }, { 186, 106, 132 }, { 70, 44, 68 } }),
+               V("GEN3 SNOW", { { 252, 252, 254 }, { 218, 232, 244 }, { 152, 176, 206 }, { 66, 78, 104 } }),
+               V("GEN3 EMBER", { { 254, 240, 216 }, { 246, 186, 108 }, { 208, 106, 62 }, { 78, 46, 40 } }) },
+    STORM  = { { by = "GEN3 BOX" },
+               V("GEN3 NIGHT", { { 22, 26, 40 }, { 52, 60, 84 }, { 108, 122, 156 }, { 208, 220, 240 } }),
+               V("GEN3 DUSK", { { 242, 226, 226 }, { 190, 168, 178 }, { 122, 106, 128 }, { 46, 40, 56 } }),
+               V("GEN3 SEA", { { 224, 240, 240 }, { 148, 190, 194 }, { 76, 122, 136 }, { 26, 46, 60 } }),
+               V("GEN3 MONO", { { 240, 240, 240 }, { 170, 170, 170 }, { 100, 100, 100 }, { 30, 30, 30 } }) },
+    CIRCUIT = { { by = "GEN3 BOX" },
+               V("GEN3 AMBER", { { 26, 20, 12 }, { 62, 46, 22 }, { 210, 152, 48 }, { 254, 232, 176 } }),
+               V("GEN3 BLUE", { { 12, 18, 34 }, { 28, 48, 88 }, { 82, 148, 232 }, { 206, 232, 255 } }),
+               V("GEN3 RED", { { 26, 12, 16 }, { 64, 22, 30 }, { 208, 60, 66 }, { 252, 200, 196 } }),
+               V("GEN3 MONO", { { 16, 16, 16 }, { 48, 48, 48 }, { 140, 140, 140 }, { 236, 236, 236 } }) },
+    TRAIN  = { { by = "GEN3 BOX" },
+               V("GEN3 NIGHT", { { 20, 22, 32 }, { 46, 50, 68 }, { 104, 108, 132 }, { 226, 228, 240 } }),
+               V("GEN3 DUSK", { { 252, 226, 194 }, { 226, 162, 122 }, { 142, 100, 96 }, { 46, 38, 44 } }),
+               V("GEN3 SNOW", { { 250, 252, 254 }, { 206, 220, 232 }, { 136, 156, 176 }, { 52, 60, 72 } }),
+               V("GEN3 SEPIA", { { 246, 234, 206 }, { 204, 178, 140 }, { 138, 112, 82 }, { 56, 44, 34 } }) },
     DESERT = { { by = "GEN3 BOX" },
                { by = "EMCEE",     layers = { L("desert_emcee_base.png", 0.02),
                                               L("desert_emcee_near.png", 0.07) } },
                { by = "CETHIEL",   layers = { L("desert_cethiel_base.png", 0.02) } },
-               { by = "BEVOULIIN", layers = { L("desert_bevouliin_base.png", 0.03) } } },
+               { by = "BEVOULIIN", layers = { L("desert_bevouliin_base.png", 0.03) } },
+               V("GEN3 DUSK", { { 254, 224, 196 }, { 240, 158, 122 }, { 168, 96, 116 }, { 52, 40, 66 } }),
+               V("GEN3 MOON", { { 24, 26, 44 }, { 56, 58, 88 }, { 132, 128, 152 }, { 236, 232, 220 } }) },
     VOLCANO = { { by = "GEN3 BOX" },
                { by = "TIOAIMAR",  layers = { L("volcano_tioaimar_base.png", 0.02),
-                                              L("volcano_tioaimar_near.png", 0.06) } } },
+                                              L("volcano_tioaimar_near.png", 0.06) } },
+               V("GEN3 ASH", { { 26, 24, 26 }, { 62, 58, 62 }, { 138, 128, 126 }, { 232, 224, 214 } }),
+               V("GEN3 NIGHT", { { 14, 14, 26 }, { 44, 34, 62 }, { 168, 68, 92 }, { 250, 190, 120 } }),
+               V("GEN3 EMBER", { { 30, 18, 14 }, { 84, 34, 22 }, { 220, 104, 32 }, { 254, 226, 150 } }) },
     SPACE  = { { by = "GEN3 BOX" },
                { by = "CLICKETY",  layers = { L("space_theclicketyboom_base.png", 0.03) } },
                { by = "RAWDANITSU", layers = { L("space_rawdanitsu_base.png") } },
                { by = "BONSAI",    layers = { L("space_bonsai_base.png", 0.04) } },
-               { by = "SCREAMING", layers = { L("space_screaming_base.png", 0.02) } } },
+               { by = "SCREAMING", layers = { L("space_screaming_base.png", 0.02) } },
+               V("GEN3 RED", { { 22, 10, 18 }, { 72, 24, 48 }, { 190, 74, 96 }, { 252, 222, 214 } }) },
     CASTLE = { { by = "GEN3 BOX" },
                { by = "JETREL",    layers = { L("castle_jetrel_base.png") } },
                { by = "RUBBERDUCK", layers = { L("castle_rubberduck_base.png") } },
-               { by = "ANSIMUZ",   layers = { L("castle_ansimuz_base.png") } } },
+               { by = "ANSIMUZ",   layers = { L("castle_ansimuz_base.png") } },
+               V("GEN3 DUSK", { { 250, 226, 214 }, { 202, 170, 172 }, { 128, 106, 118 }, { 44, 38, 48 } }),
+               V("GEN3 NIGHT", { { 22, 24, 36 }, { 50, 54, 74 }, { 112, 118, 146 }, { 226, 230, 244 } }) },
     PLAIN  = { { by = "GEN3 BOX" } },
     FAVE   = { { by = "GEN3 BOX" } },
   }
@@ -2515,31 +2568,15 @@ return function(mod)
     -- is the whole point of turning the band down -- and the words sit on
     -- something. Gen 3 does this too: the box name has its own plate over
     -- the wallpaper rather than a band across the screen.
-    local inkColour, edgeColour = nil, nil
-    local function setInk(c, fallback)
-      if c then
-        love.graphics.setColor(c[1] / 255, c[2] / 255, c[3] / 255, 1)
-      else
-        love.graphics.setColor(fallback, fallback, fallback, 1)
-      end
-    end
+    local inkColour = nil
 
     local function caption(text, x, y)
-      -- With SOLID bands the caption is black on an opaque band and there is
-      -- nothing to solve. Below SOLID the scene runs under the words, so
-      -- they are written in the scene's own two ends: the letters in one, a
-      -- one-pixel edge in the other. A white plate behind them worked and
-      -- looked like a sticker; this reads as part of the picture, and the
-      -- contrast is between two tones that came out of the same palette
-      -- rather than between black and whatever happens to be underneath.
-      if bandAlpha() and text and text ~= "" then
-        setInk(edgeColour, 1)
-        for dx = -1, 1 do
-          for dy = -1, 1 do
-            if dx ~= 0 or dy ~= 0 then Font.draw(text, x + dx, y + dy) end
-          end
-        end
-        setInk(inkColour, 0)
+      -- With SOLID bands the caption is black on an opaque band and there
+      -- is nothing to solve. Below SOLID it is black over a pale scene and
+      -- white over a dark one, and nothing else -- no plate, no outline.
+      if bandAlpha() and inkColour then
+        local c = inkColour
+        love.graphics.setColor(c[1] / 255, c[2] / 255, c[3] / 255, 1)
         local advance = Font.draw(text, x, y)
         love.graphics.setColor(0, 0, 0, 1)
         return advance
@@ -3590,6 +3627,12 @@ return function(mod)
         end
 
       elseif pattern == "STORM" then
+        -- Everything in here runs at a QUARTER of what it first shipped at.
+        -- Rain drawn at a plausible speed on a 160-pixel screen is not rain,
+        -- it is static: the drops cross the frame before the eye resolves
+        -- them. Slowed down you watch individual drops fall, which is what
+        -- weather looks like through a window.
+        local st = t / 4
         -- Rain has to be rain and not hatching: three depths, each at its
         -- own angle and speed, with the near drops longer. The lightning is
         -- rare and short -- a flash you catch out of the corner of the eye
@@ -3601,7 +3644,7 @@ return function(mod)
         for rank = 0, 1 do
           local y = 4 + rank * 14
           for i = 0, 5 do
-            local x = ((t * (0.08 + rank * 0.05) + i * 41) % (w + 70)) - 35
+            local x = ((st * (0.08 + rank * 0.05) + i * 41) % (w + 70)) - 35
             shade(paper, 3 - rank, 0.75)
             disc(x + 14, y + 10, 12 - rank * 2)
             disc(x + 26, y + 12, 9 - rank)
@@ -3611,12 +3654,12 @@ return function(mod)
         end
 
         -- the flash: a whole-screen lift plus a bolt, on a long cycle
-        local cycle = (t % 240)
+        local cycle = (st % 240)
         if cycle < 6 then
           shade(paper, 1, cycle < 3 and 0.55 or 0.25)
           love.graphics.rectangle("fill", 0, 0, w, h)
           shade(paper, 1, 0.95)
-          local bx = 40 + (math.floor(t / 240) * 37) % math.max(1, w - 80)
+          local bx = 40 + (math.floor(st / 240) * 37) % math.max(1, w - 80)
           local by = 22
           for seg = 0, 5 do
             local nx = bx + ((seg % 2 == 0) and 6 or -5)
@@ -3637,7 +3680,7 @@ return function(mod)
           shade(paper, depth == 3 and 3 or 2, 0.25 + depth * 0.2)
           for i = 0, count do
             local hx = (i * 2654435761 + depth * 7919) % 4294967296
-            local fall = (t * speed + i * 29) % (h + length * 4)
+            local fall = (st * speed + i * 29) % (h + length * 4)
             local y = fall - length * 2
             local x = ((math.floor(hx / 65536) % w) - fall * slant / 8) % w
             love.graphics.rectangle("fill", x, y, 1, length)
@@ -3649,7 +3692,7 @@ return function(mod)
         love.graphics.rectangle("fill", 0, groundY, w, h - groundY)
         for i = 0, 9 do
           local hx = (i * 2246822519) % 4294967296
-          local phase = (t * 0.6 + i * 13) % 30
+          local phase = (st * 0.6 + i * 13) % 30
           if phase < 6 then
             local x = math.floor(hx / 65536) % w
             shade(paper, 2, 0.6 - phase * 0.08)
@@ -3924,7 +3967,24 @@ return function(mod)
     -- Scaling rather than re-deriving every count is also the only version
     -- of this that stays true: one scene, one composition, and the pixels
     -- stay square because the factor is a whole number.
+    -- A style may carry its OWN four colours. That is what lets a place
+    -- have more than one hand drawn here: SAKURA by day and SAKURA at
+    -- night are the same scene through two palettes, and the menu lists
+    -- them as two entries because that is what they are to a player.
+    local function reshade(paper, style)
+      if not (style and paper and (style.palette or style.pattern)) then
+        return paper
+      end
+      return {
+        id = paper.id,
+        pattern = style.pattern or paper.pattern,
+        palette = style.palette or paper.palette,
+      }
+    end
+    self.reshade = reshade
+
     local function drawWallpaper(paper, w, h, style)
+      paper = reshade(paper, style)
       if paper.pattern == "PLAIN" or not paper.palette then return end
       local t = animateOn() and (self.paperTick or 0) or 0
       -- someone else's art first: if it draws, this function is done
@@ -4008,9 +4068,13 @@ return function(mod)
         -- below it lets the wallpaper run edge to edge over the WHOLE
         -- screen, and the captions carry their own halo from there on.
         local band = bandAlpha()
-        inkColour, edgeColour = captionInk(paper)
+        -- the bands and the ink read the palette the STYLE draws with, not
+        -- the category's own: a night variant would otherwise get a caption
+        -- chosen for the daytime one
+        local shown = reshade(paper, style)
+        inkColour = captionInk(shown)
         if band ~= 0 then
-          local tint = bandTint(paper)
+          local tint = bandTint(shown)
           if tint then
             love.graphics.setColor(tint[1] / 255, tint[2] / 255, tint[3] / 255,
               band or 1)
