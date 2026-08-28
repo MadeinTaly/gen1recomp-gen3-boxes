@@ -68,6 +68,45 @@ a house style.
   https://opengameart.org/content/mountains-and-trees-parallax-background-detail
 - **LLGD** — *Desert Forest*, used for `NIGHT < LLGD >`.
   https://opengameart.org/content/desert-forest
+- **PWL** — *Seamless cave background*, used for `CAVE < PWL >`.
+  https://opengameart.org/content/seamless-cave-background
+- **JonathanPalmerGD** — *Seamless Parallax Cave Background*, used for
+  `CAVE < JONATHAN >`.
+  https://opengameart.org/content/seamless-parallax-cave-background
+- **ansimuz** (Luis Zuno) — *Warped City* and *Warped City 2*, used for
+  `CITY < ANSIMUZ >` and `CITY < ANSIMUZ 2 >`; *Fort of Illusion*, used for
+  `CASTLE < ANSIMUZ >`.
+  https://opengameart.org/content/warped-city
+  https://opengameart.org/content/warped-city-2
+  https://opengameart.org/content/fort-of-illusion
+- **marcavis** — *Old Frogatto parallax layers*, used for
+  `FOREST < MARCAVIS >`.
+  https://opengameart.org/content/old-frogatto-parallax-layers
+- **fridaruiz** — *pixel night city*, used for `NIGHT < FRIDARUIZ >`.
+  https://opengameart.org/content/pixel-night-city
+- **tigitalart** — *Background Nightsky*, used for `NIGHT < TIGITAL >`.
+  https://opengameart.org/content/background-nightsky
+- **Tio Aimar** — *2D Platformer Snow Pack*, used for `SNOW < TIOAIMAR >`.
+  https://opengameart.org/content/2d-platformer-snow-pack
+- **rubberduck** — *Another Background made from Glitchy textures*, used for
+  `SNOW < RUBBERDUCK >`; *pixel art castle tileset*, used for
+  `CASTLE < RUBBERDUCK >`.
+  https://opengameart.org/content/pixel-art-castle-tileset
+- **Cethiel** — *Desert - Background*, used for `DESERT < CETHIEL >`.
+  https://opengameart.org/content/desert-background
+- **bevouliin.com** — *Pyramid free game background*, used for
+  `DESERT < BEVOULIIN >`.
+  https://opengameart.org/content/bevouliin-pyramid-free-game-background
+- **Rawdanitsu** — *Space Backgrounds*, used for `SPACE < RAWDANITSU >`.
+  https://opengameart.org/content/space-backgrounds
+- **Bonsaiheldin** — *Stars - parallax backgrounds*, used for
+  `SPACE < BONSAI >`.
+  https://opengameart.org/content/stars-parallax-backgrounds
+- **Screaming Brain Studios** — *Seamless Space Backgrounds*, used for
+  `SPACE < SCREAMING >`.
+  https://opengameart.org/content/seamless-space-backgrounds
+- **Reactorcore** — *Water Aqua Layer System*, used for `SEA < REACTOR >`.
+  https://opengameart.org/content/water-aqua-layer-system
 
 CC0 asks for nothing at all. These credits are here because taking someone's
 work without saying whose it is would be shabby, not because it is required.

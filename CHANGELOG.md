@@ -1,5 +1,39 @@
 # Changelog
 
+## 1.13.0 — sixteen more hands
+
+Forty-eight entries across seventeen places now, by twenty-nine different
+hands. What went in this release, all CC0 and all credited in the menu:
+
+| Scene | Added |
+| --- | --- |
+| SEA | Reactorcore |
+| FOREST | marcavis |
+| CAVE | PWL, JonathanPalmerGD |
+| CITY | ansimuz (Warped City, Warped City 2) |
+| SNOW | Tio Aimar, rubberduck |
+| NIGHT | fridaruiz, tigitalart |
+| DESERT | Cethiel, bevouliin.com |
+| SPACE | Rawdanitsu, Bonsaiheldin, Screaming Brain Studios |
+| CASTLE | rubberduck, ansimuz |
+
+SKY, SNOW, NIGHT and SPACE have five or more hands on them.
+
+**What the hunt actually costs, and where it stops.** Finding the pack is
+the easy half; cutting it is the hard one. A pack's own background is often
+mostly sky, so "the busiest 144 rows" lands on a bank of cloud and returns a
+picture of nothing -- the band is now weighted towards the bottom of the
+frame for landscapes, because that is where a scene keeps its subject. Six
+candidates were built, looked at and thrown away for every four that stayed:
+a cover image with the word ENVIRONMENT printed across it, a sheet of
+character sprites, a flat brown texture, a fish.
+
+SAKURA, AURORA, STORM, CIRCUIT and TRAIN still have one hand each. CC0
+parallax art for a cherry tree, an aurora, a circuit board or a train window
+is not a thing that exists in quantity, and the honest options were to ship
+bad crops of the wrong picture or to say so. Those five are the most open
+doors in the mod, and CONTEST.md is how they get opened.
+
 ## 1.12.0 — five places that were only ever a list
 
 **SAKURA, AURORA, STORM, CIRCUIT and TRAIN.** These were proposed once and
