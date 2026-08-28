@@ -216,7 +216,12 @@ for _, w in ipairs(run.loader.exports.gen3_box.wallpapers) do
     local styles = (ART and art[w.id]) or { false }
     for si, style in ipairs(styles) do
       local tag = w.id
-      if ART then tag = w.id .. "_" .. (style.by or si):gsub("%W", "") end
+      -- a scene with no artist entry yet still renders: it is the drawn one,
+      -- and it is exactly the case worth looking at when a category has just
+      -- been added
+      if ART then
+        tag = w.id .. "_" .. ((style and style.by) or "GEN3 BOX"):gsub("%W", "")
+      end
       for f = 0, FRAMES - 1 do
         screen.paperTick = f * STEP
         clear()

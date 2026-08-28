@@ -25,7 +25,7 @@ return {
       "SORT: BY DEX, BY LEVEL (strongest first), BY NAME or BY TYPE, stable, in place, and UNDO for the last one while the screen is open",
       "MARKS: Gen 3's circle, square, triangle and heart, stored on the Pokemon and drawn in the corner of its cell; MARK MODE is how they are set",
       "NAME BOX: eight glyphs through the engine's own naming screen, stored in the save rather than the install",
-      "WALLPAPER: a SCENE per box -- SEA, FOREST, SKY, CAVE, CITY, SNOW, NIGHT, DESERT, VOLCANO, SPACE, CASTLE, 90S -- covering the whole screen and drifting slowly, with the grid's slots laid over it; NIGHT runs the ramp in reverse and is therefore a real dark mode",
+      "WALLPAPER: a SCENE per box -- SEA, FOREST, SKY, CAVE, CITY, SNOW, NIGHT, DESERT, VOLCANO, SPACE, CASTLE, SAKURA, AURORA, STORM, CIRCUIT, TRAIN, 90S -- covering the whole screen and drifting slowly, with the grid's slots laid over it; NIGHT runs the ramp in reverse and is therefore a real dark mode",
       "each SCENE is drawn by more than one hand: up and down changes the scene, left and right changes the ARTIST -- Tree < ANSIMUZ > -- and the box wears the entry the cursor is on as you move, so the menu is the preview. The first artist of every scene is the one drawn here in code; the rest is CC0 and CC BY pixel art credited by name in the menu itself",
       "SELECT keeps a wallpaper as a FAVOURITE, and FAVOURITE is a scene like any other: a box set to it wears one of the ones you kept. Press SELECT again on the same entry to drop it",
       "PLACE CRY (on by default): the cry of whichever Pokemon just landed in a slot",

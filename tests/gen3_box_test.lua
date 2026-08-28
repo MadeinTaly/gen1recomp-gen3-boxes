@@ -303,6 +303,21 @@ do
   T.check(rowsOf(run.loader).grid,
     "su un boot Gen 1 la riga GRID c'e' come sempre")
 
+  -- ------- FAVOURITE sta in fondo, e ci resta
+  --
+  -- Su e giu' camminano la lista dei posti. Una categoria che e' un
+  -- puntatore a un'altra non ha niente da fare in mezzo ai posti veri, dove
+  -- si legge come una scena che non e' riuscita a disegnarsi: sta alla fine
+  -- del giro, per quante scene si aggiungano davanti.
+  do
+    local list = run.loader.exports.gen3_box.wallpapers
+    T.eq(list[#list].id, "FAVE", "FAVOURITE e' l'ultima categoria della lista")
+    local seen = {}
+    for i, w in ipairs(list) do seen[w.id] = i end
+    T.check(seen.FAVE > (seen["90S"] or 0) and seen.FAVE > (seen.SAKURA or 0),
+      "e viene dopo ogni posto vero, comprese le scene aggiunte dopo")
+  end
+
   local goldGame = { save = { generation = 2 } }
   Runtime.emit("game.ready", { game = goldGame })
   local afterGold = rowsOf(gen2Run.loader)
@@ -2719,7 +2734,7 @@ do
     local Font = require("src.render.Font")
     local realRect, realColor, realFont = G.rectangle, G.setColor, Font.draw
     local tone = { 0, 0, 0, 1 }
-    local bands, glyphs, plates = {}, 0, 0
+    local bands, glyphs, plates, inks = {}, 0, 0, {}
     G.setColor = function(r, g, b, a) tone = { r, g, b, a or 1 } end
     G.rectangle = function(mode, x, y, w, h)
       -- le due bande e nient'altro: piena larghezza, alte 14
@@ -2731,17 +2746,24 @@ do
         plates = plates + 1
       end
     end
-    Font.draw = function() glyphs = glyphs + 1; return 0 end
+    Font.draw = function()
+      glyphs = glyphs + 1
+      -- di che colore e' l'inchiostro nel momento in cui si scrive
+      if not (tone[1] == 0 and tone[2] == 0 and tone[3] == 0) then
+        inks[#inks + 1] = { tone[1], tone[2], tone[3] }
+      end
+      return 0
+    end
 
     local function drawn(setting)
       opts.bands = setting
-      bands, glyphs, plates = {}, 0, 0
+      bands, glyphs, plates, inks = {}, 0, 0, {}
       factory.new(game):draw()
       return bands, glyphs
     end
 
     local solid, solidGlyphs = drawn("SOLID")
-    local platesSolid = plates
+    local platesSolid, inksSolid = plates, #inks
     T.eq(#solid, 2, "SOLID dipinge le due bande")
     T.check(solid[1] and solid[1][4] == 1 and solid[2][4] == 1,
       "e le dipinge piene")
@@ -2770,13 +2792,26 @@ do
     T.check(math.abs((thin[1][4] or 0) - 0.15) < 0.001,
       "in fondo alla scala resta un velo, non il nulla: una didascalia non "
       .. "deve combattere con la scena che ha esattamente il suo colore")
-    -- e ogni didascalia si prende un piano suo, opaco, della sua misura:
-    -- un alone da un pixel non bastava -- lettere nere su una nuvola rosa,
-    -- bordate o no, non le legge nessuno. Il tipo vuole una superficie,
-    -- non un bordo
-    T.check(plates > 0, "e ogni didascalia si siede su un piano opaco suo")
-    T.check(platesSolid == 0,
-      "mentre con SOLID non serve: la banda e' gia' una superficie")
+    -- e le didascalie si scrivono con DUE toni della scena -- le lettere in
+    -- un capo della sua palette, il bordino nell'altro -- invece che in nero
+    -- su un piano bianco. Il piano funzionava e sembrava un adesivo; questo
+    -- sta dentro al quadro, e il contrasto e' fra due colori usciti dalla
+    -- stessa tavolozza.
+    local seaPal
+    for _, w in ipairs(run.loader.exports.gen3_box.wallpapers) do
+      if w.id == "SEA" then seaPal = w.palette end
+    end
+    local usedInk, usedEdge = false, false
+    for _, c in ipairs(inks) do
+      if math.abs(c[1] - seaPal[4][1] / 255) < 0.005
+          and math.abs(c[3] - seaPal[4][3] / 255) < 0.005 then usedInk = true end
+      if math.abs(c[1] - seaPal[1][1] / 255) < 0.005
+          and math.abs(c[3] - seaPal[1][3] / 255) < 0.005 then usedEdge = true end
+    end
+    T.check(usedInk and usedEdge,
+      "e le didascalie si scrivono nei due capi della palette della scena")
+    T.eq(inksSolid, 0,
+      "mentre con SOLID restano nere sulla banda, come sempre")
 
     -- zero resta onorato per un save che se lo porta dietro, anche se il
     -- menu non lo offre piu'

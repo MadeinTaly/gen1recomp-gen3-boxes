@@ -304,6 +304,39 @@ return function(mod)
   -- NIGHT is why this looks for the lightest tone rather than taking the
   -- first: its ramp runs backwards, and palette[1] there is nearly black.
   -- If nothing in a scene is light enough, white is the honest answer.
+  -- The two tones a caption is written in: one for the letters, one for the
+  -- edge around them. Both come out of the SCENE's own four colours rather
+  -- than being black and white, which is what makes them sit in the picture
+  -- instead of on it -- and which way round they go is decided by the scene:
+  -- light letters with a dark edge over a volcano, dark letters with a light
+  -- edge over a desert.
+  --
+  -- This is not sampling the pixels underneath. Reading back a canvas every
+  -- frame to average what is behind eight glyphs would cost a GPU round trip
+  -- per frame for a decision that changes only when the wallpaper does; the
+  -- palette says the same thing for nothing, because the pixels underneath
+  -- were painted out of it.
+  local function captionInk(paper)
+    local palette = paper and paper.palette
+    if not palette then return nil end
+    local light, dark, lightL, darkL
+    local total, n = 0, 0
+    for i = 1, 4 do
+      local c = palette[i]
+      if type(c) == "table" and c[1] and c[2] and c[3] then
+        local luma = 0.299 * c[1] + 0.587 * c[2] + 0.114 * c[3]
+        total, n = total + luma, n + 1
+        if not lightL or luma > lightL then light, lightL = c, luma end
+        if not darkL or luma < darkL then dark, darkL = c, luma end
+      end
+    end
+    if not (light and dark and n > 0) then return nil end
+    -- a scene whose four colours average dark is a dark room: write in its
+    -- light end. Otherwise write in its dark end.
+    if total / n < 128 then return light, dark end
+    return dark, light
+  end
+
   local function bandTint(paper)
     local palette = paper and paper.palette
     if not palette then return nil end
@@ -411,11 +444,6 @@ return function(mod)
     -- The one wallpaper that is not a place. 1998 is what this whole mod is
     -- about, and 1998 had a look: shapes scattered on a pale ground for no
     -- reason at all, on every folder, cup and school jumper.
-    -- FAVOURITE is a category that has no look of its own: it wears whatever
-    -- was last marked with SELECT in the chooser. A box set to it follows
-    -- the mark, so changing your favourite changes every box that trusts it
-    -- -- one press, and the whole PC redecorates.
-    { id = "FAVE", pattern = "PLAIN", palette = nil },
     { id = "90S",    pattern = "90S",
       palette = { { 250, 246, 236 }, { 236, 108, 148 }, { 84, 196, 196 }, { 60, 56, 108 } } },
     -- Four more places, and two of them run their ramp backwards the way
@@ -429,6 +457,31 @@ return function(mod)
       palette = { { 14, 12, 30 }, { 54, 46, 96 }, { 128, 118, 196 }, { 238, 238, 255 } } },
     { id = "CASTLE", pattern = "CASTLE",
       palette = { { 236, 234, 240 }, { 178, 176, 192 }, { 112, 112, 132 }, { 44, 46, 60 } } },
+    -- The five that were proposed in a list and then never drawn, which is
+    -- the worst place for an idea to sit. SAKURA and TRAIN are the two that
+    -- are not weather or rock: a tree over water, and the view out of a
+    -- window at speed.
+    { id = "SAKURA", pattern = "SAKURA",
+      palette = { { 255, 244, 248 }, { 250, 202, 220 }, { 214, 126, 164 }, { 92, 60, 84 } } },
+    { id = "AURORA", pattern = "AURORA",
+      palette = { { 12, 18, 34 }, { 40, 72, 96 }, { 96, 214, 176 }, { 214, 246, 226 } } },
+    { id = "STORM",  pattern = "STORM",
+      palette = { { 226, 230, 238 }, { 150, 160, 180 }, { 84, 94, 118 }, { 34, 38, 52 } } },
+    { id = "CIRCUIT", pattern = "CIRCUIT",
+      palette = { { 16, 26, 24 }, { 30, 64, 58 }, { 92, 200, 150 }, { 206, 255, 226 } } },
+    { id = "TRAIN",  pattern = "TRAIN",
+      palette = { { 240, 236, 226 }, { 196, 188, 172 }, { 128, 122, 112 }, { 52, 50, 48 } } },
+    -- FAVOURITE is a category with no look of its own: it wears whatever was
+    -- last marked with SELECT in the chooser, so changing your favourite
+    -- changes every box that trusts it -- one press, and the whole PC
+    -- redecorates.
+    --
+    -- It is LAST, and stays last however many places get added in front of
+    -- it. Up and down walk this list, and a category that is a pointer to
+    -- another one belongs at the end of the walk rather than sitting in the
+    -- middle of the real places, where it reads as a scene that failed to
+    -- draw.
+    { id = "FAVE", pattern = "PLAIN", palette = nil },
   }
   local WALLPAPER_BY_ID = {}
   for _, w in ipairs(WALLPAPERS) do WALLPAPER_BY_ID[w.id] = w end
@@ -2436,18 +2489,34 @@ return function(mod)
     -- is the whole point of turning the band down -- and the words sit on
     -- something. Gen 3 does this too: the box name has its own plate over
     -- the wallpaper rather than a band across the screen.
-    local plateColour = nil
+    local inkColour, edgeColour = nil, nil
+    local function setInk(c, fallback)
+      if c then
+        love.graphics.setColor(c[1] / 255, c[2] / 255, c[3] / 255, 1)
+      else
+        love.graphics.setColor(fallback, fallback, fallback, 1)
+      end
+    end
+
     local function caption(text, x, y)
+      -- With SOLID bands the caption is black on an opaque band and there is
+      -- nothing to solve. Below SOLID the scene runs under the words, so
+      -- they are written in the scene's own two ends: the letters in one, a
+      -- one-pixel edge in the other. A white plate behind them worked and
+      -- looked like a sticker; this reads as part of the picture, and the
+      -- contrast is between two tones that came out of the same palette
+      -- rather than between black and whatever happens to be underneath.
       if bandAlpha() and text and text ~= "" then
-        local c = plateColour
-        if c then
-          love.graphics.setColor(c[1] / 255, c[2] / 255, c[3] / 255, 1)
-        else
-          love.graphics.setColor(1, 1, 1, 1)
+        setInk(edgeColour, 1)
+        for dx = -1, 1 do
+          for dy = -1, 1 do
+            if dx ~= 0 or dy ~= 0 then Font.draw(text, x + dx, y + dy) end
+          end
         end
-        love.graphics.rectangle("fill", x - 2, y - 2,
-          Font.width(text) + 4, CAPTION_BAND - 2)
+        setInk(inkColour, 0)
+        local advance = Font.draw(text, x, y)
         love.graphics.setColor(0, 0, 0, 1)
+        return advance
       end
       return Font.draw(text, x, y)
     end
@@ -3369,6 +3438,330 @@ return function(mod)
         love.graphics.rectangle("fill", px - pr - 8, py + 3, pr + 4, 2)
         love.graphics.rectangle("fill", px + 6, py + 3, pr + 4, 2)
 
+      elseif pattern == "SAKURA" then
+        -- A cherry tree from underneath, which is how anyone actually looks
+        -- at one: the branch across the top of the frame, the blossom
+        -- hanging off it, and the petals coming down the whole screen. The
+        -- ground is water, because a still surface doubles the tree for
+        -- free and gives the bottom of the screen something to do.
+        local waterY = math.floor(h * 0.74)
+
+        -- the water: a real step down in tone from the sky, or the two
+        -- halves of the screen read as one pink field with a line in it
+        shade(paper, 3, 0.75)
+        love.graphics.rectangle("fill", 0, waterY, w, h - waterY)
+        shade(paper, 4, 0.5)
+        love.graphics.rectangle("fill", 0, waterY, w, 2)
+        -- the tree, upside down, in the water
+        for i = 0, 9 do
+          local hx = (i * 2654435761) % 4294967296
+          local cx = math.floor(hx / 65536) % w
+          shade(paper, 2, 0.35)
+          disc(cx, waterY + 6 + (i % 3) * 4, 3 + (i % 2))
+        end
+        -- ripples: short pale dashes that slide, so the water reads as wet
+        for i = 0, 11 do
+          local y = waterY + 5 + (i * 5) % math.max(1, h - waterY - 6)
+          local x = ((t * 0.22 + i * 43) % (w + 40)) - 20
+          shade(paper, 1, 0.5 - (i % 4) * 0.08)
+          love.graphics.rectangle("fill", x, y, 12 + (i % 5) * 4, 1)
+        end
+
+        -- the branch: one thick limb across the top with a few boughs off it
+        shade(paper, 4, 0.9)
+        love.graphics.rectangle("fill", 0, 10, w, 5)
+        for i = 0, 4 do
+          local bx = 14 + i * math.floor(w / 5)
+          local drop = 8 + (i % 3) * 7
+          love.graphics.rectangle("fill", bx, 14, 3, drop)
+          love.graphics.rectangle("fill", bx - 6 + (i % 2) * 10, 14 + drop, 8, 2)
+        end
+
+        -- blossom: clusters of small discs hanging off the branch, the
+        -- whole canopy swaying together rather than each clump on its own
+        local sway = math.sin(t / 70) * 3
+        for i = 0, 23 do
+          local hx = (i * 2654435761) % 4294967296
+          local cx = (math.floor(hx / 65536) % w)
+          local cy = 12 + math.floor(hx / 4096) % 34
+          local r = 3 + (i % 3)
+          -- an edge in the deep tone, the body in the mid one and a
+          -- highlight in the pale one: three tones is what stops a cluster
+          -- of blossom being a pink smudge on a pink sky
+          shade(paper, 3, 0.8)
+          disc(cx + math.floor(sway), cy, r + 1)
+          shade(paper, 2, 1)
+          disc(cx + math.floor(sway), cy, r)
+          shade(paper, 1, 0.95)
+          disc(cx + math.floor(sway) - 1, cy - 1, math.max(1, r - 2))
+        end
+
+        -- petals, falling and drifting sideways, three sizes
+        for i = 0, 25 do
+          local hx = (i * 2246822519) % 4294967296
+          local speed = 0.18 + (i % 4) * 0.09
+          local y = ((t * speed + i * 19) % (h + 12)) - 6
+          local x = (math.floor(hx / 65536) % w)
+            + math.floor(math.sin((t + i * 27) / 30) * (5 + i % 6))
+          shade(paper, 2, 0.9)
+          love.graphics.rectangle("fill", x % w, y, 2, 1 + (i % 2))
+          if i % 5 == 0 then
+            shade(paper, 3, 0.6)
+            love.graphics.rectangle("fill", x % w, y + 1, 1, 1)
+          end
+        end
+
+      elseif pattern == "AURORA" then
+        -- Dark-first palette: the sky is shade 1 and the light is shade 4.
+        -- The aurora is not a band of colour, it is CURTAINS -- vertical
+        -- ribs of different heights whose tops move independently -- and
+        -- that is the only thing that makes it read as an aurora rather
+        -- than as a gradient.
+        local snowY = math.floor(h * 0.80)
+
+        -- stars first, so the curtains hang in front of them
+        for i = 0, 39 do
+          local hx = (i * 2654435761) % 4294967296
+          local x = math.floor(hx / 65536) % w
+          local y = math.floor(hx / 13) % snowY
+          shade(paper, 4, 0.25 + 0.35 * math.sin((t + i * 51) / 40))
+          love.graphics.rectangle("fill", x, y, 1, 1)
+        end
+
+        -- three curtains, each drifting at its own speed
+        for band = 0, 2 do
+          local speed = 0.10 + band * 0.05
+          local baseY = 26 + band * 16
+          for x = 0, w, 3 do
+            local phase = (x + t * speed * 10) / 26
+            local tall = 22 + band * 10
+              + math.floor(math.sin(phase) * 12)
+              + math.floor(math.sin(phase * 0.37 + band) * 7)
+            local top = baseY - math.floor(tall / 2)
+            -- the ribbon is brightest at its foot and fades upward, which
+            -- is the way the real thing goes
+            for k = 0, tall do
+              local y = top + k
+              if y > 0 and y < snowY then
+                local fade = k / tall
+                shade(paper, fade > 0.55 and 3 or 4,
+                  (0.10 + 0.55 * fade) * (0.7 + 0.3 * math.sin(phase * 2)))
+                love.graphics.rectangle("fill", x, y, 3, 1)
+              end
+            end
+          end
+        end
+
+        -- the snow field under it, and the light lying on it
+        shade(paper, 2, 1)
+        love.graphics.rectangle("fill", 0, snowY, w, h - snowY)
+        shade(paper, 3, 0.35)
+        love.graphics.rectangle("fill", 0, snowY, w, 2)
+        for i = 0, 7 do
+          local x = ((t * 0.1 + i * 37) % (w + 30)) - 15
+          shade(paper, 3, 0.18)
+          love.graphics.rectangle("fill", x, snowY + 3 + (i % 3) * 4, 24, 1)
+        end
+
+      elseif pattern == "STORM" then
+        -- Rain has to be rain and not hatching: three depths, each at its
+        -- own angle and speed, with the near drops longer. The lightning is
+        -- rare and short -- a flash you catch out of the corner of the eye
+        -- rather than a strobe -- because a box screen is somewhere you sit
+        -- for a while.
+        local groundY = math.floor(h * 0.86)
+
+        -- cloud bank across the top, two ranks, drifting
+        for rank = 0, 1 do
+          local y = 4 + rank * 14
+          for i = 0, 5 do
+            local x = ((t * (0.08 + rank * 0.05) + i * 41) % (w + 70)) - 35
+            shade(paper, 3 - rank, 0.75)
+            disc(x + 14, y + 10, 12 - rank * 2)
+            disc(x + 26, y + 12, 9 - rank)
+            disc(x + 4, y + 12, 8 - rank)
+            love.graphics.rectangle("fill", x, y + 10, 34, 8 - rank * 2)
+          end
+        end
+
+        -- the flash: a whole-screen lift plus a bolt, on a long cycle
+        local cycle = (t % 240)
+        if cycle < 6 then
+          shade(paper, 1, cycle < 3 and 0.55 or 0.25)
+          love.graphics.rectangle("fill", 0, 0, w, h)
+          shade(paper, 1, 0.95)
+          local bx = 40 + (math.floor(t / 240) * 37) % math.max(1, w - 80)
+          local by = 22
+          for seg = 0, 5 do
+            local nx = bx + ((seg % 2 == 0) and 6 or -5)
+            local ny = by + 9
+            love.graphics.rectangle("fill", math.min(bx, nx), by,
+              math.abs(nx - bx) + 2, 2)
+            love.graphics.rectangle("fill", nx, by, 2, 9)
+            bx, by = nx, ny
+          end
+        end
+
+        -- rain, three depths
+        for depth = 1, 3 do
+          local count = 14 + depth * 10
+          local speed = 1.6 + depth * 1.4
+          local slant = 2 + depth
+          local length = 3 + depth * 2
+          shade(paper, depth == 3 and 3 or 2, 0.25 + depth * 0.2)
+          for i = 0, count do
+            local hx = (i * 2654435761 + depth * 7919) % 4294967296
+            local fall = (t * speed + i * 29) % (h + length * 4)
+            local y = fall - length * 2
+            local x = ((math.floor(hx / 65536) % w) - fall * slant / 8) % w
+            love.graphics.rectangle("fill", x, y, 1, length)
+          end
+        end
+
+        -- the ground, and the drops bouncing off it
+        shade(paper, 4, 0.9)
+        love.graphics.rectangle("fill", 0, groundY, w, h - groundY)
+        for i = 0, 9 do
+          local hx = (i * 2246822519) % 4294967296
+          local phase = (t * 0.6 + i * 13) % 30
+          if phase < 6 then
+            local x = math.floor(hx / 65536) % w
+            shade(paper, 2, 0.6 - phase * 0.08)
+            love.graphics.rectangle("fill", x - math.floor(phase), groundY - 2, 1, 1)
+            love.graphics.rectangle("fill", x + math.floor(phase), groundY - 2, 1, 1)
+          end
+        end
+
+      elseif pattern == "CIRCUIT" then
+        -- A board seen close up: traces that turn at right angles, pads
+        -- where they end, and a charge running ALONG a trace rather than a
+        -- glow sitting on top of it. Dark-first palette, so the traces are
+        -- the light end.
+        local pitch = 16
+        local cols = math.ceil(w / pitch) + 1
+        local rowsN = math.ceil(h / pitch) + 1
+
+        -- the board itself, with its own quiet texture
+        shade(paper, 2, 0.25)
+        for y = 0, h, 4 do
+          love.graphics.rectangle("fill", 0, y, w, 1)
+        end
+
+        -- traces: each cell picks a shape from its own hash, so the board
+        -- is fixed rather than random every frame
+        for cy = 0, rowsN do
+          for cx = 0, cols do
+            -- no bitwise XOR here: this file runs on LuaJIT, which is
+            -- 5.1, and `~` is a syntax error there rather than an operator
+            local hx = (cx * 73856093 + cy * 19349663 + cx * cy * 83492791)
+              % 4294967296
+            local kind = math.floor(hx / 4096) % 4
+            local x, y = cx * pitch, cy * pitch
+            shade(paper, 3, 0.55)
+            if kind == 0 then
+              love.graphics.rectangle("fill", x, y + 7, pitch, 2)
+            elseif kind == 1 then
+              love.graphics.rectangle("fill", x + 7, y, 2, pitch)
+            elseif kind == 2 then
+              love.graphics.rectangle("fill", x, y + 7, 9, 2)
+              love.graphics.rectangle("fill", x + 7, y + 7, 2, pitch - 7)
+            else
+              love.graphics.rectangle("fill", x + 7, y, 2, 9)
+              love.graphics.rectangle("fill", x + 7, y + 7, pitch - 7, 2)
+            end
+            -- a pad every so often, which is where a trace stops
+            if kind == 3 and (cx + cy) % 3 == 0 then
+              shade(paper, 3, 0.8)
+              love.graphics.rectangle("fill", x + 4, y + 4, 8, 8)
+              shade(paper, 1, 1)
+              love.graphics.rectangle("fill", x + 6, y + 6, 4, 4)
+            end
+          end
+        end
+
+        -- the charge: bright cells travelling along the horizontal traces
+        for i = 0, 5 do
+          local lane = (i * 3 + 1) % rowsN
+          local speed = 0.6 + (i % 3) * 0.35
+          local x = ((t * speed + i * 53) % (w + 40)) - 20
+          local y = lane * pitch + 7
+          for k = 0, 6 do
+            shade(paper, 4, 0.9 - k * 0.13)
+            love.graphics.rectangle("fill", x - k * 3, y, 3, 2)
+          end
+        end
+        -- and a couple going down instead, so it is a board and not a belt
+        for i = 0, 2 do
+          local lane = (i * 5 + 2) % cols
+          local y = ((t * (0.5 + i * 0.2) + i * 71) % (h + 30)) - 15
+          local x = lane * pitch + 7
+          for k = 0, 5 do
+            shade(paper, 4, 0.85 - k * 0.14)
+            love.graphics.rectangle("fill", x, y - k * 3, 2, 3)
+          end
+        end
+
+      elseif pattern == "TRAIN" then
+        -- The view out of a window at speed, which is a scene where the
+        -- MOTION is the subject: poles snapping past, hills turning slowly,
+        -- wires dipping between the poles. Three speeds is the whole trick.
+        local sillY = math.floor(h * 0.82)
+        local skyY = 8
+
+        -- sky, and the far hills turning slowly. The sky takes the palest
+        -- tone and the hills the deep ones: beige hills on a beige sky is
+        -- what the first pass looked like out of the window.
+        shade(paper, 1, 1)
+        love.graphics.rectangle("fill", 0, skyY, w, sillY - skyY)
+        for rank = 0, 1 do
+          local base = sillY - 26 + rank * 12
+          shade(paper, 3 - rank, 0.85 + rank * 0.15)
+          local drift = t * (0.05 + rank * 0.06)
+          for x = 0, w, 2 do
+            local hx = ((x + math.floor(drift) + rank * 131) * 2654435761) % 4294967296
+            local jitter = (math.floor(hx / 65536) % 3) - 1
+            local y = base
+              - math.floor((7 + rank * 4) * math.sin((x + drift) / 41))
+              - math.floor((7 + rank * 4) * 0.4 * math.sin((x + drift) / 13))
+              + jitter
+            love.graphics.rectangle("fill", x, y, 2, sillY - y)
+          end
+        end
+
+        -- the wires: two catenaries sagging between the poles, quick
+        local spacing = 46
+        local offset = (t * 1.7) % spacing
+        for pole = -1, math.ceil(w / spacing) + 1 do
+          local px2 = pole * spacing - offset
+          for wire = 0, 1 do
+            shade(paper, 4, 0.5 - wire * 0.15)
+            for x = 0, spacing do
+              local sag = math.sin(x / spacing * math.pi) * (6 + wire * 4)
+              love.graphics.rectangle("fill", px2 + x, 14 + wire * 7 + sag, 1, 1)
+            end
+          end
+          -- the pole itself, the fastest thing on the screen
+          shade(paper, 4, 0.9)
+          love.graphics.rectangle("fill", px2, 10, 3, sillY - 10)
+          love.graphics.rectangle("fill", px2 - 5, 12, 13, 2)
+        end
+
+        -- the sill, and the frame of the window
+        shade(paper, 4, 1)
+        love.graphics.rectangle("fill", 0, sillY, w, h - sillY)
+        shade(paper, 3, 1)
+        love.graphics.rectangle("fill", 0, sillY, w, 3)
+        shade(paper, 4, 1)
+        love.graphics.rectangle("fill", 0, 0, w, skyY)
+        -- rain on the glass, running back with the airflow
+        for i = 0, 11 do
+          local hx = (i * 2246822519) % 4294967296
+          local x = math.floor(hx / 65536) % w
+          local y = skyY + ((t * (0.9 + (i % 3) * 0.5) + i * 23) % (sillY - skyY))
+          shade(paper, 1, 0.35)
+          love.graphics.rectangle("fill", x, y, 1, 4 + (i % 3))
+        end
+
       elseif pattern == "CASTLE" then
         -- Inside, not outside: a stone wall, an arched window with weather
         -- behind it, and torches. The motion is the flame and what the
@@ -3589,11 +3982,9 @@ return function(mod)
         -- below it lets the wallpaper run edge to edge over the WHOLE
         -- screen, and the captions carry their own halo from there on.
         local band = bandAlpha()
-        -- the plates under the captions wear the same colour as the band,
-        -- so a turned-down band reads as the same surface in two sizes
-        plateColour = bandTint(paper)
+        inkColour, edgeColour = captionInk(paper)
         if band ~= 0 then
-          local tint = plateColour
+          local tint = bandTint(paper)
           if tint then
             love.graphics.setColor(tint[1] / 255, tint[2] / 255, tint[3] / 255,
               band or 1)

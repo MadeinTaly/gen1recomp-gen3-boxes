@@ -230,7 +230,7 @@ every box set to it without touching any of them.
 
 ### The scenes, and who drew them
 
-**Twelve places and fifteen hands.** Every scene is drawn here in code
+**Seventeen places and fifteen hands.** Every scene is drawn here in code
 first — that is the GEN3 BOX entry, and it is what a box wears until you
 change it — and then the same place again by pixel artists whose work is CC0
 or CC BY. The artist's name is the label you scroll through, which is where
@@ -249,7 +249,16 @@ credit actually gets read.
 | VOLCANO | GEN3 BOX · **Tio Aimar** |
 | SPACE | GEN3 BOX · **TheClicketyBoom** |
 | CASTLE | GEN3 BOX · **Jetrel** |
+| SAKURA | GEN3 BOX |
+| AURORA | GEN3 BOX |
+| STORM | GEN3 BOX |
+| CIRCUIT | GEN3 BOX |
+| TRAIN | GEN3 BOX |
 | 90S | GEN3 BOX |
+
+FAVOURITE comes after all of them and stays there: it is a pointer to
+whatever you marked with SELECT rather than a place of its own, so it belongs
+at the end of the walk rather than in the middle of the real scenes.
 
 **Want your own in the list?** That is what
 [CONTEST.md](CONTEST.md) is for: one pull request, one wallpaper, your name in

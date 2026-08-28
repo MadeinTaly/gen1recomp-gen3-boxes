@@ -1,5 +1,34 @@
 # Changelog
 
+## 1.12.0 — five places that were only ever a list
+
+**SAKURA, AURORA, STORM, CIRCUIT and TRAIN.** These were proposed once and
+then left in a message, which is the worst place for an idea to sit. A
+cherry tree seen from underneath with the branch across the top and the
+water doubling it; curtains of light over a snow field, drifting at three
+speeds; rain at three depths with a flash you catch out of the corner of
+your eye; a board with traces that turn at right angles and a charge running
+ALONG one rather than a glow sitting on it; and the view out of a train
+window, where the motion is the subject -- poles snapping past, hills
+turning slowly, wires dipping between.
+
+Seventeen places now, PLAIN and FAVOURITE aside.
+
+**FAVOURITE is last, and stays last.** Up and down walk the list of places,
+and a category that is a pointer to another one has no business sitting in
+the middle of the real ones, where it reads as a scene that failed to draw.
+However many places get added in front of it, it is the end of the walk.
+
+**Captions are written in the scene's own two ends.** Below `SOLID` bands
+each caption used to sit on an opaque plate, which worked and looked like a
+sticker. The letters are drawn in one end of the scene's palette now with a
+one-pixel edge in the other -- light letters with a dark edge over a
+volcano, dark letters with a light edge over a desert -- so the contrast is
+between two colours that came out of the same four the picture was painted
+with. It is not sampling the pixels underneath: reading a canvas back every
+frame would cost a GPU round trip for a decision that changes only when the
+wallpaper does, and the palette already says what is down there.
+
 ## 1.11.0 — four more places, seven more hands
 
 **DESERT, VOLCANO, SPACE and CASTLE.** Four scenes the box did not have,
