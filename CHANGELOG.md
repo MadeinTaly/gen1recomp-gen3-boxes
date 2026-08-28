@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.15.0 — the painter moves out, so other screens can use it
+
+The wallpaper painter lived inside this screen's constructor, which was fine
+while this screen was the only thing that wanted a scene behind it. It is at
+mod scope now and **exported**: `mod.exports.paintWallpaper(paper, w, h,
+style, tick)` draws any of the ninety-one at any size, and
+`mod.exports.reshadeWallpaper` resolves a style's own palette.
+
+gen1recomp-gen3-dex 0.8.0 draws through it, so a player with both gets the
+same scenes in both screens and **the art ships once**, in the mod that owns
+it. The seam is `mod.find`, never a manifest dependency: no dex, old dex, or
+a dex that raises changes nothing here.
+
+Nothing about this screen changed. The suite still drives `drawWallpaper`
+and `drawArt` off the screen, the offline renderer still renders all
+ninety-one, and taking the tick as an argument rather than reading it off a
+screen was the only change the move required.
+
 ## 1.14.2 — the grid stops being a sheet of milk
 
 `SLOTS` defaults to **15%**, down from 40 and then 25, and the ladder gains
