@@ -560,7 +560,6 @@ return function(mod)
                -- so the whole scene is in the frame.
                { by = "MATIASVME", layers = { L("forest_matiasvme_base.png", 0.02),
                                               L("forest_matiasvme_near.png", 0.09) } },
-               { by = "MARCAVIS",  layers = { L("forest_marcavis_base.png", 0.03) } },
                V("GEN3 AUTUMN", { { 252, 238, 214 }, { 232, 176, 100 }, { 186, 106, 56 }, { 74, 46, 34 } }),
                V("GEN3 NIGHT", { { 22, 32, 34 }, { 40, 62, 58 }, { 92, 130, 104 }, { 196, 226, 198 } }) },
     SKY    = { { by = "GEN3 BOX" },
@@ -574,8 +573,6 @@ return function(mod)
                { by = "FABINHOSC", layers = { L("sky_fabinhosc_still.png") } },
                { by = "GRUMPY",    layers = { L("sky_grumpydiamond_base.png", 0.02),
                                               L("sky_grumpydiamond_far.png", 0.06) } },
-               { by = "FUPI",      layers = { L("sky_fupi_base.png", 0.02),
-                                              L("sky_fupi_near.png", 0.08) } },
                -- AURORA lives here rather than as a place of its own: a sky
                -- with the lights in it is still a sky, and one hand on a
                -- category is not a category
@@ -3587,13 +3584,16 @@ return function(mod)
           local hx = (i * 2654435761) % 4294967296
           local x = math.floor(hx / 65536) % w
           local y = math.floor(hx / 13) % snowY
-          shade(paper, 4, 0.25 + 0.35 * math.sin((t + i * 51) / 40))
+          shade(paper, 4, 0.25 + 0.35 * math.sin((t + i * 51) / 160))
           love.graphics.rectangle("fill", x, y, 1, 1)
         end
 
-        -- three curtains, each drifting at its own speed
+        -- three curtains, each drifting at its own speed. A QUARTER of what
+        -- they first ran at: an aurora that crosses the frame in a few
+        -- seconds is a screensaver, and the real thing is something you
+        -- notice has changed rather than something you watch move.
         for band = 0, 2 do
-          local speed = 0.10 + band * 0.05
+          local speed = 0.025 + band * 0.0125
           local baseY = 26 + band * 16
           for x = 0, w, 3 do
             local phase = (x + t * speed * 10) / 26
@@ -3777,28 +3777,47 @@ return function(mod)
         local sillY = math.floor(h * 0.82)
         local skyY = 8
 
-        -- sky, and the far hills turning slowly. The sky takes the palest
-        -- tone and the hills the deep ones: beige hills on a beige sky is
-        -- what the first pass looked like out of the window.
+        -- sky, and MOUNTAINS beyond it rather than rolling hills. What a
+        -- train window frames is distance, and rounded green humps read as
+        -- a park: peaks with snow on them read as somewhere you are being
+        -- carried through.
         shade(paper, 1, 1)
         love.graphics.rectangle("fill", 0, skyY, w, sillY - skyY)
-        for rank = 0, 1 do
-          local base = sillY - 26 + rank * 12
-          shade(paper, 3 - rank, 0.85 + rank * 0.15)
-          local drift = t * (0.05 + rank * 0.06)
+        for rank = 0, 2 do
+          local base = sillY - 30 + rank * 12
+          local amp = 20 - rank * 5
+          local drift = t * (0.03 + rank * 0.05)
+          shade(paper, 2 + math.min(1, rank), 0.65 + rank * 0.2)
           for x = 0, w, 2 do
             local hx = ((x + math.floor(drift) + rank * 131) * 2654435761) % 4294967296
-            local jitter = (math.floor(hx / 65536) % 3) - 1
+            local jitter = (math.floor(hx / 65536) % 4) - 2
+            -- TRIANGLES, not sines: a sine gives a rounded hump, and a
+            -- range of humps is a park. Two triangle waves of different
+            -- periods give summits with straight sides and a saddle
+            -- between them, which is what a mountain reads as at this size.
+            local function tri(period, phase)
+              local u = ((x + drift + phase) % period) / period
+              return 1 - math.abs(u * 2 - 1)
+            end
             local y = base
-              - math.floor((7 + rank * 4) * math.sin((x + drift) / 41))
-              - math.floor((7 + rank * 4) * 0.4 * math.sin((x + drift) / 13))
+              - math.floor(amp * tri(97 + rank * 23, rank * 31))
+              - math.floor(amp * 0.55 * tri(31 + rank * 7, rank * 17))
               + jitter
             love.graphics.rectangle("fill", x, y, 2, sillY - y)
+            -- snow on the far range only, where the summit is high enough
+            if rank == 0 and (base - y) > amp * 0.55 then
+              shade(paper, 1, 0.85)
+              love.graphics.rectangle("fill", x, y, 2, 3)
+              shade(paper, 2, 0.65)
+            end
           end
         end
 
-        -- the wires: two catenaries sagging between the poles, quick
-        local spacing = 46
+        -- the wires: two catenaries sagging between the poles. The spacing
+        -- was 46 and the poles read as a fence: on a 160-pixel screen that
+        -- is four of them in frame at once, which is a picket, not a line
+        -- being travelled along.
+        local spacing = 96
         local offset = (t * 1.7) % spacing
         for pole = -1, math.ceil(w / spacing) + 1 do
           local px2 = pole * spacing - offset

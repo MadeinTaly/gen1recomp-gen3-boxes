@@ -63,9 +63,6 @@ a house style.
 - **GrumpyDiamond** — *Parallax Mountain Background*, used for
   `SKY < GRUMPY >`.
   https://opengameart.org/content/parallax-mountain-background
-- **Fupi** — *Mountains and trees parallax background detail*, used for
-  `SKY < FUPI >`. 
-  https://opengameart.org/content/mountains-and-trees-parallax-background-detail
 - **LLGD** — *Desert Forest*, used for `NIGHT < LLGD >`.
   https://opengameart.org/content/desert-forest
 - **PWL** — *Seamless cave background*, used for `CAVE < PWL >`.
@@ -79,9 +76,6 @@ a house style.
   https://opengameart.org/content/warped-city
   https://opengameart.org/content/warped-city-2
   https://opengameart.org/content/fort-of-illusion
-- **marcavis** — *Old Frogatto parallax layers*, used for
-  `FOREST < MARCAVIS >`.
-  https://opengameart.org/content/old-frogatto-parallax-layers
 - **fridaruiz** — *pixel night city*, used for `NIGHT < FRIDARUIZ >`.
   https://opengameart.org/content/pixel-night-city
 - **tigitalart** — *Background Nightsky*, used for `NIGHT < TIGITAL >`.

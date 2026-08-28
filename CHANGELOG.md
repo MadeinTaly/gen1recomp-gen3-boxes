@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.14.1 — four things a player saw that the harness could not
+
+**AURORA ran like a screensaver.** Its curtains crossed the frame in a few
+seconds. The real thing is something you notice has changed rather than
+something you watch move, so it runs at a quarter of that now, twinkle
+included.
+
+**TRAIN's poles were a picket fence.** At 46 pixels apart there were four in
+frame at once, which reads as a fence rather than as a line being travelled
+along. They are 96 apart now — one, sometimes two.
+
+**And what TRAIN frames is mountains.** Rolling green humps read as a park;
+what a train window shows is distance. Three ranks of peaks with snow on the
+far one, and the profile is built from TRIANGLE waves rather than sines,
+because a sine gives a rounded hump and a range of humps is not a mountain.
+
+**`SKY < FUPI >` and `FOREST < MARCAVIS >` are gone.** Both were broken and
+both had shipped: Fupi's was a fragment of rock in a category called SKY,
+and Marcavis's was a row of enlarged grass blades that read as a barcode.
+The automatic cut got them past a check that measures loops and heights but
+cannot see a picture. Ninety-one wallpapers now, and every place still has
+at least five.
+
 ## 1.14.0 — five ways into every place
 
 **Ninety-four wallpapers, and no scene with fewer than five.** Sixteen

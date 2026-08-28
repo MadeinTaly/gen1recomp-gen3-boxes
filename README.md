@@ -230,7 +230,7 @@ every box set to it without touching any of them.
 
 ### The scenes, and who drew them
 
-**Sixteen places, ninety-four wallpapers, twenty-nine outside hands.** Every scene is drawn here in code
+**Sixteen places, ninety-one wallpapers, twenty-seven outside hands.** Every scene is drawn here in code
 first — that is the GEN3 BOX entry, and it is what a box wears until you
 change it — and then the same place again by pixel artists whose work is CC0
 or CC BY. The artist's name is the label you scroll through, which is where
@@ -239,8 +239,8 @@ credit actually gets read.
 | Scene | Hands | |
 | --- | --- | --- |
 | SEA | GEN3 BOX · **Scribe** · **Reactorcore** | + DEEP, DAWN |
-| FOREST | GEN3 BOX · **ansimuz** · **MatiasVME** · **marcavis** | + AUTUMN, NIGHT |
-| SKY | GEN3 BOX · **DustDFG** · **FabinhoSC** · **GrumpyDiamond** · **Fupi** | + AURORA, DUSK |
+| FOREST | GEN3 BOX · **ansimuz** · **MatiasVME** | + AUTUMN, NIGHT |
+| SKY | GEN3 BOX · **DustDFG** · **FabinhoSC** · **GrumpyDiamond** | + AURORA, DUSK |
 | CAVE | GEN3 BOX · **Admurin** · **PWL** · **JonathanPalmerGD** | + ICE, EMBER |
 | CITY | GEN3 BOX · **FabinhoSC** · **ansimuz** · **ansimuz (Warped City 2)** | + NEON, DAWN |
 | SNOW | GEN3 BOX · **Admurin** · **Emcee Flesher** · **Jetrel** · **Tio Aimar** · **rubberduck** | + DUSK |
