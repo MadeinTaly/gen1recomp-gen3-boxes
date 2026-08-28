@@ -1,0 +1,97 @@
+# The measurement CONTEST.md promises an entrant.
+#
+# It was promised in three places -- the contest rules, the pull request
+# template and the release notes -- and for two releases it did not exist,
+# which would have made the first person to enter the first person to find
+# that out. It runs `tools/check_wallpaper.py`, which reports every layer's
+# size, colour count and SEAM (the mean difference between its first and last
+# column) and decides from that whether the box will let the layer scroll.
+#
+# It is a measurement, not a review. It fails only for things that are
+# actually broken: a file it cannot read, a height that is not 144, or a
+# layer named _far/_near whose seam says it cannot loop.
+name: wallpaper check
+
+on:
+  pull_request:
+    paths:
+      - "assets/wallpapers/**"
+      - "tools/check_wallpaper.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Which files this pull request adds
+        id: added
+        run: |
+          base="${{ github.event.pull_request.base.sha }}"
+          if [ -n "$base" ]; then
+            git diff --name-only --diff-filter=A "$base" HEAD -- assets/wallpapers \
+              > /tmp/added.txt || true
+          fi
+          echo "count=$(wc -l < /tmp/added.txt 2>/dev/null || echo 0)" >> "$GITHUB_OUTPUT"
+
+      - name: Measure every layer
+        id: measure
+        run: |
+          set +e
+          python3 tools/check_wallpaper.py assets/wallpapers > /tmp/report.txt 2>&1
+          echo "status=$?" >> "$GITHUB_OUTPUT"
+          cat /tmp/report.txt
+
+      - name: Write the report where a person will read it
+        if: always()
+        run: |
+          {
+            echo "## Wallpaper check"
+            echo
+            if [ "${{ steps.added.outputs.count }}" != "0" ]; then
+              echo "**Added by this pull request:**"
+              echo
+              sed 's|^assets/wallpapers/|- `|; s|$|`|' /tmp/added.txt
+              echo
+            fi
+            echo '```'
+            cat /tmp/report.txt
+            echo '```'
+            echo
+            echo "A layer whose right edge continues into its left may scroll."
+            echo "One that does not is held still — and a still layer is not a"
+            echo "dead one: it pans slowly across whatever width it has spare"
+            echo "and turns back before the join could show."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # A pull request from a fork gets a read-only token, so this cannot
+      # work there and must not fail the job when it does not: the summary
+      # above is the copy that always exists.
+      - name: Say it on the pull request too
+        if: always() && github.event_name == 'pull_request'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo "### Wallpaper check"
+            echo
+            echo '```'
+            cat /tmp/report.txt
+            echo '```'
+            echo
+            echo "_Measured, not reviewed: this says what the box will do with"
+            echo "each layer, not whether the art is any good._"
+          } > /tmp/comment.md
+          gh pr comment "${{ github.event.pull_request.number }}" --body-file /tmp/comment.md
+
+      - name: Fail only for what is actually broken
+        if: always()
+        run: exit ${{ steps.measure.outputs.status }}
