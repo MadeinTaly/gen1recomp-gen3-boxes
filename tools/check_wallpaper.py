@@ -49,19 +49,25 @@ def read(path):
     # LOVE loads any of these -- but because an artist exports what their
     # editor exports, and a check that refuses to look at half the pixel art
     # on the internet is a check nobody runs.
-    if bd != 8 or ct not in (0, 2, 3, 4, 6):
-        raise ValueError("expected an 8-bit PNG (grey, indexed, RGB or RGBA)")
+    if ct not in (0, 2, 3, 4, 6) or bd not in (1, 2, 4, 8):
+        raise ValueError("expected an 8-bit or indexed PNG "
+                         "(grey, indexed, RGB or RGBA)")
     nch = {0: 1, 2: 3, 3: 1, 4: 2, 6: 4}[ct]
     raw = zlib.decompress(idat)
-    stride = w * nch
+    # Below 8 bits a scanline is PACKED: four two-bit samples to the byte,
+    # and the filter works on bytes rather than on samples. Kenney's pattern
+    # pack is 2-bit indexed and refusing it would have meant refusing most
+    # of the tidiest CC0 art there is.
+    stride = (w * nch * bd + 7) // 8
+    bpp = max(1, (nch * bd) // 8)
     rows, prev, p = [], bytearray(stride), 0
     for _ in range(h):
         f = raw[p]; p += 1
         line = bytearray(raw[p:p + stride]); p += stride
         for i in range(stride):
-            a = line[i - nch] if i >= nch else 0
+            a = line[i - bpp] if i >= bpp else 0
             b = prev[i]
-            c = prev[i - nch] if i >= nch else 0
+            c = prev[i - bpp] if i >= bpp else 0
             if f == 1: line[i] = (line[i] + a) & 255
             elif f == 2: line[i] = (line[i] + b) & 255
             elif f == 3: line[i] = (line[i] + (a + b) // 2) & 255
@@ -71,8 +77,24 @@ def read(path):
                 pr = a if (pa <= pb and pa <= pc) else (b if pb <= pc else c)
                 line[i] = (line[i] + pr) & 255
         prev = line
-        rows.append(unpack(line, w, nch, ct, plte, trns))
+        rows.append(unpack(samples(line, w, nch, bd), w, nch, ct, plte, trns))
     return w, h, rows
+
+
+def samples(line, w, nch, bd):
+    """A packed scanline as one byte per sample, so unpack() reads the same
+    shape whatever the bit depth."""
+    if bd == 8:
+        return line
+    out = bytearray()
+    per = 8 // bd
+    mask = (1 << bd) - 1
+    for byte in line:
+        for k in range(per):
+            out.append((byte >> (8 - bd * (k + 1))) & mask)
+        if len(out) >= w * nch:
+            break
+    return out[:w * nch]
 
 
 def unpack(line, w, nch, ct, plte, trns):
