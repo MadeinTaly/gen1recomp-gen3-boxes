@@ -1,5 +1,33 @@
 # Changelog
 
+## 1.19.0 — the boxes either side, and moving a handful at once
+
+Two things Pokemon Box on the GameCube does that this screen did not.
+
+**PEEK NEXT BOX.** The neighbours show through at the edges, sliced by the
+screen: a strip of each one's own wallpaper with a column of its slots over
+it. It is what makes storage read as a shelf you are standing in front of
+rather than a page you are turning -- you can see that there IS a box that
+way, and roughly how full it is, before you walk into it. In full screen it
+goes where that layout leaves the room: under the last panel in the hand,
+beside it turned sideways. On by default, and a switch for anyone who
+wants the plain grid back.
+
+**MOVE MANY.** In the BOX MENU: A ticks and unticks, START moves everything
+ticked into the box you are looking at. A storage screen that moves them one
+at a time is one you use twice and then avoid.
+
+It refuses rather than half-moves. A destination without room for all of
+them leaves both boxes exactly as they were, because a partial move of a
+selection you cannot see the end of is worse than no move at all. The ticks
+belong to the box they were made in, too: ticking in one box and walking to
+another would otherwise build a selection whose slot numbers mean different
+things in different places.
+
+**And a bug from a photograph:** full screen drew an empty outlined box in
+the top-left corner -- the MENU affordance of the single-box layout, on a
+screen that has no header row because every panel carries its own name.
+
 ## 1.18.0 — FULL SCREEN, finished, and the Pokemon drawn whole
 
 **The cell in full screen is 56, not 28.** 56 is the size a battle picture

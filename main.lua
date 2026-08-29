@@ -151,6 +151,15 @@ return function(mod)
     -- pane is centred on this surface with the box's scene behind it.
     { key = "fullscreen", label = "FULL SCREEN", type = "toggle",
       default = false },
+    -- The neighbours, sliced by the screen edge, the way Pokemon Box on the
+    -- GameCube draws them. It is what makes storage read as a shelf you are
+    -- standing in front of rather than a page you are turning: you can see
+    -- that there is a box that way before you walk into it.
+    --
+    -- On by default in BIG, where the grid leaves a 16-pixel margin to draw
+    -- it in; CLASSIC leaves 10, which is a sliver, so it is a choice rather
+    -- than an assumption.
+    { key = "peek", label = "PEEK NEXT BOX", type = "toggle", default = true },
     -- See "the cry on put-down" (PLAN.md "5. THE CRY ON PUT-DOWN"). On by
     -- default: it changes nothing but sound, which is the line BOX HEALS
     -- is on the wrong side of.
@@ -472,6 +481,11 @@ return function(mod)
     end
     if best and bestLuma >= 170 then return best end
     return nil
+  end
+
+  local function peekOn()
+    local ok, value = pcall(function() return mod.options:get("peek") end)
+    return ok and value == true
   end
 
   local function animateOn()
@@ -2493,6 +2507,11 @@ return function(mod)
       -- MARK MODE: A opens the marking window instead of grabbing, B leaves
       -- the mode rather than the screen.
       markMode = false,
+      -- MOVE MANY: which slots of which box are ticked. Keyed by box number
+      -- so ticking in one box and walking to another does not silently
+      -- carry a selection that no longer points at anything.
+      manyBox = nil,
+      many = {},
       markWindow = nil,  -- { mon = ..., cursor = 1 } while the window is open
       -- Wilds of Kanto's resolve() per MON (see owSpriteFor), for the life of this
       -- screen (see "overworld sprites from Wilds of Kanto" below). A
@@ -2939,6 +2958,46 @@ return function(mod)
     -- and it is not visible from outside otherwise
     self.focusBox = function(n) return focusBox(n) end
     self.panelBox = function(p) return panelBox(p) end
+
+    -- ------- MOVE MANY: the move itself
+    --
+    -- Everything ticked leaves its box and lands in the one being looked
+    -- at, in the order it was in. It refuses rather than half-moves: if
+    -- there is not room for all of them the box is left exactly as it was,
+    -- because a partial move of a selection you cannot see the end of is
+    -- worse than no move at all.
+    local function moveTicked()
+      if not self.manyBox then return end
+      local from = game.save.boxes[self.manyBox] or {}
+      local picked = {}
+      for i in pairs(self.many) do picked[#picked + 1] = i end
+      table.sort(picked)
+      if #picked == 0 then
+        say(Strings("TICK SOME FIRST."))
+        return
+      end
+      local target = game.save.currentBox
+      if target == self.manyBox then
+        say(Strings("PICK ANOTHER BOX."))
+        return
+      end
+      local into = game.save.boxes[target] or {}
+      if #into + #picked > Boxes.CAPACITY then
+        say(Strings("BOX %d HAS NO ROOM.", target))
+        return
+      end
+      -- take them from the end backwards, so the earlier indices stay valid
+      local moving = {}
+      for k = #picked, 1, -1 do
+        local mon = table.remove(from, picked[k])
+        if mon then table.insert(moving, 1, mon) end
+      end
+      for _, mon in ipairs(moving) do into[#into + 1] = mon end
+      game.save.boxes[target] = into
+      self.many = {}
+      self.manyBox = target
+      say(Strings("MOVED %d TO BOX %d.", #moving, target))
+    end
 
     local function changeBox(step)
       if self.mode ~= "box" then return end
@@ -3388,6 +3447,7 @@ return function(mod)
       table.insert(items, { label = Strings("NAME BOX"), value = "namebox" })
       table.insert(items, { label = Strings("WALLPAPER"), value = "wallpaper" })
       table.insert(items, { label = Strings("MARK MODE"), value = "markmode" })
+      table.insert(items, { label = Strings("MOVE MANY"), value = "movemany" })
       table.insert(items, { label = Strings("CANCEL"), value = "cancel" })
       return items
     end
@@ -3553,6 +3613,27 @@ return function(mod)
             self.markMode = not self.markMode
             self.header = false
             menu:close()
+          elseif item.value == "movemany" then
+            -- ------- MOVE MANY
+            --
+            -- Pokemon Box on the GameCube lets you take a handful at once,
+            -- and a storage screen that moves them one at a time is a
+            -- storage screen you use twice and then avoid. A ticks and
+            -- unticks, START moves everything ticked into the box you are
+            -- looking at, B leaves.
+            --
+            -- The ticks belong to the box they were made in: walking to
+            -- another box and ticking there would otherwise build a
+            -- selection spanning boxes whose slot numbers mean different
+            -- things.
+            self.moveMany = not self.moveMany
+            self.many = {}
+            self.manyBox = self.moveMany and game.save.currentBox or nil
+            self.header = false
+            say(self.moveMany
+              and Strings("A:TICK START:MOVE")
+              or Strings("MOVE MANY OFF."))
+            menu:close()
           elseif item.value == "cancel" then
             menu:close()
           end
@@ -3687,7 +3768,21 @@ return function(mod)
       elseif input:wasPressed("left") then move(-1, 0)
       elseif input:wasPressed("right") then move(1, 0)
       elseif input:wasPressed("a") then
-        if self.held then
+        if self.moveMany and self.mode == "box" then
+          -- A ticks and unticks. An empty slot has nothing to tick, and
+          -- saying so beats a press that appears to do nothing.
+          local set, i = list(), index()
+          if game.save.currentBox ~= self.manyBox then
+            say(Strings("TICKS BELONG TO BOX %d.", self.manyBox or 0))
+          elseif not set[i] then
+            say(Strings("NOTHING THERE."))
+          else
+            self.many[i] = (not self.many[i]) or nil
+            local n = 0
+            for _ in pairs(self.many) do n = n + 1 end
+            say(Strings("%d TICKED. START:MOVE", n))
+          end
+        elseif self.held then
           place()
         elseif self.markMode then
           openMarkWindowOnCursor()
@@ -3696,10 +3791,14 @@ return function(mod)
         end
       elseif input:wasPressed("select") then switchMode()
       elseif input:wasPressed("start") then
-        -- START is the summary. It can be, because B below always means
-        -- back: there is no cell where the way out disappears, which is
-        -- what forced the earlier arrangement into putting STATS on B.
-        showStats()
+        if self.moveMany and self.mode == "box" then
+          moveTicked()
+        else
+          -- START is the summary. It can be, because B below always means
+          -- back: there is no cell where the way out disappears, which is
+          -- what forced the earlier arrangement into putting STATS on B.
+          showStats()
+        end
       elseif input:wasPressed("b") then
         back()
       end
@@ -4453,8 +4552,113 @@ return function(mod)
             end)
             if not okDraw then pcall(love.graphics.pop) end
           end
+
+          -- ------- and the box after the last panel, sliced by the edge
+          --
+          -- The panels never divide the surface exactly: what is left over
+          -- is a strip at the bottom in the hand and at the right side
+          -- turned sideways. That strip is where the NEXT box shows through
+          -- -- the same thing Pokemon Box does at the screen edge, put
+          -- where this layout leaves the room.
+          if peekOn() then
+            local shown = panelsShown(L)
+            local nextBox = panelBox(shown)
+            local lastX, lastY = panelOrigin(L, shown - 1)
+            local restY = lastY + PANEL_H
+            local restX = lastX + PANEL_W
+            local room = L.h - restY - 12
+            if room >= 20 then
+              -- portrait: the top rows of the next box, cut off below
+              local okPeek = pcall(function()
+                love.graphics.push()
+                love.graphics.translate(L.gridX - 4, restY)
+                drawWallpaper(paperOf(nextBox), PANEL_W - 4, room,
+                  artOf(nextBox), self.paperTick)
+                love.graphics.pop()
+              end)
+              if not okPeek then pcall(love.graphics.pop) end
+              local cells = game.save.boxes[nextBox] or {}
+              caption(fitTo(Strings("%s %d/%d", boxName(nextBox), #cells,
+                Boxes.CAPACITY), PANEL_W - 8), L.gridX, restY)
+              for c = 0, COLS - 1 do
+                local x = L.gridX + c * L.cell
+                local y = restY + 14
+                if y + 8 < L.h - 12 then
+                  drawCellWash(x, y, L.cell)
+                  love.graphics.setColor(0, 0, 0, 0.25)
+                  outline(x, y, L.cell, L.cell)
+                  love.graphics.setColor(1, 1, 1, 1)
+                  if cells[c + 1] then drawPic(cells[c + 1], x, y) end
+                  love.graphics.setColor(0, 0, 0, 1)
+                end
+              end
+            elseif L.w - restX >= 20 then
+              -- landscape: the first column of the next box, cut off right
+              local okPeek = pcall(function()
+                love.graphics.push()
+                love.graphics.translate(restX, L.gridY)
+                drawWallpaper(paperOf(nextBox), L.w - restX, PANEL_H,
+                  artOf(nextBox), self.paperTick)
+                love.graphics.pop()
+              end)
+              if not okPeek then pcall(love.graphics.pop) end
+              local cells = game.save.boxes[nextBox] or {}
+              for r = 0, ROWS - 1 do
+                local y = L.gridY + 14 + r * L.cell
+                drawCellWash(restX, y, L.cell)
+                love.graphics.setColor(0, 0, 0, 0.25)
+                outline(restX, y, L.cell, L.cell)
+                love.graphics.setColor(1, 1, 1, 1)
+                local mon = cells[r * COLS + 1]
+                if mon then drawPic(mon, restX, y) end
+                love.graphics.setColor(0, 0, 0, 1)
+              end
+            end
+          end
         else
           drawWallpaper(paper, L.w, L.h, style, self.paperTick)
+          -- ------- the boxes either side, sliced by the screen edge
+          --
+          -- Pokemon Box on the GameCube shows the neighbours cut off at
+          -- both edges, and it is the one thing that made a wall of
+          -- storage feel like a shelf rather than a page: you can see that
+          -- there IS a box that way, and roughly how full it is, before you
+          -- walk into it.
+          --
+          -- Here that is a narrow strip of each neighbour's own wallpaper
+          -- with its first column of cells over it, drawn at the margins
+          -- the grid already leaves. Nothing moves and nothing is clipped
+          -- by hand: the strip is exactly as wide as the margin, so the
+          -- screen's own edge does the cutting.
+          if peekOn() and self.mode == "box" and not self.paperPick then
+            local margin = L.gridX
+            if margin >= 10 then
+              for side = -1, 1, 2 do
+                local n = ((game.save.currentBox - 1 + side) % Boxes.COUNT) + 1
+                local ox = side < 0 and (margin - L.cell) or (L.w - margin)
+                local okPeek = pcall(function()
+                  love.graphics.push()
+                  love.graphics.translate(ox, 0)
+                  drawWallpaper(paperOf(n), L.cell, L.h, artOf(n), self.paperTick)
+                  love.graphics.pop()
+                end)
+                if not okPeek then pcall(love.graphics.pop) end
+                -- one column of that box's slots, so the strip reads as a
+                -- box and not as a stripe of scenery
+                local cells = game.save.boxes[n] or {}
+                for r = 0, ROWS - 1 do
+                  local y = L.gridY + r * L.cell
+                  drawCellWash(ox, y, L.cell)
+                  love.graphics.setColor(0, 0, 0, 0.25)
+                  outline(ox, y, L.cell, L.cell)
+                  love.graphics.setColor(1, 1, 1, 1)
+                  local mon = cells[r * COLS + (side < 0 and COLS or 1)]
+                  if mon then drawPic(mon, ox, y) end
+                  love.graphics.setColor(0, 0, 0, 1)
+                end
+              end
+            end
+          end
         end
         -- BANDS: how much of the header and the footer the scene is allowed
         -- to have. SOLID is the Gen 3 band and stays the default; anything
@@ -4539,7 +4743,11 @@ return function(mod)
       -- already guaranteed the text itself does not. With the button drawn
       -- the outline runs to its far edge, so the row reads as one selected
       -- thing with a button on it rather than two unrelated outlines.
-      if onHeader then
+      -- ...and not in full screen, where the cursor's mark is drawn around
+      -- the panel's OWN name. Leaving this in painted an empty outlined box
+      -- in the top-left corner of a screen that has no header row -- the
+      -- MENU affordance of a layout that is not being used.
+      if onHeader and not (L.full and self.mode == "box") then
         local right = hint and (hintX + hintW + 3)
           or (TEXT_X + Font.width(shownTitle) + 2)
         outline(TEXT_X - 2, 0, right - (TEXT_X - 2), 11)
@@ -4559,6 +4767,19 @@ return function(mod)
           if mon then drawPic(mon, x, y) end
           love.graphics.setColor(0, 0, 0, 1)
           if mon then drawMarks(mon, x, y) end
+          -- a ticked slot, in MOVE MANY: a filled corner, because a tick
+          -- has to read at a glance across twenty cells and an outline does
+          -- not. Only in the box the ticks belong to.
+          if self.moveMany and self.many[i0 + 1]
+             and game.save.currentBox == self.manyBox
+             and (panel == nil or panelBox(panel) == self.manyBox) then
+            local size = math.max(4, math.floor(L.cell / 4))
+            love.graphics.setColor(0, 0, 0, 0.75)
+            love.graphics.rectangle("fill", x + 1, y + 1, size, size)
+            love.graphics.setColor(1, 1, 1, 1)
+            love.graphics.rectangle("fill", x + 2, y + 2, size - 2, size - 2)
+            love.graphics.setColor(0, 0, 0, 1)
+          end
         end
       end
 

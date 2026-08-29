@@ -974,8 +974,8 @@ do
   T.check(menu ~= nil, "A on the header opens a menu titled with the box's name")
   T.check(menu == game.stack:top(), "and it is what is now on top of the stack")
   T.eq(labels(menu.items),
-    "FIND|SORT|JUMP TO BOX|NAME BOX|WALLPAPER|MARK MODE|CANCEL",
-    "holding FIND, SORT, JUMP TO BOX, NAME BOX, WALLPAPER, MARK MODE and CANCEL")
+    "FIND|SORT|JUMP TO BOX|NAME BOX|WALLPAPER|MARK MODE|MOVE MANY|CANCEL",
+    "holding FIND, SORT, JUMP TO BOX, NAME BOX, WALLPAPER, MARK MODE, MOVE MANY and CANCEL")
 
   for i, item in ipairs(menu.items) do
     if item.label == "CANCEL" then menu.index = i end
@@ -2587,6 +2587,10 @@ do
   game.save.currentBox = 1
   local screen = factory.new(game)
   opts.slots = "40"
+  -- PEEK draws a column of the neighbouring box at each margin, which is
+  -- four more washes a side: real, wanted, and not what these checks are
+  -- counting. They are about the grid.
+  opts.peek = false
 
   opts.animate = true
   local early = frame(screen, 1)
@@ -2720,6 +2724,36 @@ do
     G.rectangle, G.newCanvas = realRect, hadNew
     T.check(okBare and painted > 0,
       "e senza canvas la scena si dipinge lo stesso, dritta sullo schermo")
+  end
+
+  -- ------- le box accanto, tagliate dal bordo
+  --
+  -- Pokemon Box sul GameCube mostra le vicine mozzate ai due lati, ed e'
+  -- quello che fa leggere il deposito come uno scaffale davanti a cui stai
+  -- invece che come una pagina da voltare. Qui e' una striscia larga quanto
+  -- il margine: niente ritagli a mano, taglia il bordo dello schermo.
+  do
+    local L = screen.layout()
+    opts.peek = false
+    local without = 0
+    G.rectangle = function(mode, x, y, w, h)
+      if mode == "fill" and w == h and w == L.cell then without = without + 1 end
+    end
+    screen:draw()
+
+    opts.peek = true
+    local with = 0
+    G.rectangle = function(mode, x, y, w, h)
+      if mode == "fill" and w == h and w == L.cell then with = with + 1 end
+    end
+    screen:draw()
+    G.rectangle = realRect
+
+    T.check(with > without,
+      "con PEEK acceso si disegnano anche le celle delle box accanto")
+    T.eq(with - without, 8,
+      "una colonna per lato, quattro celle ciascuna")
+    opts.peek = false
   end
 
   -- ------- BANDS: quanto schermo prende la scena
@@ -3309,6 +3343,54 @@ do
   end)
 
   optStore.fullscreen = false
+end
+
+-- ------- MOVE MANY
+--
+-- Pokemon Box on the GameCube takes a handful at once, and a storage screen
+-- that moves them one at a time is one you use twice and then avoid. A
+-- ticks, START moves everything ticked into the box being looked at.
+--
+-- The refusal matters as much as the move: a selection you cannot see the
+-- end of must not half-arrive, so a destination without room for all of
+-- them leaves both boxes exactly as they were.
+do
+  local g = fakeGame({})
+  local s = factory.new(g)
+  local boxes = g.save.boxes
+  boxes[1] = { mon("FIXMON_A", 5), mon("FIXMON_B", 6), mon("FIXMON_A", 7) }
+  boxes[2] = {}
+  g.save.currentBox = 1
+
+  -- il messaggio si mangia la pressione dopo, quindi si azzera a mano fra
+  -- un tasto e l'altro -- la stessa trappola del blocco dei preferiti
+  local function quiet() s.notice = nil end
+
+  s.moveMany, s.manyBox, s.many = true, 1, {}
+  s.col, s.row, s.header = 0, 0, false
+  g.press("a"); s:update(); quiet()
+  T.check(s.many[1], "A spunta lo slot sotto il cursore")
+  g.press("a"); s:update(); quiet()
+  T.check(not s.many[1], "e A di nuovo lo toglie: e' un interruttore")
+
+  s.many = { [1] = true, [3] = true }
+  g.save.currentBox = 2
+  g.press("start"); s:update()
+  T.eq(#boxes[1], 1, "START porta via dalla box delle spunte quelli spuntati")
+  T.eq(#boxes[2], 2, "e li posa in quella che stai guardando")
+  T.eq(boxes[1][1].level, 6, "lasciando indietro esattamente i non spuntati")
+  quiet()
+
+  -- niente mezze mosse: se non ci stanno tutti, non si muove nessuno
+  boxes[3] = {}
+  for i = 1, 19 do boxes[3][i] = mon("FIXMON_A", i) end
+  boxes[4] = { mon("FIXMON_B", 1), mon("FIXMON_B", 2), mon("FIXMON_B", 3) }
+  s.manyBox, s.many = 4, { [1] = true, [2] = true, [3] = true }
+  g.save.currentBox = 3
+  g.press("start"); s:update()
+  T.eq(#boxes[4], 3, "una destinazione senza posto per tutti non ne prende nessuno")
+  T.eq(#boxes[3], 19, "e la destinazione resta com'era")
+  quiet()
 end
 
 T.finish("gen3_box")
