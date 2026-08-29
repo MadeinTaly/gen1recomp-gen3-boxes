@@ -145,12 +145,11 @@ return function(mod)
     --
     -- It overrides GRID rather than sitting beside it: a surface chosen
     -- from the window is neither of the two fixed ones.
-    -- The label says WIP because it is: the panels draw and the cursor
-    -- walks them, but the BOX MENU has no header to open from, the party
-    -- pane has not been rethought for a screen this shape, and how the
-    -- page should scroll is still an open question. Shipping it unlabelled
-    -- would be shipping a promise the mode does not keep yet.
-    { key = "fullscreen", label = "FULL SCREEN (WIP)", type = "toggle",
+    -- The WIP came off when the three things that earned it were done: the
+    -- BOX MENU opens from every panel's own name, FIND and JUMP TO BOX
+    -- bring their box onto the screen and under the cursor, and the party
+    -- pane is centred on this surface with the box's scene behind it.
+    { key = "fullscreen", label = "FULL SCREEN", type = "toggle",
       default = false },
     -- See "the cry on put-down" (PLAN.md "5. THE CRY ON PUT-DOWN"). On by
     -- default: it changes nothing but sound, which is the line BOX HEALS
@@ -255,8 +254,16 @@ return function(mod)
   -- exactly would give pixels three rows tall in some places and four in
   -- others, and every wallpaper in this mod is pixel art.
   local MIN_W, MIN_H, MAX_W, MAX_H = 160, 144, 640, 576
-  local PANEL_W, PANEL_H = 5 * 28 + 12, 4 * 28 + 22  -- a box panel, with room
-                                                     -- for its name over it
+
+  -- A panel is a 5x4 box at the BIG cell, not the classic one.
+  --
+  -- 56 is the size a battle picture actually is: at 28 the pic is halved,
+  -- and a halved Pokemon on a screen this size is the thing to fix rather
+  -- than the thing to fit more of. Full screen buys ROOM -- so it is spent
+  -- first on the Pokemon being whole and sitting comfortably, and only then
+  -- on showing more than one box.
+  local FULL_CELL = 56
+  local PANEL_W, PANEL_H = 5 * FULL_CELL + 8, 4 * FULL_CELL + 24
 
   local function fullOn()
     local ok, value = pcall(function() return mod.options:get("fullscreen") end)
@@ -304,18 +311,29 @@ return function(mod)
     local k = math.max(ww / MAX_W, wh / MAX_H, 1)
     local w = math.max(MIN_W, math.min(MAX_W, math.floor(ww / k)))
     local h = math.max(MIN_H, math.min(MAX_H, math.floor(wh / k)))
+    -- one whole panel has to fit across, even on a narrow phone: a canvas
+    -- the shape of the screen would be 256 wide there, and a 5x56 box is
+    -- 288. Widening past the window shape costs a thin band at the sides
+    -- and buys a Pokemon you can see.
+    w = math.max(w, math.min(MAX_W, PANEL_W + 8))
     w, h = w - w % 8, h - h % 8
     -- whole tiles, because palette zones are addressed in tiles and a zone
     -- that starts mid-tile lands four pixels off its sprite
     local acrossN = math.max(1, math.floor((w - 8) / PANEL_W))
     local downN = math.max(1, math.floor((h - 20) / PANEL_H))
     return {
-      cell = 28, scale = 0.5, w = w, h = h,
+      cell = FULL_CELL, scale = 1, w = w, h = h,
       full = true, acrossN = acrossN, downN = downN,
       -- the first panel's origin; the rest are laid out from it
       gridX = math.floor((w - acrossN * PANEL_W) / 2) + 6,
       gridY = 20,
-      partyX = math.floor((w - 6 * 28) / 2), partyY = math.floor(h / 2) - 28,
+      -- the party grid is PARTY_COLS wide, not six: the first version
+      -- centred a six-column block that does not exist and left the six
+      -- real cells sitting left of middle
+      partyX = math.floor((w - PARTY_COLS * FULL_CELL) / 2)
+        - (math.floor((w - PARTY_COLS * FULL_CELL) / 2) % 8),
+      partyY = math.floor((h - PARTY_ROWS * FULL_CELL) / 2)
+        - (math.floor((h - PARTY_ROWS * FULL_CELL) / 2) % 8),
     }
   end
 
@@ -2892,10 +2910,40 @@ return function(mod)
       return false
     end
 
+    -- ------- bringing a box under the cursor
+    --
+    -- FIND and JUMP TO BOX set currentBox and expect the screen to be
+    -- looking at it. In one-box layouts that is automatic; in FULL SCREEN
+    -- it is not -- the box may not be on the page at all, and setting the
+    -- number alone left the cursor sitting in whatever panel it was in,
+    -- pointing at a different box entirely. This is the one place that
+    -- knows how to make a box VISIBLE, so both callers go through it.
+    local function focusBox(boxNum)
+      game.save.currentBox = boxNum
+      local L = layout(game)
+      if not L.full then return end
+      local shown = panelsShown(L)
+      -- put it on the page: the page starts at the box that puts this one
+      -- in the first panel, unless it is already on screen
+      local page = self.pageBox or 1
+      local at = (boxNum - page) % (Boxes.COUNT or 12)
+      if at >= shown then
+        self.pageBox = boxNum
+        at = 0
+      end
+      self.panel = at
+    end
+
+    -- exposed for the suite: "a box the player asked for is on screen and
+    -- under the cursor" is the invariant FIND and JUMP TO BOX depend on,
+    -- and it is not visible from outside otherwise
+    self.focusBox = function(n) return focusBox(n) end
+    self.panelBox = function(p) return panelBox(p) end
+
     local function changeBox(step)
       if self.mode ~= "box" then return end
       local n = Boxes.COUNT
-      game.save.currentBox = ((game.save.currentBox - 1 + step) % n) + 1
+      focusBox(((game.save.currentBox - 1 + step) % n) + 1)
     end
 
     -- Walking off the left or right edge of a box steps to the next one, the
@@ -3179,7 +3227,7 @@ return function(mod)
         local boxNum, idx = slotAt(g)
         local mon = boxes[boxNum][idx]
         if mon and matchesQuery(mon, query) then
-          game.save.currentBox = boxNum
+          focusBox(boxNum)
           self.col = (idx - 1) % COLS
           self.row = math.floor((idx - 1) / COLS)
           self.header = false
@@ -3402,7 +3450,7 @@ return function(mod)
       sub = mod.ui.ListMenu.new(game, Strings("JUMP TO BOX"), items, {
         kind = "gen3_box_jump",
         onChoose = function(item)
-          game.save.currentBox = item.value
+          focusBox(item.value)
           self.header = false
           sub:close()
           parent:close()
@@ -3669,7 +3717,7 @@ return function(mod)
       end
       if L.full then
         local ox, oy = panelOrigin(L, panel or self.panel or 0)
-        return ox + c * L.cell, oy + 10 + r * L.cell
+        return ox + c * L.cell, oy + 14 + r * L.cell
       end
       return L.gridX + c * L.cell, L.gridY + r * L.cell
     end
@@ -4344,6 +4392,27 @@ return function(mod)
       -- band for exactly this reason. Between those two bands the wallpaper
       -- runs edge to edge, including the margins around the grid.
       local L = layout(game)
+      if L.full and self.mode == "party" then
+        -- The party pane on a full-screen surface: the grid is six cells
+        -- wherever it is drawn, so the scene behind it is the one the
+        -- cursor's box was wearing -- crossing over with SELECT should not
+        -- look like leaving the mod.
+        local paper, style = paperOf(game.save.currentBox), artOf(game.save.currentBox)
+        drawWallpaper(paper, L.w, L.h, style, self.paperTick)
+        local band = bandAlpha()
+        inkColour = captionInk(reshade(paper, style))
+        if band ~= 0 then
+          local tint = bandTint(reshade(paper, style))
+          if tint then
+            love.graphics.setColor(tint[1] / 255, tint[2] / 255, tint[3] / 255, band or 1)
+          else
+            love.graphics.setColor(1, 1, 1, band or 1)
+          end
+          love.graphics.rectangle("fill", 0, 0, L.w, CAPTION_BAND)
+          love.graphics.rectangle("fill", 0, footerY() - 2, L.w, L.h - footerY() + 2)
+        end
+        love.graphics.setColor(0, 0, 0, 1)
+      end
       if self.mode == "box" then
         -- while the WALLPAPER chooser is open the box wears whatever the
         -- cursor is sitting on, not what it was saved with: that IS the
@@ -4594,7 +4663,7 @@ return function(mod)
           -- where the BOX MENU went: nowhere yet. That is the honest line
           -- while this mode is still being built.
           line = layout(game).full
-            and Strings("UP:BOX NAME  SEL:PARTY")
+            and Strings("UP:BOX NAME SEL:PARTY")
             or Strings("SEL:PARTY B:EXIT")
         else
           line = Strings("SEL:BOX B:EXIT")

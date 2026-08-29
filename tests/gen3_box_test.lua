@@ -3214,9 +3214,14 @@ do
     local s = factory.new(fakeGame({}))
     local L = s.layout()
     T.check(L.full, "col pieno schermo acceso la disposizione e' quella piena")
-    T.check((L.acrossN or 1) * (L.downN or 1) >= 4,
-      "e su un telefono ci stanno almeno quattro box insieme")
-    T.check(L.acrossN >= 1 and L.downN > L.acrossN,
+    -- Piu' di una, non "il piu' possibile": la cella e' quella grande, cioe'
+    -- quella dove la figura del Pokemon si disegna intera invece che
+    -- dimezzata. Prima si spende la stanza per far vedere i Pokemon, poi
+    -- per farne stare tante.
+    T.eq(L.cell, 56, "in pieno schermo la cella e' quella grande")
+    T.check((L.acrossN or 1) * (L.downN or 1) >= 2,
+      "e su un telefono ci sta piu' di una box")
+    T.check(L.acrossN >= 1 and L.downN >= L.acrossN,
       "in verticale: prima in orizzontale finche' ci stanno, poi in giu'")
   end)
 
@@ -3279,6 +3284,28 @@ do
     T.check(s.panel ~= wasPanel or (s.pageBox or 1) ~= 1,
       "andando al pannello sopra, o scorrendo la pagina se non c'e'")
     T.eq(s.row, 3, "e ci si arriva dalla riga in fondo, non dalla prima")
+  end)
+
+  -- ------- FIND e JUMP TO BOX devono PORTARTI su quella box
+  --
+  -- Con una box per volta e' automatico: cambi il numero e stai guardando
+  -- quella. In pieno schermo no -- la box puo' non essere nemmeno nella
+  -- pagina, e prima cambiava il numero lasciando il cursore nel pannello
+  -- dov'era, cioe' puntato su un'altra box. Un solo posto sa rendere
+  -- visibile una box, e sia FIND che JUMP passano di li'.
+  withWindow(1080, 2160, function()
+    local g = fakeGame({})
+    local s = factory.new(g)
+    for _, target in ipairs({ 9, 2, 12, 5 }) do
+      s.focusBox(target)
+      T.eq(g.save.currentBox, target, "focusBox porta la box " .. target)
+      T.eq(s.panelBox(s.panel or 0), target,
+        "e il pannello sotto il cursore e' proprio quella, non un'altra")
+      local L = s.layout()
+      local shown = (L.acrossN or 1) * (L.downN or 1)
+      T.check((s.panel or 0) < shown,
+        "e il pannello e' fra quelli sullo schermo")
+    end
   end)
 
   optStore.fullscreen = false

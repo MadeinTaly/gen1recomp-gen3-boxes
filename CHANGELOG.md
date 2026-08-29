@@ -1,5 +1,42 @@
 # Changelog
 
+## 1.18.0 — FULL SCREEN, finished, and the Pokemon drawn whole
+
+**The cell in full screen is 56, not 28.** 56 is the size a battle picture
+actually is: at 28 it is drawn halved, and a halved Pokemon is the thing to
+fix rather than the thing to fit more of. The room full screen buys goes on
+the Pokemon being whole and sitting comfortably first, and on showing more
+than one box second -- two boxes on a phone, four turned sideways, rather
+than eight cramped ones.
+
+That needs a canvas at least one panel wide: a surface shaped exactly like a
+narrow phone is 256 across and a 5x56 box is 288, so full screen widens past
+the window's shape by that much. It costs a thin band at the sides and buys
+a Pokemon you can see.
+
+The WIP also comes off. Three things earned it and all three are done:
+
+**The BOX MENU opens from every panel.** Each panel is a box with its own
+name, UP from its top row lands on that name, and A there opens the menu for
+*that* box. The cursor mark sits on the name it is on, so on a screen with
+eight boxes there is no question which one you are about to act on.
+
+**FIND and JUMP TO BOX bring their box to you.** They set the current box,
+and with one box on screen that was the whole job -- in full screen the box
+might not be on the page at all, so the cursor stayed where it was, pointing
+at a different box. One function now knows how to make a box visible, and
+both callers go through it: the page moves, the panel follows, the cursor
+lands in it.
+
+**The party pane belongs to this surface.** It is centred on the screen with
+the box's own scene behind it, rather than six cells on a white field
+left of middle -- crossing over with SELECT should not look like leaving
+the mod. It was mis-centred too: the arithmetic centred a six-column block,
+and the party grid is three across.
+
+Twelve new checks hold the invariant that matters: whatever moves the
+cursor, the panel under it is the box being acted on.
+
 ## 1.17.0 — FULL SCREEN (work in progress), and the wallpapers it already had
 
 **`FULL SCREEN (WIP)`** is a new option, off by default, and the label says
