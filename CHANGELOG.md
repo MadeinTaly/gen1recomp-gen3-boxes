@@ -1,5 +1,39 @@
 # Changelog
 
+## 1.17.0 — FULL SCREEN (work in progress), and the wallpapers it already had
+
+**`FULL SCREEN (WIP)`** is a new option, off by default, and the label says
+WIP because it is: the panels draw, each box wears its own wallpaper and the
+cursor walks the whole screen, but this shape has not been lived in long
+enough to call finished. **Everything else in this release is the stable
+mod, unchanged.**
+
+What it does: takes the shape of the device instead of a Game Boy screen and
+spends the room on **more boxes at once** — as many 5x4 panels as fit,
+across first and then down. In the hand that is four boxes stacked; turned
+sideways it is eight, four across and two down.
+
+**Every panel is a box with its own name, and the name is its way in.** UP
+from a panel's top row lands on that panel's title; A there opens the BOX
+MENU *for that box*. There is no single header row any more, because a
+header row on a screen showing eight boxes would be the header of one of
+them and not of the other seven. UP again continues to the panel above,
+onto its bottom row: the cursor walks the screen without dead ends.
+
+**The canvas takes the screen's proportions and fills it.** Two earlier
+attempts chased whole-number scales for the sake of square pixels, and both
+left black bands over a third of a phone's height. `wantsFillScale` — which
+`Game:draw` reads off any state in the stack — asks the renderer to blit at
+a fractional scale instead, so the surface is the window's own shape,
+clamped to the 640x576 the engine will accept.
+
+Three faults from photographs, all fixed here: full screen chose the
+smallest canvas it could rather than the largest (the scale search never
+tried 1 or 2, and `getDimensions` reports logical units, so a 1080-wide
+phone reports about 405); UP from the top row reached a header that had
+nothing under it and scrolled the page for no reason; and the cursor had no
+mark on a panel name, so on eight boxes there was no telling where it was.
+
 ## 1.16.1 — full screen was picking the smallest canvas it could
 
 Reported with a photograph: FULL SCREEN on, and the screen looked zoomed in

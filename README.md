@@ -84,7 +84,7 @@ in 1.5.2.
 | `BOX HEALS` | on / off | rest everything in storage when the screen closes |
 | `PLACE CRY` | on / off | play the Pokémon's cry every time one lands in a slot |
 | `GRID` | `CLASSIC` / `BIG` | a 320×288 surface, full-size pics, and a palette per Pokémon |
-| `FULL SCREEN` | on / off | takes the whole device and shows **several boxes at once** — as many 5×4 panels as fit, across then down, each with its own name and wallpaper. The cursor walks between them; off the last panel the page scrolls. Overrides `GRID`, and works on Gold as well |
+| `FULL SCREEN (WIP)` | on / off | **work in progress.** Takes the shape of the device and shows **several boxes at once** — as many 5×4 panels as fit, across then down, each with its own name and its own wallpaper. UP from a panel's top row lands on its name, and A there opens the BOX MENU for *that* box. Off the last panel the page scrolls. Overrides `GRID`; works on Gold too |
 | `SLOTS` | `CLEAR` / `10%` / `15%` / `25%` / `40%` / `60%` / `80%` | how opaque each cell is over the wallpaper. **15%** by default: the cell outline is what says "slot", and twenty squares of white over the art read as a sheet of milk |
 | `BANDS` | `SOLID` / `60%` / `30%` / `15%` | how much of the title row and the footer the wallpaper gets. Below `SOLID` the scene runs edge to edge over the whole screen and each caption is written in the scene's own two ends — the letters in one, a one-pixel edge in the other — so the contrast is between two colours out of the same four the picture was painted with. The bands themselves are painted in the scene's lightest tone rather than in white |
 | `ANIMATE` | on / off | whether the wallpaper drifts (off is a still wallpaper, pixel for pixel) |

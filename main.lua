@@ -145,7 +145,13 @@ return function(mod)
     --
     -- It overrides GRID rather than sitting beside it: a surface chosen
     -- from the window is neither of the two fixed ones.
-    { key = "fullscreen", label = "FULL SCREEN", type = "toggle", default = false },
+    -- The label says WIP because it is: the panels draw and the cursor
+    -- walks them, but the BOX MENU has no header to open from, the party
+    -- pane has not been rethought for a screen this shape, and how the
+    -- page should scroll is still an open question. Shipping it unlabelled
+    -- would be shipping a promise the mode does not keep yet.
+    { key = "fullscreen", label = "FULL SCREEN (WIP)", type = "toggle",
+      default = false },
     -- See "the cry on put-down" (PLAN.md "5. THE CRY ON PUT-DOWN"). On by
     -- default: it changes nothing but sound, which is the line BOX HEALS
     -- is on the wrong side of.
@@ -281,25 +287,24 @@ return function(mod)
     -- on a 160x300 canvas: five columns, and a Pokedex that looked zoomed
     -- in rather than opened up.
     --
-    -- So: try every whole scale from 1 up, keep whichever fits the most
-    -- panels, and prefer the larger scale when two tie (a larger scale
-    -- means a canvas closer to the window and thinner black bands).
+    -- The canvas takes the SHAPE OF THE SCREEN, and the screen is filled.
     --
-    -- Starting at 1 is the part that matters. The version before this
-    -- searched from 8 down to 3 and never tried the two scales a phone
-    -- actually wants: at a reported 405x900, scale 1 gives a 400x576 canvas
-    -- and EIGHT boxes, while scale 3 gives 160x300 and two.
-    local best, bestW, bestH = -1, MIN_W, MIN_H
-    for scale = 1, 8 do
-      local w = math.max(MIN_W, math.min(MAX_W, math.floor(ww / scale)))
-      local h = math.max(MIN_H, math.min(MAX_H, math.floor(wh / scale)))
-      w, h = w - w % 8, h - h % 8
-      local across = math.max(1, math.floor((w - 8) / PANEL_W))
-      local down = math.max(1, math.floor((h - 20) / PANEL_H))
-      local panels = math.min(across * down, Boxes.COUNT or 12)
-      if panels >= best then best, bestW, bestH = panels, w, h end
-    end
-    local w, h = bestW, bestH
+    -- Two earlier passes chased whole-number scales, on the grounds that a
+    -- fractional one makes some pixels a row taller than others. Both left
+    -- black bands over a third of a phone's height, and a full screen with
+    -- bands is not a full screen -- so the scale is fractional now and
+    -- `wantsFillScale` below tells the renderer to blit at it.
+    --
+    -- The ratio is taken against the CAPS, not against a fixed surface:
+    -- divide the window by whichever of 640-wide or 576-tall it busts by
+    -- most, and what comes out has the window's own proportions and is as
+    -- large as the engine will accept. A 405x900 phone lands on 256x576; the
+    -- same phone turned sideways lands on 640x288, which is why the boxes go
+    -- four across there and one across in the hand.
+    local k = math.max(ww / MAX_W, wh / MAX_H, 1)
+    local w = math.max(MIN_W, math.min(MAX_W, math.floor(ww / k)))
+    local h = math.max(MIN_H, math.min(MAX_H, math.floor(wh / k)))
+    w, h = w - w % 8, h - h % 8
     -- whole tiles, because palette zones are addressed in tiles and a zone
     -- that starts mid-tile lands four pixels off its sprite
     local acrossN = math.max(1, math.floor((w - 8) / PANEL_W))
@@ -2501,6 +2506,13 @@ return function(mod)
     -- twelve lines, fitting this screen's own surface at a whole scale and
     -- centring it, with self:draw() drawing exactly what it draws anywhere
     -- else.
+    -- Gen 1's own way of saying "do not letterbox me": Game:draw walks the
+    -- whole stack for this (Game.fillScaleInStack), so it keeps holding
+    -- while a menu or a text box is open over the grid.
+    function self:wantsFillScale()
+      return fullOn() and not isGen2(game)
+    end
+
     function self:drawsWidescreen()
       return isGen2(game) and fullOn()
     end
@@ -2935,8 +2947,15 @@ return function(mod)
           return
         end
         if dr ~= 0 and (r < 0 or r >= rows()) then
+          if dr < 0 then
+            -- up out of the top row is this panel's own name, not the panel
+            -- above: the name is a row of the panel, and skipping it would
+            -- put the BOX MENU out of reach for every box but one
+            self.header = true
+            return
+          end
           movePanel(0, dr)
-          self.row = r < 0 and (rows() - 1) or 0
+          self.row = 0
           return
         end
         self.col = math.max(0, math.min(cols() - 1, c))
@@ -3500,17 +3519,27 @@ return function(mod)
     -- everywhere else -- opens nothing.
     local function updateHeader()
       local input = game.input
+      local L = layout(game)
       if input:wasPressed("down") then
         self.header = false
       elseif input:wasPressed("left") then
-        changeBox(-1)
+        -- in full screen the name row moves the way the grid does: to the
+        -- panel beside it, and off the last one the page scrolls. Anywhere
+        -- else there is only one box on screen, so it changes box.
+        if L.full then movePanel(-1, 0) else changeBox(-1) end
       elseif input:wasPressed("right") then
-        changeBox(1)
+        if L.full then movePanel(1, 0) else changeBox(1) end
       elseif input:wasPressed("up") then
-        -- the deliberate change PLAN.md calls out: wrap no longer takes UP
-        -- from the top row straight to the bottom -- it stops here first,
-        -- and UP again is what wraps
-        if mod.options:get("wrap") then
+        if L.full then
+          -- up from a name goes to the BOTTOM row of the panel above, so
+          -- the cursor walks the screen continuously instead of stopping
+          movePanel(0, -1)
+          self.header = false
+          self.row = rows() - 1
+        elseif mod.options:get("wrap") then
+          -- the deliberate change PLAN.md calls out: wrap no longer takes
+          -- UP from the top row straight to the bottom -- it stops here
+          -- first, and UP again is what wraps
           self.header = false
           self.row = rows() - 1
         end
@@ -3596,6 +3625,11 @@ return function(mod)
       end
       local input = game.input
       if input:wasPressed("up") then
+        -- UP from the top row lands on the box's NAME, and in full screen
+        -- that is this panel's name -- every panel has one, so every box on
+        -- screen has its own way into the BOX MENU. A press there opens the
+        -- menu for the box the cursor is in, which currentBox already
+        -- follows.
         if self.mode == "box" and self.row == 0 then
           self.header = true
         else
@@ -4467,7 +4501,14 @@ return function(mod)
           -- each panel says which box it is and how full, over its own grid
           local name = Strings("%s %d/%d", boxName(boxNum), #cells,
             Boxes.CAPACITY)
-          caption(fitTo(name, PANEL_W - 8), ox, oy)
+          local shown = fitTo(name, PANEL_W - 8)
+          caption(shown, ox, oy)
+          -- the cursor on a name: the same outline the single-box header
+          -- uses, around this panel's own title, so "where am I" has an
+          -- answer on a screen with eight boxes on it
+          if self.header and p == (self.panel or 0) then
+            outline(ox - 2, oy - 2, Font.width(shown) + 4, 12)
+          end
           drawCells(p, cells)
         end
       else
@@ -4549,7 +4590,12 @@ return function(mod)
         elseif onHeader then
           line = Strings("A:BOX MENU B:EXIT")
         elseif self.mode == "box" then
-          line = Strings("SEL:PARTY B:EXIT")
+          -- FULL SCREEN has no header to press A on, so the footer says
+          -- where the BOX MENU went: nowhere yet. That is the honest line
+          -- while this mode is still being built.
+          line = layout(game).full
+            and Strings("UP:BOX NAME  SEL:PARTY")
+            or Strings("SEL:PARTY B:EXIT")
         else
           line = Strings("SEL:BOX B:EXIT")
         end

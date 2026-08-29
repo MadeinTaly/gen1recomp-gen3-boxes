@@ -3221,7 +3221,12 @@ do
   end)
 
   -- walking off a panel goes to the NEXT PANEL, and only past the last one
-  -- does the page of boxes move
+  -- does the page of boxes move. How many panels there are depends on the
+  -- window, so the assertions ask the layout rather than assuming a shape.
+  local function panelBoxOf(s)
+    local n = 12
+    return ((s.pageBox or 1) - 1 + (s.panel or 0)) % n + 1
+  end
   withWindow(1080, 2160, function()
     local g = fakeGame({})
     local s = factory.new(g)
@@ -3229,16 +3234,51 @@ do
     s.panel, s.col, s.row = 0, 4, 0
     local page = s.pageBox or 1
     g.press("right"); s:update()
-    T.eq(s.panel, 1, "dal bordo destro si passa al pannello accanto")
-    T.eq(s.pageBox or 1, page, "senza muovere la pagina di box")
-    T.eq(g.save.currentBox, 2, "e la box su cui si agisce e' quella del pannello")
+    if L.acrossN > 1 then
+      -- su una tela larga il pannello accanto c'e', e ci si passa
+      T.eq(s.panel, 1, "dal bordo destro si passa al pannello accanto")
+      T.eq(s.pageBox or 1, page, "senza muovere la pagina di box")
+      T.eq(g.save.currentBox, 2, "e la box su cui si agisce e' quella del pannello")
+    else
+      -- su una tela stretta (un telefono in mano) di pannelli ce n'e' uno
+      -- per riga, quindi il bordo destro scorre la pagina
+      T.check((s.pageBox or 1) ~= page,
+        "su una colonna sola il bordo destro scorre la pagina di box")
+      T.eq(g.save.currentBox, panelBoxOf(s), "e la box segue il pannello")
+    end
 
-    -- and off the last panel in a row, the page follows
-    s.panel = L.acrossN - 1
-    s.col = 4
-    g.press("right"); s:update()
-    T.check((s.pageBox or 1) ~= page,
-      "oltre l'ultimo pannello della riga, la pagina scorre")
+    -- giu' dall'ultima riga di pannelli scorre la pagina in ogni caso
+    s.panel = (L.acrossN * L.downN) - 1
+    s.row = 3
+    local before = s.pageBox or 1
+    g.press("down"); s:update()
+    T.check((s.pageBox or 1) ~= before,
+      "e sotto l'ultimo pannello la pagina scorre")
+  end)
+
+  -- ------- ogni pannello ha il suo nome, e il nome apre il suo menu
+  --
+  -- Su una schermata con otto box, il BOX MENU non puo' stare su una riga
+  -- sola in cima: sarebbe il menu di una box e non delle altre sette. Il
+  -- nome di ogni pannello E' il suo header -- su dalla prima riga ci si
+  -- arriva, A lo apre, e la box su cui agisce e' quella del pannello.
+  withWindow(1080, 2160, function()
+    local g = fakeGame({})
+    local s = factory.new(g)
+    s.panel, s.col, s.row, s.header = 0, 0, 0, false
+
+    g.press("up"); s:update()
+    T.check(s.header, "su dalla prima riga si arriva al nome del pannello")
+    T.eq(g.save.currentBox, panelBoxOf(s),
+      "e il nome e' quello della box del pannello, non di un'altra")
+
+    -- e da li' su si continua: non e' un vicolo cieco
+    local wasPanel = s.panel
+    g.press("up"); s:update()
+    T.check(not s.header, "su ancora esce dal nome invece di restare fermi")
+    T.check(s.panel ~= wasPanel or (s.pageBox or 1) ~= 1,
+      "andando al pannello sopra, o scorrendo la pagina se non c'e'")
+    T.eq(s.row, 3, "e ci si arriva dalla riga in fondo, non dalla prima")
   end)
 
   optStore.fullscreen = false
