@@ -1,5 +1,65 @@
 # Changelog
 
+## 1.16.1 — full screen was picking the smallest canvas it could
+
+Reported with a photograph: FULL SCREEN on, and the screen looked zoomed in
+rather than opened up.
+
+The scale search ran from eight down to three and **never tried one or
+two** — the only scales a phone wants. `love.graphics.getDimensions` reports
+LOGICAL units, so a 1080-wide screen reports about 405, and dividing that by
+three gives a 160-wide canvas: five columns, one box, exactly the Game Boy
+screen made larger. Which is the opposite of the option.
+
+It tries every whole scale from one now and keeps whichever fits the most,
+preferring the larger scale on a tie. At a reported 405x900 that is a
+400x576 surface: **eight boxes** in the box screen and thirteen columns by
+eighteen rows in the Pokedex.
+
+Worth knowing: the engine will not take a surface past **640x576**, so on a
+very tall phone full screen cannot both fill the height and show many boxes.
+This picks many boxes, and the letterbox that remains is still far smaller
+than the one a 160x144 Game Boy screen leaves.
+
+## 1.16.0 — FULL SCREEN: more boxes, not bigger ones
+
+A new option takes the whole device instead of a Game Boy screen, and
+spends the room on **more boxes at once**: as many 5x4 panels as fit,
+across first and then down, each with its own name and **its own
+wallpaper**. On a phone that is eight boxes on one screen.
+
+**The scale is chosen by counting panels, not by making pixels large.** The
+first pass took the biggest whole scale that fits — which is what the
+renderer letterboxes at — and that gave ONE box on a very large screen,
+the opposite of the point. It now tries each scale from eight down to
+three and keeps the one that fits the most panels, preferring the larger
+when two tie. Three is the floor: below it a 28-pixel cell is smaller than
+a fingertip.
+
+Whole-number scales only, and the surface is rounded to whole tiles.
+Neither is tidiness: a stretched surface would give pixels three rows tall
+in some places and four in others, and a palette zone that starts mid-tile
+lands four pixels off its sprite.
+
+**The cursor walks between panels.** Off the right edge of one panel it
+steps into the next; off the last panel in a row the page of boxes scrolls
+by one and the cursor keeps going the way it was pushed.
+`game.save.currentBox` follows the panel, so everything already written —
+pick up, put down, SORT, WALLPAPER, BOX HEALS — works on "the box the
+cursor is in" without knowing panels exist.
+
+**Coloured cells have a ceiling of forty.** Every species palette is a blit
+of the whole canvas, scissored; twenty-one is what BIG has always paid, and
+eight panels would have asked for a hundred and sixty. Past forty the cells
+stay in the base tones, which is what CLASSIC looks like anyway. That is a
+frame-rate decision, not a palette one.
+
+**On Gold too.** `Game2` never asks a state how big it would like to be, so
+`uiSize()` is dead there — but it does have `drawsWidescreen` /
+`drawWidescreen`, which gen3_dex has used since its BIG landed. Same twelve
+lines here: fit the surface at a whole scale, centre it, and let `self:draw`
+draw exactly what it draws anywhere else.
+
 ## 1.15.0 — the painter moves out, so other screens can use it
 
 The wallpaper painter lived inside this screen's constructor, which was fine

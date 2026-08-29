@@ -3172,4 +3172,76 @@ do
   loaderRef.exports[OW] = nil
 end
 
+-- ------- FULL SCREEN
+--
+-- The surface follows the device instead of the Game Boy, and the room goes
+-- on MORE BOXES rather than bigger ones: as many 5x4 panels as fit, across
+-- first and then down, each with its own name and its own wallpaper. What
+-- is asserted here is the arithmetic and the walking, because the look is
+-- what the offline renderer is for.
+do
+  local optStore = run.loader.modOptions.gen3_box
+  optStore.fullscreen = true
+
+  local G = love.graphics
+  local realDim = G.getDimensions
+  -- LuaJIT is 5.1: table.unpack does not exist, unpack does
+  local unpack = table.unpack or unpack
+  local function withWindow(w, h, fn)
+    G.getDimensions = function() return w, h end
+    local out = { fn() }
+    G.getDimensions = realDim
+    return unpack(out)
+  end
+
+  -- the surface stays inside what the engine will take: below 160x144 or
+  -- above 640x576 setUISize silently falls back to a Game Boy screen
+  for _, size in ipairs({ { 1080, 2160 }, { 1080, 1920 }, { 2400, 1080 },
+                          { 1600, 1200 }, { 320, 240 } }) do
+    local w, h = withWindow(size[1], size[2], function()
+      local s = factory.new(fakeGame({}))
+      return s:uiSize()
+    end)
+    T.check(w >= 160 and w <= 640 and h >= 144 and h <= 576,
+      string.format("una finestra %dx%d chiede una superficie che l'engine accetta (%dx%d)",
+        size[1], size[2], w, h))
+    T.check(w % 8 == 0 and h % 8 == 0,
+      "e in tessere intere, o una zona di palette parte a meta' tessera")
+  end
+
+  -- on a phone that means several boxes at once, not one enormous one
+  withWindow(1080, 2160, function()
+    local s = factory.new(fakeGame({}))
+    local L = s.layout()
+    T.check(L.full, "col pieno schermo acceso la disposizione e' quella piena")
+    T.check((L.acrossN or 1) * (L.downN or 1) >= 4,
+      "e su un telefono ci stanno almeno quattro box insieme")
+    T.check(L.acrossN >= 1 and L.downN > L.acrossN,
+      "in verticale: prima in orizzontale finche' ci stanno, poi in giu'")
+  end)
+
+  -- walking off a panel goes to the NEXT PANEL, and only past the last one
+  -- does the page of boxes move
+  withWindow(1080, 2160, function()
+    local g = fakeGame({})
+    local s = factory.new(g)
+    local L = s.layout()
+    s.panel, s.col, s.row = 0, 4, 0
+    local page = s.pageBox or 1
+    g.press("right"); s:update()
+    T.eq(s.panel, 1, "dal bordo destro si passa al pannello accanto")
+    T.eq(s.pageBox or 1, page, "senza muovere la pagina di box")
+    T.eq(g.save.currentBox, 2, "e la box su cui si agisce e' quella del pannello")
+
+    -- and off the last panel in a row, the page follows
+    s.panel = L.acrossN - 1
+    s.col = 4
+    g.press("right"); s:update()
+    T.check((s.pageBox or 1) ~= page,
+      "oltre l'ultimo pannello della riga, la pagina scorre")
+  end)
+
+  optStore.fullscreen = false
+end
+
 T.finish("gen3_box")

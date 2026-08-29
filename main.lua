@@ -138,6 +138,14 @@ return function(mod)
         { "CLASSIC", "classic" },
         { "BIG", "big" },
       } },
+    -- FULL SCREEN takes the whole device instead of a Game Boy screen, and
+    -- spends the room on MORE BOXES rather than on bigger ones: as many
+    -- 5x4 panels as fit, across first and then down, each with its own name
+    -- and its own wallpaper. The cursor walks between them.
+    --
+    -- It overrides GRID rather than sitting beside it: a surface chosen
+    -- from the window is neither of the two fixed ones.
+    { key = "fullscreen", label = "FULL SCREEN", type = "toggle", default = false },
     -- See "the cry on put-down" (PLAN.md "5. THE CRY ON PUT-DOWN"). On by
     -- default: it changes nothing but sound, which is the line BOX HEALS
     -- is on the wrong side of.
@@ -229,7 +237,92 @@ return function(mod)
   -- CLASSIC no matter what the option says. The option itself is left
   -- alone -- never written back -- so a Gen 1 save that chose BIG is still
   -- BIG the next time it is Red.
+  -- ------- FULL SCREEN: a surface shaped like the device
+  --
+  -- The engine takes any surface between 160x144 and 640x576 through
+  -- `uiSize()` (Renderer:setUISize clamps to exactly that, falling back to
+  -- 160x144 outside it) and letterboxes it onto the window. So "full
+  -- screen" is: pick the largest whole-number scale that fits, divide the
+  -- window by it, clamp, and hand that back.
+  --
+  -- Whole-number scale is the point. A surface stretched to the window
+  -- exactly would give pixels three rows tall in some places and four in
+  -- others, and every wallpaper in this mod is pixel art.
+  local MIN_W, MIN_H, MAX_W, MAX_H = 160, 144, 640, 576
+  local PANEL_W, PANEL_H = 5 * 28 + 12, 4 * 28 + 22  -- a box panel, with room
+                                                     -- for its name over it
+
+  local function fullOn()
+    local ok, value = pcall(function() return mod.options:get("fullscreen") end)
+    return ok and value == true
+  end
+
+  local function windowSize()
+    local ok, w, h = pcall(function()
+      return love.graphics.getDimensions()
+    end)
+    if ok and type(w) == "number" and w > 0 and h > 0 then return w, h end
+    return MIN_W, MIN_H
+  end
+
+  local function fullLayout()
+    local ww, wh = windowSize()
+    -- Which scale? The SMALLEST whole one that still fits inside what the
+    -- engine will take. That is the biggest canvas available, and the
+    -- biggest canvas is the most boxes -- which is the whole point.
+    --
+    -- Two earlier passes got this backwards. The first took the largest
+    -- scale that fits, maximising the size of a pixel and minimising how
+    -- much of anything you see. The second searched for the scale that fit
+    -- the most panels, which is the same answer when the window is measured
+    -- in device pixels -- and the wrong one on a phone, where
+    -- love.graphics.getDimensions reports LOGICAL units (a 1080-wide screen
+    -- at 2.67 dpi reports 405). A reported 405x900 made that search settle
+    -- on a 160x300 canvas: five columns, and a Pokedex that looked zoomed
+    -- in rather than opened up.
+    --
+    -- So: try every whole scale from 1 up, keep whichever fits the most
+    -- panels, and prefer the larger scale when two tie (a larger scale
+    -- means a canvas closer to the window and thinner black bands).
+    --
+    -- Starting at 1 is the part that matters. The version before this
+    -- searched from 8 down to 3 and never tried the two scales a phone
+    -- actually wants: at a reported 405x900, scale 1 gives a 400x576 canvas
+    -- and EIGHT boxes, while scale 3 gives 160x300 and two.
+    local best, bestW, bestH = -1, MIN_W, MIN_H
+    for scale = 1, 8 do
+      local w = math.max(MIN_W, math.min(MAX_W, math.floor(ww / scale)))
+      local h = math.max(MIN_H, math.min(MAX_H, math.floor(wh / scale)))
+      w, h = w - w % 8, h - h % 8
+      local across = math.max(1, math.floor((w - 8) / PANEL_W))
+      local down = math.max(1, math.floor((h - 20) / PANEL_H))
+      local panels = math.min(across * down, Boxes.COUNT or 12)
+      if panels >= best then best, bestW, bestH = panels, w, h end
+    end
+    local w, h = bestW, bestH
+    -- whole tiles, because palette zones are addressed in tiles and a zone
+    -- that starts mid-tile lands four pixels off its sprite
+    local acrossN = math.max(1, math.floor((w - 8) / PANEL_W))
+    local downN = math.max(1, math.floor((h - 20) / PANEL_H))
+    return {
+      cell = 28, scale = 0.5, w = w, h = h,
+      full = true, acrossN = acrossN, downN = downN,
+      -- the first panel's origin; the rest are laid out from it
+      gridX = math.floor((w - acrossN * PANEL_W) / 2) + 6,
+      gridY = 20,
+      partyX = math.floor((w - 6 * 28) / 2), partyY = math.floor(h / 2) - 28,
+    }
+  end
+
   local function layout(game)
+    -- FULL SCREEN reaches the renderer through the same uiSize() seam BIG
+    -- does, so it is Gen 1 only for exactly the same reason -- Game2 never
+    -- asks a state how big it would like to be. On Gold the screen draws
+    -- itself over the window instead (drawWidescreen, further down).
+    -- FULL SCREEN works on both: Gen 1 asks for the surface through
+    -- uiSize(), Gold draws itself over the window through drawWidescreen.
+    -- Same layout either way, which is the point of computing it here.
+    if fullOn() then return fullLayout() end
     if isGen2(game) then return LAYOUT.classic end
     local ok, value = pcall(function() return mod.options:get("grid") end)
     return LAYOUT[(ok and value) or "classic"] or LAYOUT.classic
@@ -2399,6 +2492,31 @@ return function(mod)
       return L.w, L.h
     end
 
+    -- ------- FULL SCREEN on Gold
+    --
+    -- Game2 never asks a state how big it would like to be, so uiSize is
+    -- dead there. What it DOES have is drawsWidescreen/drawWidescreen: a
+    -- state that says yes gets handed the window and draws itself over it.
+    -- gen3_dex has used that pair since its BIG landed; this is the same
+    -- twelve lines, fitting this screen's own surface at a whole scale and
+    -- centring it, with self:draw() drawing exactly what it draws anywhere
+    -- else.
+    function self:drawsWidescreen()
+      return isGen2(game) and fullOn()
+    end
+
+    function self:drawWidescreen(winW, winH)
+      local L = layout(game)
+      local scale = math.max(1, math.floor(math.min(winW / L.w, winH / L.h)))
+      local ox = math.floor((winW - L.w * scale) / 2)
+      local oy = math.floor((winH - L.h * scale) / 2)
+      love.graphics.push()
+      love.graphics.translate(ox, oy)
+      love.graphics.scale(scale, scale)
+      self:draw()
+      love.graphics.pop()
+    end
+
     -- StateStack calls this on pop and only on pop -- a screen pushed ON TOP
     -- of this one (the summary) does not fire it -- so it is exactly "the
     -- player is done with the boxes" and nothing else.
@@ -2578,6 +2696,29 @@ return function(mod)
       end
     end
 
+    -- ------- where a panel sits, in FULL SCREEN
+    --
+    -- Panels fill across first and then down, which is how anybody reads.
+    -- Panel 0 is the top-left; `self.panel` is the one the cursor is in and
+    -- `game.save.currentBox` follows it, so every action already written --
+    -- pick up, put down, SORT, WALLPAPER -- keeps working on "the box the
+    -- cursor is in" without knowing panels exist.
+    local function panelsShown(L)
+      return (L.acrossN or 1) * (L.downN or 1)
+    end
+
+    local function panelOrigin(L, p)
+      local across = L.acrossN or 1
+      local c, r = p % across, math.floor(p / across)
+      return L.gridX + c * PANEL_W, L.gridY + r * PANEL_H
+    end
+
+    -- which box a panel is showing: the page starts at pageBox and runs on
+    local function panelBox(p)
+      local n = Boxes.COUNT or 12
+      return ((self.pageBox or 1) - 1 + p) % n + 1
+    end
+
     local function cols() return self.mode == "box" and COLS or PARTY_COLS end
     local function rows() return self.mode == "box" and ROWS or PARTY_ROWS end
     local function list()
@@ -2749,8 +2890,59 @@ return function(mod)
     -- way Ruby's L/R do -- a Game Boy has no shoulder buttons to spare, and
     -- this frees START to be a way out that always works. In the party pane
     -- there is nowhere to step to, so it wraps or clamps as before.
+    -- FULL SCREEN: walking off a panel steps to the NEXT PANEL rather than
+    -- to the next box, because the next box is already on screen -- and
+    -- when there is no panel that way, the page of boxes scrolls by one so
+    -- the cursor keeps going in the direction it was pushed.
+    local function movePanel(dc, dr)
+      local L = layout(game)
+      local across, down = L.acrossN or 1, L.downN or 1
+      local p = self.panel or 0
+      local pc, pr = p % across, math.floor(p / across)
+      if dc ~= 0 then
+        pc = pc + dc
+        if pc < 0 then
+          self.pageBox = ((self.pageBox or 1) - 2) % (Boxes.COUNT) + 1
+          pc = 0
+        elseif pc >= across then
+          self.pageBox = (self.pageBox or 1) % (Boxes.COUNT) + 1
+          pc = across - 1
+        end
+      end
+      if dr ~= 0 then
+        pr = pr + dr
+        -- a row of panels is `across` boxes, so scrolling by a row moves
+        -- the page by that many
+        if pr < 0 then
+          self.pageBox = ((self.pageBox or 1) - 1 - across) % (Boxes.COUNT) + 1
+          pr = 0
+        elseif pr >= down then
+          self.pageBox = ((self.pageBox or 1) - 1 + across) % (Boxes.COUNT) + 1
+          pr = down - 1
+        end
+      end
+      self.panel = pr * across + pc
+      game.save.currentBox = panelBox(self.panel)
+    end
+
     local function move(dc, dr)
+      local L = layout(game)
       local c, r = self.col + dc, self.row + dr
+      if L.full and self.mode == "box" then
+        if dc ~= 0 and (c < 0 or c >= cols()) then
+          movePanel(dc, 0)
+          self.col = c < 0 and (cols() - 1) or 0
+          return
+        end
+        if dr ~= 0 and (r < 0 or r >= rows()) then
+          movePanel(0, dr)
+          self.row = r < 0 and (rows() - 1) or 0
+          return
+        end
+        self.col = math.max(0, math.min(cols() - 1, c))
+        self.row = math.max(0, math.min(rows() - 1, r))
+        return
+      end
       if self.mode == "box" and dc ~= 0 and (c < 0 or c >= cols()) then
         changeBox(dc)
         self.col = c < 0 and (cols() - 1) or 0
@@ -3433,15 +3625,19 @@ return function(mod)
 
     -- ------- drawing
 
-    local function cellRect(i0, mode)
+    local function cellRect(i0, mode, panel)
       local L = layout(game)
       mode = mode or self.mode
       local n = mode == "box" and COLS or PARTY_COLS
       local c, r = i0 % n, math.floor(i0 / n)
-      if mode == "box" then
-        return L.gridX + c * L.cell, L.gridY + r * L.cell
+      if mode ~= "box" then
+        return L.partyX + c * L.cell, L.partyY + r * L.cell
       end
-      return L.partyX + c * L.cell, L.partyY + r * L.cell
+      if L.full then
+        local ox, oy = panelOrigin(L, panel or self.panel or 0)
+        return ox + c * L.cell, oy + 10 + r * L.cell
+      end
+      return L.gridX + c * L.cell, L.gridY + r * L.cell
     end
 
     -- The scale is derived from the picture the game actually handed us,
@@ -3468,6 +3664,10 @@ return function(mod)
     -- exposed so the suite can check the arithmetic without a graphics
     -- context, which is where the overflow above was found
     self.picScale = picScale
+
+    -- and the layout, so the full-screen arithmetic -- how many panels fit
+    -- in which window -- can be asserted without drawing anything
+    self.layout = function() return layout(game) end
 
     -- and this one so it can ask which scene a box ended up wearing --
     -- FAVOURITE resolves to one of the saved favourites, a 1.9.x save
@@ -3857,11 +4057,21 @@ return function(mod)
           0, 0, L.w / 8 - 1, L.h / 8 - 1),
       }
 
-      local function add(set, mode)
+      -- A CEILING on the coloured cells.
+      --
+      -- Every zone is a blit of the whole canvas, scissored: twenty-one of
+      -- them is what BIG has always paid, and full screen with eight
+      -- panels would ask for a hundred and sixty. That is not a palette
+      -- problem, it is a frame-rate one, so the first forty occupied cells
+      -- get their species colours and the rest stay in the base tones --
+      -- which on a wallpaper is what CLASSIC looks like anyway.
+      local MAX_ZONES = 40
+      local function add(set, mode, panel)
         for i, mon in ipairs(set) do
+          if #zones >= MAX_ZONES then break end
           local colors = PaletteFX.monPal(game.data, mon.species)
           if colors then
-            local x, y = cellRect(i - 1, mode)
+            local x, y = cellRect(i - 1, mode, panel)
             local tx, ty = x / 8, y / 8
             zones[#zones + 1] =
               PaletteFX.zone(colors, tx, ty, tx + tiles - 1, ty + tiles - 1)
@@ -3874,7 +4084,14 @@ return function(mod)
       -- palettes in stripes across the box grid, which is exactly what the
       -- first BIG screenshot showed.
       if self.mode == "box" then
-        add(boxList(game), "box")
+        if L.full then
+          -- every panel on screen, in reading order, until the ceiling
+          for p = 0, (L.acrossN or 1) * (L.downN or 1) - 1 do
+            add(game.save.boxes[panelBox(p)] or {}, "box", p)
+          end
+        else
+          add(boxList(game), "box")
+        end
       else
         add(game.save.party, "party")
       end
@@ -4107,7 +4324,35 @@ return function(mod)
           paper = paperOf(game.save.currentBox)
           style = artOf(game.save.currentBox)
         end
-        drawWallpaper(paper, L.w, L.h, style, self.paperTick)
+        if L.full then
+          -- one scene per PANEL, inside its own rectangle: each box wears
+          -- what its owner chose, which is the whole point of a wallpaper
+          -- per box -- and the preview under the chooser follows the panel
+          -- the cursor is in, not all of them.
+          love.graphics.setColor(1, 1, 1, 1)
+          love.graphics.rectangle("fill", 0, 0, L.w, L.h)
+          for p = 0, panelsShown(L) - 1 do
+            local ox, oy = panelOrigin(L, p)
+            local boxNum = panelBox(p)
+            local pPaper, pStyle
+            if self.paperPick and p == (self.panel or 0) then
+              pPaper = paper
+              pStyle = style
+            else
+              pPaper, pStyle = paperOf(boxNum), artOf(boxNum)
+            end
+            local okDraw = pcall(function()
+              love.graphics.push()
+              love.graphics.translate(ox - 4, oy)
+              drawWallpaper(pPaper, PANEL_W - 4, PANEL_H - 4, pStyle,
+                self.paperTick)
+              love.graphics.pop()
+            end)
+            if not okDraw then pcall(love.graphics.pop) end
+          end
+        else
+          drawWallpaper(paper, L.w, L.h, style, self.paperTick)
+        end
         -- BANDS: how much of the header and the footer the scene is allowed
         -- to have. SOLID is the Gen 3 band and stays the default; anything
         -- below it lets the wallpaper run edge to edge over the WHOLE
@@ -4132,7 +4377,9 @@ return function(mod)
           -- with twenty-two empty pixels under it -- a white border across
           -- the top of the scene, which is what it was reported as.
           local capH = math.min(L.gridY - 2, CAPTION_BAND)
-          love.graphics.rectangle("fill", 0, 0, L.w, capH)
+          if not L.full then
+            love.graphics.rectangle("fill", 0, 0, L.w, capH)
+          end
           love.graphics.rectangle("fill", 0, footerY() - 2, L.w, L.h - footerY() + 2)
         end
         love.graphics.setColor(0, 0, 0, 1)
@@ -4164,7 +4411,7 @@ return function(mod)
       -- title row, outlined so it reads as pressable, and it is the same
       -- MENU the header's A opens -- no new binding, no new state, just the
       -- affordance the header always needed.
-      local hint = self.mode == "box" and Strings("MENU") or nil
+      local hint = self.mode == "box" and not L.full and Strings("MENU") or nil
       local hintW = hint and Font.width(hint) or 0
       local hintX = layout(game).w - TEXT_X - hintW
 
@@ -4174,7 +4421,9 @@ return function(mod)
       local shownTitle = hint
         and fitTo(title, hintX - TEXT_X - 6)
         or fit(title)
-      caption(shownTitle, TEXT_X, 2)
+      if not (L.full and self.mode == "box") then
+        caption(shownTitle, TEXT_X, 2)
+      end
 
       if hint then
         caption(hint, hintX, 2)
@@ -4193,16 +4442,36 @@ return function(mod)
         outline(TEXT_X - 2, 0, right - (TEXT_X - 2), 11)
       end
 
-      for i0 = 0, total - 1 do
-        local x, y = cellRect(i0)
-        local mon = set[i0 + 1]
-        drawCellWash(x, y, layout(game).cell)
-        love.graphics.setColor(0, 0, 0, 0.25)
-        outline(x, y, layout(game).cell, layout(game).cell)
-        love.graphics.setColor(1, 1, 1, 1)
-        if mon then drawPic(mon, x, y) end
-        love.graphics.setColor(0, 0, 0, 1)
-        if mon then drawMarks(mon, x, y) end
+      -- One panel's worth of cells. In FULL SCREEN this runs once per
+      -- panel with that panel's own box; everywhere else it runs once,
+      -- exactly as it always did.
+      local function drawCells(panel, cells)
+        for i0 = 0, total - 1 do
+          local x, y = cellRect(i0, nil, panel)
+          local mon = cells[i0 + 1]
+          drawCellWash(x, y, layout(game).cell)
+          love.graphics.setColor(0, 0, 0, 0.25)
+          outline(x, y, layout(game).cell, layout(game).cell)
+          love.graphics.setColor(1, 1, 1, 1)
+          if mon then drawPic(mon, x, y) end
+          love.graphics.setColor(0, 0, 0, 1)
+          if mon then drawMarks(mon, x, y) end
+        end
+      end
+
+      if L.full and self.mode == "box" then
+        for p = 0, panelsShown(L) - 1 do
+          local boxNum = panelBox(p)
+          local cells = game.save.boxes[boxNum] or {}
+          local ox, oy = panelOrigin(L, p)
+          -- each panel says which box it is and how full, over its own grid
+          local name = Strings("%s %d/%d", boxName(boxNum), #cells,
+            Boxes.CAPACITY)
+          caption(fitTo(name, PANEL_W - 8), ox, oy)
+          drawCells(p, cells)
+        end
+      else
+        drawCells(nil, set)
       end
 
       -- Cursor last, so it sits over the art it is pointing at.
@@ -4216,7 +4485,7 @@ return function(mod)
       --
       -- Both numbers scale with the cell: 2px arms of 9 on CLASSIC, 4px
       -- arms of 18 on BIG.
-      local cx, cy = cellRect(self.row * cols() + self.col)
+      local cx, cy = cellRect(self.row * cols() + self.col, nil, self.panel)
       -- on the header the outline above is the cursor; the grid keeps none,
       -- so there is never more than one place on screen the cursor reads as
       -- being
