@@ -1,5 +1,49 @@
 # Changelog
 
+## 1.20.0 -- the scene under the Pokemon, and GRID means something again
+
+Three faults, all reported from photographs of a phone.
+
+**The wallpaper filled 144 rows of a 244-row panel.** A painted scene is a
+strip 144 tall, and the code scaled it by `floor(height / 144)` -- right when
+the target is a whole number of strips tall, and wrong for a FULL SCREEN
+panel, which is not. So every box wearing an artist's wallpaper drew its
+picture across the top of its panel and left a hundred rows of white under
+it. It scales to COVER now, and the crop is taken from the middle of the
+picture rather than from the top.
+
+The margins that the panels never quite tile now wear the cursor box's own
+scene instead of white, which is the same complaint -- white bands -- moved
+from the header to the border.
+
+**GRID went back to meaning something in full screen.** It used to be
+overridden outright, on the reasoning that a surface chosen from the window
+is neither of the two fixed layouts. True, and beside the point: GRID picks
+the SIZE OF A CELL, and that question has two answers on any surface.
+CLASSIC now gives 28-pixel cells and panels to match -- four boxes at once
+on a phone instead of two -- and BIG keeps the 56-pixel cells where a
+battle picture is drawn whole.
+
+**A Pokemon in a box no longer repaints the wallpaper behind it.** The
+per-species palette zone is a RECTANGLE and the shade remap inside it reads
+the red channel: a pale sky is shade 0, and shade 0 in a species palette is
+white. So an occupied cell had its scene repainted -- white where the
+picture was light, the species' colours where it was dark -- while the empty
+cell beside it kept the scene. Over a wallpaper those zones are gone and the
+species' colours are sent to the PICTURE instead, which is a shape rather
+than a rectangle. The Pokedex mod shipped the same mistake and it was
+reported there first, as a white card under every caught Pokemon.
+
+Also: the full-screen party pane wears its scene in colour rather than
+flattened onto four greys, and wallpaper surfaces are cached per size
+instead of one at a time, which stopped a full-screen frame from building
+and throwing away three canvases every frame.
+
+**`tools/render_screen.lua`** draws the whole screen -- panels, scenes,
+cells and clipping -- to a file without a ROM or a window. Every fault above
+was invisible to the wallpaper renderer, which draws one scene at one size,
+and obvious in the first screen it rendered.
+
 ## 1.19.0 — the boxes either side, and moving a handful at once
 
 Two things Pokemon Box on the GameCube does that this screen did not.

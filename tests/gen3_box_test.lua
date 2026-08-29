@@ -1742,6 +1742,58 @@ do
   end
   T.check(not drifted, "and every per-Pokemon zone is untouched")
 
+  -- ------- e SOPRA UNA SCENA le zone per cella non ci sono proprio
+  --
+  -- Una zona e' un RETTANGOLO e il rimappaggio dentro legge il canale
+  -- rosso: un cielo chiaro sta sopra 0.83 e finisce sull'ombra 0, che in
+  -- una tavolozza di specie e' BIANCA. Cosi' la cella con dentro un
+  -- Pokemon si ridipingeva -- bianca dove la scena era chiara -- e quella
+  -- accanto no: una scacchiera sopra il disegno. Il Pokedex ha spedito lo
+  -- stesso errore e li' e' stato segnalato per primo, come il cartoncino
+  -- bianco sotto i catturati.
+  --
+  -- Il rimappaggio si sposta quindi sulla FIGURA (drawPic manda i colori
+  -- della specie a PaletteFX.shader), e qui si guarda che il rettangolo
+  -- non venga piu' emesso.
+  do
+    local full = fakeGame({ mon("FIXMON_A", 5), mon("FIXMON_B", 3) })
+    local s2 = factory.new(full)
+    local papers = store.boxPapers or {}
+    store.boxPapers = papers
+    papers[1] = { id = "PLAIN", art = 1 }
+    -- il dataset di prova non porta tavolozze di specie, e senza quelle non
+    -- si emette nessuna zona per cella: qui se ne presta una, perche' quello
+    -- che si sta verificando e' la REGOLA (con scena no, senza scena si) e
+    -- non da dove escono i quattro colori
+    local realMonPal = PaletteFX.monPal
+    if not PaletteFX.monPal(Data, "FIXMON_A") then
+      PaletteFX.monPal = function()
+        return { { 255, 255, 255 }, { 200, 110, 90 }, { 120, 60, 40 }, { 0, 0, 0 } }
+      end
+    end
+    local plain = s2:sgbPalettes(full)
+    local perCell = plain and (#plain - 1) or 0
+    if perCell > 0 then
+      papers[1] = { id = "SEA", art = 1 }
+      local onScene = s2:sgbPalettes(full)
+      T.eq(#onScene, 1,
+        "sopra una scena c'e' solo la zona di fondo, niente rettangoli per cella")
+      T.check(onScene[1].colors == false,
+        "e quella di fondo esce dal rimappaggio")
+      T.check(s2.remapOff(),
+        "e lo schermo lo sa: i colori viaggiano con la figura")
+      papers[1] = { id = "PLAIN", art = 1 }
+      T.check(not s2.remapOff(),
+        "senza scena invece il rimappaggio c'e' e le zone tornano")
+      T.eq(#s2:sgbPalettes(full), 1 + perCell,
+        "una per Pokemon nella pagina, come sempre")
+    else
+      T.check(true, "dataset senza tavolozze di specie: zone non verificabili")
+    end
+    PaletteFX.monPal = realMonPal
+    papers[1] = { id = "SEA", art = 1 }
+  end
+
   -- CLASSIC still asks for no zones at all, wallpaper or not: a 28-pixel
   -- cell carries no zone, so the palette can only ever be a BIG thing
   optStore.grid = "classic"
@@ -2700,19 +2752,31 @@ do
     G.newCanvas, G.setCanvas = realNew, realSetC
     G.rectangle, G.draw = realRect, realDraw
 
+    -- Le superfici si tengono in cache PER MISURA, quindi una 160x144 puo'
+    -- gia' esistere da un disegno precedente e `asked` restare vuota: quello
+    -- che conta non e' che la canvas sia stata creata adesso, ma che la
+    -- scena finisca su una canvas grande quanto lo schermo e che quella
+    -- venga posata all'origine. Si guarda quindi il BLIT, che e' vero in
+    -- entrambi i casi.
     local surface
     for _, a in ipairs(asked) do
       if a[1] == 160 and a[2] == 144 then surface = a[3] end
     end
-    T.check(surface ~= nil,
-      "la scena chiede una superficie grande come lo schermo")
-    T.check(onSurface > 0, "e ci dipinge sopra")
+    T.check(onSurface > 0, "la scena si dipinge su una superficie propria")
     T.eq(target, nil, "poi rimette il bersaglio dove l'aveva trovato")
     local posed = false
     for _, b in ipairs(blits) do
-      if b[1] == surface and b[2] == 0 and b[3] == 0 then posed = true end
+      local img = b[1]
+      local okDim, iw, ih = pcall(function()
+        return img:getWidth(), img:getHeight()
+      end)
+      if b[2] == 0 and b[3] == 0
+         and ((surface and img == surface) or (okDim and iw == 160 and ih == 144)) then
+        posed = true
+      end
     end
-    T.check(posed, "e la posa all'origine, dove sta la box")
+    T.check(posed,
+      "e una superficie grande come lo schermo si posa all'origine, dove sta la box")
 
     -- e senza canvas non resta un buco: si dipinge dritti sullo schermo,
     -- che sbordera' -- ma una macchia sul bordo e' meglio di una box vuota
@@ -3244,6 +3308,7 @@ do
   end
 
   -- on a phone that means several boxes at once, not one enormous one
+  optStore.grid = "big"
   withWindow(1080, 2160, function()
     local s = factory.new(fakeGame({}))
     local L = s.layout()
@@ -3252,12 +3317,34 @@ do
     -- quella dove la figura del Pokemon si disegna intera invece che
     -- dimezzata. Prima si spende la stanza per far vedere i Pokemon, poi
     -- per farne stare tante.
-    T.eq(L.cell, 56, "in pieno schermo la cella e' quella grande")
+    T.eq(L.cell, 56, "in pieno schermo con GRID BIG la cella e' quella grande")
     T.check((L.acrossN or 1) * (L.downN or 1) >= 2,
       "e su un telefono ci sta piu' di una box")
     T.check(L.acrossN >= 1 and L.downN >= L.acrossN,
       "in verticale: prima in orizzontale finche' ci stanno, poi in giu'")
   end)
+
+  -- GRID non viene piu' scavalcato: sceglie la CELLA, e quella domanda ha
+  -- due risposte anche su una superficie grande quanto lo schermo. Chi
+  -- sceglie CLASSIC e si vede celle da 56 legge l'opzione come rotta --
+  -- ed e' esattamente come e' stata segnalata.
+  optStore.grid = "classic"
+  withWindow(1080, 2160, function()
+    local s = factory.new(fakeGame({}))
+    local L = s.layout()
+    T.eq(L.cell, 28, "in pieno schermo GRID CLASSIC da' la cella piccola")
+    T.eq(L.panelW, 5 * 28 + 8, "e il pannello si stringe con lei")
+    T.eq(L.panelH, 4 * 28 + 24, "in altezza come in larghezza")
+    local big = withWindow(1080, 2160, function()
+      optStore.grid = "big"
+      local L2 = factory.new(fakeGame({})).layout()
+      optStore.grid = "classic"
+      return (L2.acrossN or 1) * (L2.downN or 1)
+    end)
+    T.check((L.acrossN or 1) * (L.downN or 1) > big,
+      "e con la cella piccola ci stanno piu' box che con quella grande")
+  end)
+  optStore.grid = "big"
 
   -- walking off a panel goes to the NEXT PANEL, and only past the last one
   -- does the page of boxes move. How many panels there are depends on the
@@ -3343,6 +3430,7 @@ do
   end)
 
   optStore.fullscreen = false
+  optStore.grid = nil
 end
 
 -- ------- MOVE MANY

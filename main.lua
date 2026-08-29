@@ -143,8 +143,9 @@ return function(mod)
     -- 5x4 panels as fit, across first and then down, each with its own name
     -- and its own wallpaper. The cursor walks between them.
     --
-    -- It overrides GRID rather than sitting beside it: a surface chosen
-    -- from the window is neither of the two fixed ones.
+    -- It sits BESIDE grid rather than overriding it: GRID picks the size
+    -- of a cell, and that question has two answers on any surface -- see
+    -- fullCell(). Overriding it was reported as the setting being broken.
     -- The WIP came off when the three things that earned it were done: the
     -- BOX MENU opens from every panel's own name, FIND and JUMP TO BOX
     -- bring their box onto the screen and under the cursor, and the party
@@ -272,7 +273,22 @@ return function(mod)
   -- first on the Pokemon being whole and sitting comfortably, and only then
   -- on showing more than one box.
   local FULL_CELL = 56
-  local PANEL_W, PANEL_H = 5 * FULL_CELL + 8, 4 * FULL_CELL + 24
+  -- ...and 28 when GRID says CLASSIC. Full screen used to override GRID
+  -- outright, on the reasoning that a surface chosen from the window is
+  -- neither of the two fixed layouts. True, and beside the point: what GRID
+  -- picks is the SIZE OF A CELL, and that question still has two answers on
+  -- any surface. Choosing CLASSIC and getting 56-pixel cells reads as the
+  -- setting being broken -- which is exactly how it was reported.
+  local function fullCell()
+    local ok, value = pcall(function() return mod.options:get("grid") end)
+    return (ok and value == "classic") and 28 or FULL_CELL
+  end
+
+  -- A panel is a 5x4 box at whatever that cell is, plus its own name row.
+  local function panelSize(cell)
+    return 5 * cell + 8, 4 * cell + 24
+  end
+  local PANEL_W, PANEL_H = panelSize(FULL_CELL)
 
   local function fullOn()
     local ok, value = pcall(function() return mod.options:get("fullscreen") end)
@@ -317,6 +333,8 @@ return function(mod)
     -- large as the engine will accept. A 405x900 phone lands on 256x576; the
     -- same phone turned sideways lands on 640x288, which is why the boxes go
     -- four across there and one across in the hand.
+    local cell = fullCell()
+    local panelW, panelH = panelSize(cell)
     local k = math.max(ww / MAX_W, wh / MAX_H, 1)
     local w = math.max(MIN_W, math.min(MAX_W, math.floor(ww / k)))
     local h = math.max(MIN_H, math.min(MAX_H, math.floor(wh / k)))
@@ -324,25 +342,26 @@ return function(mod)
     -- the shape of the screen would be 256 wide there, and a 5x56 box is
     -- 288. Widening past the window shape costs a thin band at the sides
     -- and buys a Pokemon you can see.
-    w = math.max(w, math.min(MAX_W, PANEL_W + 8))
+    w = math.max(w, math.min(MAX_W, panelW + 8))
     w, h = w - w % 8, h - h % 8
     -- whole tiles, because palette zones are addressed in tiles and a zone
     -- that starts mid-tile lands four pixels off its sprite
-    local acrossN = math.max(1, math.floor((w - 8) / PANEL_W))
-    local downN = math.max(1, math.floor((h - 20) / PANEL_H))
+    local acrossN = math.max(1, math.floor((w - 8) / panelW))
+    local downN = math.max(1, math.floor((h - 20) / panelH))
     return {
-      cell = FULL_CELL, scale = 1, w = w, h = h,
+      cell = cell, scale = 1, w = w, h = h,
       full = true, acrossN = acrossN, downN = downN,
+      panelW = panelW, panelH = panelH,
       -- the first panel's origin; the rest are laid out from it
-      gridX = math.floor((w - acrossN * PANEL_W) / 2) + 6,
+      gridX = math.floor((w - acrossN * panelW) / 2) + 6,
       gridY = 20,
       -- the party grid is PARTY_COLS wide, not six: the first version
       -- centred a six-column block that does not exist and left the six
       -- real cells sitting left of middle
-      partyX = math.floor((w - PARTY_COLS * FULL_CELL) / 2)
-        - (math.floor((w - PARTY_COLS * FULL_CELL) / 2) % 8),
-      partyY = math.floor((h - PARTY_ROWS * FULL_CELL) / 2)
-        - (math.floor((h - PARTY_ROWS * FULL_CELL) / 2) % 8),
+      partyX = math.floor((w - PARTY_COLS * cell) / 2)
+        - (math.floor((w - PARTY_COLS * cell) / 2) % 8),
+      partyY = math.floor((h - PARTY_ROWS * cell) / 2)
+        - (math.floor((h - PARTY_ROWS * cell) / 2) % 8),
     }
   end
 
@@ -1209,9 +1228,31 @@ return function(mod)
         local okDim, iw, ih = pcall(function()
           return img:getWidth(), img:getHeight()
         end)
-        if okDim and iw and iw > 0 then
-          local scale = math.max(1, math.floor(h / ih))
+        if okDim and iw and iw > 0 and ih and ih > 0 then
+          -- COVER the rectangle, never fit inside it.
+          --
+          -- This was `floor(h / ih)`, which is right only when the target is
+          -- a whole number of strips tall. A FULL SCREEN panel is 244, a
+          -- strip is 144, and floor answers 1: the painted scene drew its
+          -- 144 rows at the top of the panel and left a hundred rows of
+          -- white below it, in every panel, on every box wearing an
+          -- artist's wallpaper. The drawn patterns never showed it because
+          -- they are told the size and fill it.
+          --
+          -- So: the smallest whole scale that COVERS the height, bumped
+          -- again if that still leaves the width short. Whole numbers only,
+          -- for the same reason as ever -- this is pixel art.
+          local scale = math.max(1, math.ceil(h / ih))
           local span = iw * scale
+          if span < w then
+            scale = math.max(scale, math.ceil(w / iw))
+            span = iw * scale
+          end
+          -- and the crop is taken from the MIDDLE of the picture, the way
+          -- the horizontal one is: a scene scaled to cover is taller than
+          -- the frame, and the artist did not paint the sky to be the only
+          -- thing you see
+          local oy = math.floor((ih * scale - h) / 2)
           -- speed 0 is a layer that must not move: the buildings, the
           -- rock, the ground. Only what loops is allowed to slide.
           --
@@ -1244,7 +1285,7 @@ return function(mod)
             love.graphics.setColor(1, 1, 1, 1)
             local x = -ox
             while x < w do
-              love.graphics.draw(img, x, 0, 0, scale, scale)
+              love.graphics.draw(img, x, -oy, 0, scale, scale)
               x = x + span
             end
           end)
@@ -2385,15 +2426,23 @@ return function(mod)
   -- canvas cannot be had the scene is painted straight to the screen as
   -- it always was -- spilling over the border is a blemish, and a blemish
   -- is better than a blank box.
-  local paperSurface = nil
+  -- Kept per SIZE, not one at a time. A full-screen frame paints the
+  -- backdrop at the canvas size, each panel at the panel size and the peek
+  -- strip at a third -- so a single-slot cache threw its canvas away and
+  -- built a new one three times a frame, for ever. Four sizes is every
+  -- shape one frame asks for, and a fifth evicts the lot rather than
+  -- growing without end.
+  local paperSurfaces, paperSurfaceN = {}, 0
   local function surfaceFor(w, h)
-    if paperSurface and paperSurface.w == w and paperSurface.h == h then
-      return paperSurface.canvas or nil
-    end
+    local key = w .. "x" .. h
+    local hit = paperSurfaces[key]
+    if hit ~= nil then return hit or nil end
+    if paperSurfaceN >= 4 then paperSurfaces, paperSurfaceN = {}, 0 end
     local ok, made = pcall(love.graphics.newCanvas, w, h)
     local canvas = (ok and made) or false
     if canvas then pcall(canvas.setFilter, canvas, "nearest", "nearest") end
-    paperSurface = { w = w, h = h, canvas = canvas }
+    paperSurfaces[key] = canvas
+    paperSurfaceN = paperSurfaceN + 1
     return canvas or nil
   end
 
@@ -2759,7 +2808,8 @@ return function(mod)
     local function panelOrigin(L, p)
       local across = L.acrossN or 1
       local c, r = p % across, math.floor(p / across)
-      return L.gridX + c * PANEL_W, L.gridY + r * PANEL_H
+      return L.gridX + c * (L.panelW or PANEL_W),
+             L.gridY + r * (L.panelH or PANEL_H)
     end
 
     -- which box a panel is showing: the page starts at pageBox and runs on
@@ -4081,6 +4131,56 @@ return function(mod)
       pcall(paletteFX.markTrueColor, x, y, w, h)
     end
 
+    -- ------- when the surface has opted out of the remap
+    --
+    -- True exactly when sgbPalettes emits its base zone as trueColor and
+    -- therefore emits NO per-cell zones: a Gen 1 boot, a layout whose cells
+    -- land on the tile grid, and a scene actually drawn under them. Those
+    -- are the cells whose colours have to travel with the picture instead
+    -- (see "ON A SCENE THERE ARE NO PER-CELL ZONES" in sgbPalettes).
+    --
+    -- The two conditions are written out rather than shared with that
+    -- function because they are asked at different times -- zones before
+    -- the frame, this during it -- and a cached answer between them would
+    -- be a third thing to keep true.
+    local function remapOff()
+      if isGen2(game) then return false end
+      local L = layout(game)
+      if L.cell % 8 ~= 0 or L.gridX % 8 ~= 0 or L.gridY % 8 ~= 0
+         or L.partyX % 8 ~= 0 or L.partyY % 8 ~= 0 then
+        return false
+      end
+      if self.mode ~= "box" and not L.full then return false end
+      local paper = paperOf(game.save.currentBox)
+      if self.mode == "box" and self.paperPick then
+        paper = WALLPAPER_BY_ID[self.paperPick.id] or paper
+      end
+      if not (paper and paper.palette) then return false end
+      local okFX, FX = pcall(require, "src.render.PaletteFX")
+      return okFX and type(FX.trueColorZone) == "function" or false
+    end
+    self.remapOff = remapOff
+
+    -- the species' four colours put on the PICTURE, the same table the zone
+    -- pass would have sent, and only when this screen has taken the zones
+    -- away. No shader, no colours: DMG greys, which is what CLASSIC has
+    -- always drawn.
+    local function paintPic(img, dx, dy, k, species)
+      local g = love.graphics
+      local sh = nil
+      local okFX, FX = pcall(require, "src.render.PaletteFX")
+      if okFX and species and type(FX.shader) == "function" then
+        local colors = FX.monPal(game.data, species)
+        local ok, made = pcall(FX.shader)
+        if colors and ok and made then
+          local sent = pcall(FX.sendColors, made, colors)
+          if sent and pcall(g.setShader, made) then sh = made end
+        end
+      end
+      pcall(g.draw, img, dx, dy, 0, k, k)
+      if sh then pcall(g.setShader) end
+    end
+
     local function drawPic(mon, x, y)
       local L = layout(game)
       local chosen = spriteToDraw(mon)
@@ -4098,7 +4198,12 @@ return function(mod)
       local k = picScale(img, L.cell)
       local w, h = img:getWidth() * k, img:getHeight() * k
       local dx, dy = x + (L.cell - w) / 2, y + (L.cell - h) / 2
-      love.graphics.draw(img, dx, dy, 0, k, k)
+      -- coloured art is drawn as it is: a shade remap is what RUINS it,
+      -- which is the whole reason markTrueColor exists two lines down
+      local remap = self.remapNow
+      if remap == nil then remap = remapOff() end
+      local species = (not chosen.trueColor) and remap and mon.species or nil
+      paintPic(img, dx, dy, k, species)
       if chosen.trueColor then markTrueColor(dx, dy, w, h) end
     end
 
@@ -4208,7 +4313,12 @@ return function(mod)
       -- keep working under it. Only the box pane has a wallpaper; the party
       -- pane keeps plain GRAYS, and PLAIN itself carries no palette at all,
       -- so a box nobody has touched renders exactly what 1.5.2 rendered.
-      local paper = self.mode == "box" and paperOf(game.save.currentBox) or nil
+      -- and in FULL SCREEN the party pane wears the cursor box's scene too
+      -- (see the party branch of self:draw), so the opt-out has to follow it
+      -- there or that scene is flattened onto four greys -- the 1.10.1 bug,
+      -- in the one pane nobody re-checked after fixing it.
+      local paper = (self.mode == "box" or L.full)
+        and paperOf(game.save.currentBox) or nil
       if self.mode == "box" and self.paperPick then
         -- the chooser previews on the background, so the palette has to
         -- follow the cursor too or the preview is drawn under the saved
@@ -4238,6 +4348,28 @@ return function(mod)
           0, 0, L.w / 8 - 1, L.h / 8 - 1),
       }
 
+      -- ------- ON A SCENE THERE ARE NO PER-CELL ZONES
+      --
+      -- A zone is a RECTANGLE, and the shade remap inside it reads the red
+      -- channel: a pale sky is r > 0.83 and lands on shade 0, which in a
+      -- species palette is white. So a cell with a Pokemon in it had its
+      -- WALLPAPER repainted -- white where the scene was light, the
+      -- species' own colours where it was dark -- while the empty cell
+      -- beside it kept the picture. The Pokedex shipped the same mistake
+      -- and it was reported there first, as a white card under every caught
+      -- Pokemon; it is the same bug on the same day.
+      --
+      -- The picture is innocent: a ripped front pic has its border white
+      -- flood-filled to alpha 0 (ImageWriter.matteColor0), so nothing but
+      -- the Pokemon is drawn. So the remap moves onto the picture itself --
+      -- drawPic sends the species' colours through PaletteFX.shader() for
+      -- exactly the cells that used to get a zone -- and the scene between
+      -- and behind the cells is left alone, which is the whole point of
+      -- having painted it.
+      --
+      -- With no scene (PLAIN, the party pane outside full screen) the base
+      -- zone is a real palette, the surface IS being remapped, and the
+      -- per-cell zones are still the only way a Pokemon gets its colours.
       -- A CEILING on the coloured cells.
       --
       -- Every zone is a blit of the whole canvas, scissored: twenty-one of
@@ -4264,27 +4396,29 @@ return function(mod)
       -- drawn at a time -- so emitting zones for both painted the party's
       -- palettes in stripes across the box grid, which is exactly what the
       -- first BIG screenshot showed.
-      if self.mode == "box" then
-        if L.full then
-          -- every panel on screen, in reading order, until the ceiling
-          for p = 0, (L.acrossN or 1) * (L.downN or 1) - 1 do
-            add(game.save.boxes[panelBox(p)] or {}, "box", p)
+      if not bare then
+        if self.mode == "box" then
+          if L.full then
+            -- every panel on screen, in reading order, until the ceiling
+            for p = 0, (L.acrossN or 1) * (L.downN or 1) - 1 do
+              add(game.save.boxes[panelBox(p)] or {}, "box", p)
+            end
+          else
+            add(boxList(game), "box")
           end
         else
-          add(boxList(game), "box")
+          add(game.save.party, "party")
         end
-      else
-        add(game.save.party, "party")
-      end
-      -- the one on the cursor is drawn where the cursor is, so it needs its
-      -- own zone or it wears whatever the cell under it is wearing
-      if self.held and self.held.mon then
-        local colors = PaletteFX.monPal(game.data, self.held.mon.species)
-        if colors then
-          local x, y = cellRect(self.row * cols() + self.col)
-          local tx, ty = x / 8, y / 8
-          zones[#zones + 1] =
-            PaletteFX.zone(colors, tx, ty, tx + tiles - 1, ty + tiles - 1)
+        -- the one on the cursor is drawn where the cursor is, so it needs
+        -- its own zone or it wears whatever the cell under it is wearing
+        if self.held and self.held.mon then
+          local colors = PaletteFX.monPal(game.data, self.held.mon.species)
+          if colors then
+            local x, y = cellRect(self.row * cols() + self.col)
+            local tx, ty = x / 8, y / 8
+            zones[#zones + 1] =
+              PaletteFX.zone(colors, tx, ty, tx + tiles - 1, ty + tiles - 1)
+          end
         end
       end
       -- the marking window, last, so it draws in clean greys over whichever
@@ -4480,6 +4614,10 @@ return function(mod)
     function self:draw()
       love.graphics.clear(1, 1, 1, 1)
       love.graphics.setColor(0, 0, 0, 1)
+      -- asked ONCE a frame rather than once a cell: the answer reads the
+      -- layout, the options and the save, and full screen draws up to a
+      -- hundred and sixty cells
+      self.remapNow = remapOff()
 
       -- The wallpaper covers the WHOLE surface, and everything else is drawn
       -- on top of it -- that is what makes this a box that is somewhere,
@@ -4531,8 +4669,19 @@ return function(mod)
           -- what its owner chose, which is the whole point of a wallpaper
           -- per box -- and the preview under the chooser follows the panel
           -- the cursor is in, not all of them.
+          -- the panel is as big as the cell GRID asked for, so its size
+          -- comes off the layout rather than off a constant
+          local PW, PH = L.panelW or PANEL_W, L.panelH or PANEL_H
+          -- Behind everything, the CURSOR'S OWN scene over the whole
+          -- surface. The panels never tile the canvas exactly -- a phone
+          -- leaves a margin at the sides, a wider cell leaves one at the
+          -- foot -- and that leftover used to be painted white, which is
+          -- the "bande bianche antiestetiche" complaint moved from the
+          -- header to the border. A scene there costs one more paint and
+          -- makes the margin read as the room the boxes are sitting in.
           love.graphics.setColor(1, 1, 1, 1)
           love.graphics.rectangle("fill", 0, 0, L.w, L.h)
+          drawWallpaper(paper, L.w, L.h, style, self.paperTick)
           for p = 0, panelsShown(L) - 1 do
             local ox, oy = panelOrigin(L, p)
             local boxNum = panelBox(p)
@@ -4546,7 +4695,7 @@ return function(mod)
             local okDraw = pcall(function()
               love.graphics.push()
               love.graphics.translate(ox - 4, oy)
-              drawWallpaper(pPaper, PANEL_W - 4, PANEL_H - 4, pStyle,
+              drawWallpaper(pPaper, PW - 4, PH - 4, pStyle,
                 self.paperTick)
               love.graphics.pop()
             end)
@@ -4564,22 +4713,22 @@ return function(mod)
             local shown = panelsShown(L)
             local nextBox = panelBox(shown)
             local lastX, lastY = panelOrigin(L, shown - 1)
-            local restY = lastY + PANEL_H
-            local restX = lastX + PANEL_W
+            local restY = lastY + PH
+            local restX = lastX + PW
             local room = L.h - restY - 12
             if room >= 20 then
               -- portrait: the top rows of the next box, cut off below
               local okPeek = pcall(function()
                 love.graphics.push()
                 love.graphics.translate(L.gridX - 4, restY)
-                drawWallpaper(paperOf(nextBox), PANEL_W - 4, room,
+                drawWallpaper(paperOf(nextBox), PW - 4, room,
                   artOf(nextBox), self.paperTick)
                 love.graphics.pop()
               end)
               if not okPeek then pcall(love.graphics.pop) end
               local cells = game.save.boxes[nextBox] or {}
               caption(fitTo(Strings("%s %d/%d", boxName(nextBox), #cells,
-                Boxes.CAPACITY), PANEL_W - 8), L.gridX, restY)
+                Boxes.CAPACITY), PW - 8), L.gridX, restY)
               for c = 0, COLS - 1 do
                 local x = L.gridX + c * L.cell
                 local y = restY + 14
@@ -4597,7 +4746,7 @@ return function(mod)
               local okPeek = pcall(function()
                 love.graphics.push()
                 love.graphics.translate(restX, L.gridY)
-                drawWallpaper(paperOf(nextBox), L.w - restX, PANEL_H,
+                drawWallpaper(paperOf(nextBox), L.w - restX, PH,
                   artOf(nextBox), self.paperTick)
                 love.graphics.pop()
               end)
@@ -4791,7 +4940,7 @@ return function(mod)
           -- each panel says which box it is and how full, over its own grid
           local name = Strings("%s %d/%d", boxName(boxNum), #cells,
             Boxes.CAPACITY)
-          local shown = fitTo(name, PANEL_W - 8)
+          local shown = fitTo(name, (L.panelW or PANEL_W) - 8)
           caption(shown, ox, oy)
           -- the cursor on a name: the same outline the single-box header
           -- uses, around this panel's own title, so "where am I" has an
