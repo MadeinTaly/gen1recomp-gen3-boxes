@@ -48,6 +48,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
+      # The check above and the publish below are not one instant apart, and
+      # a release made by hand in between used to fail the job outright --
+      # "a release with the same tag name already exists", red run, nothing
+      # wrong with the mod. Publishing is idempotent now: if the tag turned
+      # up while this was packing, the archive is uploaded to it instead.
+
       # The archive is built by the engine's own packer rather than by zipping
       # the checkout: pack runs validate --strict, honours .modkitignore, and
       # writes a reproducible archive. A hand-rolled zip would ship the test
@@ -98,10 +104,18 @@ jobs:
             *-*) pre="--prerelease" ;;
             *)   pre="" ;;
           esac
-          gh release create "v${{ steps.mod.outputs.version }}" \
-            "${{ steps.mod.outputs.asset }}" \
-            --title "${{ steps.mod.outputs.id }} ${{ steps.mod.outputs.version }}" \
-            --notes "${notes:-See CHANGELOG.md}" \
-            $pre
+          tag="v${{ steps.mod.outputs.version }}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            # it appeared while this job was packing: upload to it rather
+            # than failing a run that did nothing wrong
+            echo "$tag already exists; uploading the packed archive to it."
+            gh release upload "$tag" "${{ steps.mod.outputs.asset }}" --clobber
+          else
+            gh release create "$tag" \
+              "${{ steps.mod.outputs.asset }}" \
+              --title "${{ steps.mod.outputs.id }} ${{ steps.mod.outputs.version }}" \
+              --notes "${notes:-See CHANGELOG.md}" \
+              $pre
+          fi
         env:
           GH_TOKEN: ${{ github.token }}
