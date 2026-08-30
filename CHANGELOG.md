@@ -1,5 +1,66 @@
 # Changelog
 
+## 1.21.4 -- the marking window works, and the notes stop interrupting
+
+**The notes popup opened when it had nothing to say.** The gate was
+`newsSeen() ~= NEWS_VERSION` -- DIFFERENT-FROM, where it should have been
+OLDER-THAN. Different is true in both directions, so a save carrying a
+*newer* stamp than the build it is running -- anybody who tried a prerelease
+and went back to stable, or installed an older build on purpose -- reopened
+the panel and was told about features that build does not have. It is
+`olderThan` now (`main.lua:4678-4711`), which is false going backwards.
+
+The rule this panel follows is written down where it can be read before the
+next bump: **it opens on a first install, and on an update that actually
+carries the thing it describes.** `NEWS_VERSION` is not the manifest's
+version and must never be wired to it -- it is the version that last changed
+what the mod DOES. 1.21.1, 1.21.2, 1.21.3 and this release all sit behind
+`NEWS_VERSION 1.21.0`, so none of them interrupts anybody: fixing a bug is
+not news.
+
+A test pins all of it, including the case this release exists to fix (`a
+newer stamp does NOT reopen the panel`) and the rule itself -- the suite
+fails if `NEWS_VERSION` is ever set equal to the shipped version.
+
+**The suite carried the same trap and it went off.** Both test files copied
+the mod's `NEWS_VERSION` into a literal of their own. The dex's copy parted
+from the mod the moment its constant moved, the popup opened in every screen
+the file builds, and seven checks failed in places that have nothing to do
+with release notes. Both files now stamp a far-future version instead, which
+survives any bump precisely because the check is older-than.
+
+Two faults in the same panel, reported together as "la MARK MODE non
+funziona, nel menu non c'e' cursore". Both were real, and both were in the
+window itself rather than in the mode that opens it.
+
+**DOWN did nothing.** PLAN.md specified the marking window as a ROW of four
+symbols and gave it LEFT and RIGHT (`marking window | LEFT / RIGHT, A, B`).
+`drawMarkWindow` draws the four names STACKED, one per line, `rowY + 10` at a
+time. The drawing moved to a column and the keys stayed on a row, so the
+press anybody actually makes on a vertical list moved nothing at all -- and a
+panel that ignores the obvious key reads as a dead panel, which is exactly
+how it was reported. Both axes work now (`main.lua:3512-3518`). The vertical
+pair is the honest one because the list is vertical; the horizontal pair is
+kept because somebody learned it in 1.6.0.
+
+**The selected row wore a rectangle, not the arrow.** The chosen line was
+marked by ruling a thin black box around its text -- on a white panel, beside
+black text, which is not a cursor but a border. Every other menu in this game
+marks its row with `Theme.cursor` through `Font.drawCode`, ListMenu included
+(`src/ui/ListMenu.lua:371`), and so does this window now, in the left margin
+with the text moved one glyph in to make room (`main.lua:4869-4880`). The old
+outline is kept for a boot where `src.ui.Theme` did not load, since a border
+beats no mark at all.
+
+Both are covered by tests that go red without the fix -- `DOWN moves to the
+second symbol` and `exactly one arrow is drawn in the marking window`, the
+latter failing `got 0, want 1` on the old code, which is the bug stated as a
+number. The suite is 462 checks.
+
+Nothing else changed: MARK MODE itself toggled correctly all along, the
+footer said `MARK MODE B:DONE` all along, and A on a Pokemon opened the
+window all along. What was broken was what happened next.
+
 ## 1.21.3 -- every Unown was an A (#7)
 
 Reported with a video from the Ruins of Alph: a box of Unown, every one of

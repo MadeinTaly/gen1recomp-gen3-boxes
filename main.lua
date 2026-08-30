@@ -65,6 +65,11 @@ return function(mod)
   local Boxes = require("src.pokemon.Boxes")
   local Party = require("src.pokemon.Party")
   local Font = require("src.render.Font")
+  -- The cursor is a glyph CODE, not a character: ">" is not in the game's
+  -- charmap, so a hand-drawn menu that wants the same arrow every other
+  -- screen shows has to ask Theme for it and draw it with drawCode.
+  local okTheme, Theme = pcall(require, "src.ui.Theme")
+  if not okTheme then Theme = nil end
   local Assets = require("src.render.Assets")
   -- The per-instance art seam: Sprites.path raises `pokemon.sprite` with the
   -- live mon in its ctx, which is how a shiny tells itself apart from an
@@ -352,9 +357,27 @@ return function(mod)
       cell = cell, scale = 1, w = w, h = h,
       full = true, acrossN = acrossN, downN = downN,
       panelW = panelW, panelH = panelH,
-      -- the first panel's origin; the rest are laid out from it
-      gridX = math.floor((w - acrossN * panelW) / 2) + 6,
-      gridY = 20,
+      -- The first panel's origin; the rest are laid out from it.
+      --
+      -- BOTH are rounded to a whole tile, and that is not tidiness. The
+      -- palette pass refuses to emit a single zone unless every one of
+      -- cell, gridX, gridY, partyX and partyY is a multiple of 8 (see
+      -- sgbPalettes, and remapOff which repeats the test) -- a zone is
+      -- addressed in TILES, so an origin off the tile grid would colour a
+      -- rectangle that does not line up with the picture inside it.
+      --
+      -- `gridY` was 20 and `gridX` carried a `+ 6`, so neither was ever a
+      -- multiple of 8 and full screen ALWAYS failed that test. No zones,
+      -- and remapOff false as well, which is `species = nil` into paintPic:
+      -- every battle pic on the biggest surface this mod offers was drawn
+      -- in four DMG greys. It looked like the wallpaper had eaten the
+      -- colour. GRID BIG was never affected because its gridY is 32.
+      --
+      -- Overworld sprites hid it: they are the mod's own colour art, they
+      -- never wanted a zone, and a screen full of them looks perfectly
+      -- right while every battle pic beside it is grey.
+      gridX = math.floor(((w - acrossN * panelW) / 2 + 6) / 8) * 8,
+      gridY = 24,
       -- the party grid is PARTY_COLS wide, not six: the first version
       -- centred a six-column block that does not exist and left the six
       -- real cells sitting left of middle
@@ -1039,16 +1062,16 @@ return function(mod)
       local replaced = type(resolved) == "string" and resolved ~= def.spriteFront
       if replaced or not formPath then
         local img = tryPath(resolved)
-        if img then return img, trueColor and true or false end
+        if img then return img, trueColor and true or false, resolved end
       end
     end
     if formPath then
       local img = tryPath(formPath)
-      if img then return img, def.trueColor and true or false end
+      if img then return img, def.trueColor and true or false, formPath end
       -- the form exists but its file does not: the hook's answer is still
       -- better than nothing
       local hooked = okPath and tryPath(resolved) or nil
-      if hooked then return hooked, trueColor and true or false end
+      if hooked then return hooked, trueColor and true or false, resolved end
     end
 
     -- 2. The species record: an older engine with no seam, a wrapper that
@@ -1056,7 +1079,66 @@ return function(mod)
     --    means a Crystal-sprites mod's replacement art still shows up here,
     --    rather than this screen pinning the vanilla PNG. A record that
     --    carries its own art carries its own `trueColor` with it.
-    return tryPath(def.spriteFront), def.trueColor and true or false
+    return tryPath(def.spriteFront), def.trueColor and true or false, def.spriteFront
+  end
+
+  -- ------- A POKEMON IN THE BOX BREATHES (GRID BIG)
+  --
+  -- The same seam the dex uses, and for the same reason. Sprite packs that
+  -- animate -- crystal_animated_sprites_with_shiny_visuals is the one this
+  -- was written against -- keep one folder per species and number the frames
+  -- inside it, `.../front/normal/25/001.png`. `pokemon.sprite` hands back a
+  -- single path and always answers frame one (src/pokemon/Sprites.lua
+  -- returns a string, never a list), but that path is the map: the frames
+  -- beside it are the same name with the next number, found by asking until
+  -- the answer is no.
+  --
+  -- Nothing here knows the pack's name or its layout, so any pack that
+  -- numbers its frames animates, and art with no siblings -- the ROM's own
+  -- pictures -- has no second frame and stays exactly as still as before.
+  -- The fallback is not a branch: "no sibling" and "no pack" are one answer.
+  --
+  -- The run must START at 1. A ROM sprite whose name ends in digits would
+  -- otherwise walk from `025.png` into `026.png`, which is the NEXT SPECIES'
+  -- picture, and animate a Pikachu into a Raichu.
+  --
+  -- Cached by PATH rather than by species: two mons of one species share the
+  -- frames, and a shiny -- whose hook answers a different path -- gets its
+  -- own set without asking for them twice.
+  -- ONE name reaches the screen, and that is not tidiness either: LuaJIT
+  -- allows a function 60 upvalues and the screen closure is already near
+  -- the line. A first cut exported the cache and two constants as well and
+  -- pushed it over -- "function at line 2643 has more than 60 upvalues",
+  -- which is not a warning, it is the mod failing to load at all. So the
+  -- constants and the cache live in here, the frame arithmetic comes with
+  -- them, and the caller asks one question: which picture, right now.
+  local animFrameFor
+  do
+    local ANIM_MAX = 64    -- a bad match stops here rather than never
+    local ANIM_EVERY = 6   -- logic steps per sprite frame, about 10fps
+    local cache = {}
+    function animFrameFor(path, firstImg, tick)
+      if type(path) ~= "string" or not firstImg then return firstImg end
+      local frames = cache[path]
+      if frames == nil then
+        local dir, num, ext = path:match("^(.*[/\\])(%d+)(%.[%a%d]+)$")
+        if not dir or tonumber(num) ~= 1 then
+          cache[path] = false
+          return firstImg
+        end
+        local pattern = "%s%0" .. #num .. "d%s"
+        frames = { firstImg }
+        for i = 2, ANIM_MAX do
+          local ok, img = pcall(Assets.image, pattern:format(dir, i, ext))
+          if not (ok and img) then break end
+          frames[#frames + 1] = img
+        end
+        if #frames < 2 then frames = false end
+        cache[path] = frames
+      end
+      if not frames then return firstImg end
+      return frames[1 + math.floor((tick or 0) / ANIM_EVERY) % #frames]
+    end
   end
 
   -- ------- marks (Gen 3's CIRCLE/SQUARE/TRIANGLE/HEART)
@@ -2640,7 +2722,19 @@ return function(mod)
 
     function self:drawWidescreen(winW, winH)
       local L = layout(game)
-      local scale = math.max(1, math.floor(math.min(winW / L.w, winH / L.h)))
+      -- FULL fills; BIG stays on whole pixels.
+      --
+      -- Flooring the ratio is right for BIG, a fixed 320x288 that wants
+      -- crisp whole pixels. It is wrong for FULL, whose size is already
+      -- chosen to suit the window: fullLayout answers a whole number of
+      -- PANELS, so on a 405-wide window it returns 296 -- a ratio of 1.37,
+      -- floored to 1. Gold then drew the screen at life size in the middle
+      -- of the window with a white band down each side, while Gen 1 -- where
+      -- the same layout goes through uiSize() and the renderer fits it --
+      -- filled the glass. Same option, same layout, two different pictures,
+      -- and the reason was this one floor.
+      local fit = math.min(winW / L.w, winH / L.h)
+      local scale = L.full and fit or math.max(1, math.floor(fit))
       local ox = math.floor((winW - L.w * scale) / 2)
       local oy = math.floor((winH - L.h * scale) / 2)
       love.graphics.push()
@@ -3500,12 +3594,21 @@ return function(mod)
       self.markWindow = { mon = mon, cursor = 1 }
     end
 
+    -- UP and DOWN as well as LEFT and RIGHT.
+    --
+    -- PLAN.md specified this window as a ROW of four symbols and gave it
+    -- LEFT/RIGHT, but drawMarkWindow draws the four names STACKED, one per
+    -- line. The drawing moved and the keys did not, so the obvious press --
+    -- DOWN, on a vertical list -- did nothing at all, and the window read
+    -- as a dead panel. Both axes work now: the list is vertical, so the
+    -- vertical keys are the honest ones, and the horizontal pair is kept
+    -- because a player who learned them in 1.6.0 should not lose them.
     local function updateMarkWindow()
       local input = game.input
       local win = self.markWindow
-      if input:wasPressed("left") then
+      if input:wasPressed("left") or input:wasPressed("up") then
         win.cursor = win.cursor > 1 and win.cursor - 1 or #MARK_ORDER
-      elseif input:wasPressed("right") then
+      elseif input:wasPressed("right") or input:wasPressed("down") then
         win.cursor = win.cursor < #MARK_ORDER and win.cursor + 1 or 1
       elseif input:wasPressed("a") then
         local name = MARK_ORDER[win.cursor]
@@ -4134,8 +4237,18 @@ return function(mod)
           return { kind = "ow", sprite = sprite, trueColor = sprite.trueColor }
         end
       end
-      local img, trueColor = picOf(game, mon)
-      if img then return { kind = "battle", img = img, trueColor = trueColor } end
+      local img, trueColor, path = picOf(game, mon)
+      if img then
+        -- The pack's own animation, on the surface that has room for it.
+        -- CLASSIC's cell is 28 -- a battle pic is drawn halved there, and a
+        -- twenty-cell grid of half-size animations is motion nobody asked
+        -- for -- so this is BIG and full screen only, which is where the
+        -- picture is shown at the size it was drawn.
+        if layout(game).cell > LAYOUT.classic.cell then
+          img = animFrameFor(path, img, self.paperTick)
+        end
+        return { kind = "battle", img = img, trueColor = trueColor }
+      end
       return nil
     end
     self.spriteToDraw = spriteToDraw
@@ -4662,6 +4775,43 @@ return function(mod)
       return ok and value or nil
     end
 
+    -- ------- WHEN THE PANEL IS ALLOWED TO OPEN ITSELF
+    --
+    -- Two cases, and only two: a FIRST INSTALL, and an update that actually
+    -- carries the thing the panel talks about. Everything else stays quiet.
+    --
+    -- NEWS_VERSION is NOT the manifest's version and must never be wired to
+    -- it. It is the version that last changed what the mod DOES, so a
+    -- release that fixes a bug or repaints something leaves it alone and
+    -- nobody is interrupted -- 1.21.1 through 1.21.4 all sit behind
+    -- NEWS_VERSION 1.21.0 for exactly that reason. Bump it when a page here
+    -- describes something a player can now do and could not before.
+    --
+    -- The comparison is OLDER-THAN, not DIFFERENT-FROM. `~=` was the bug:
+    -- a save carrying a newer stamp than the build it is running -- somebody
+    -- who tried a prerelease and went back to stable, or installed an older
+    -- build on purpose -- differs from NEWS_VERSION, so the panel opened and
+    -- announced features that the running build does NOT have. Older-than is
+    -- false in that direction, so going back is silent.
+    local function olderThan(seen, target)
+      if seen == nil or seen == "" then return true end -- first install
+      if seen == target then return false end
+      local function parts(v)
+        local out = {}
+        -- a prerelease ("1.9.3-beta.1") compares on its release numbers; the
+        -- tail is dropped rather than parsed, since the panel only ever asks
+        -- "is there something new here", not which build of it
+        for n in tostring(v):gmatch("%d+") do out[#out + 1] = tonumber(n) end
+        return out
+      end
+      local a, b = parts(seen), parts(target)
+      for i = 1, math.max(#a, #b) do
+        local x, y = a[i] or 0, b[i] or 0
+        if x ~= y then return x < y end
+      end
+      return false
+    end
+
     local function closeNews()
       self.news = nil
       pcall(function() mod.save:set("newsSeen", NEWS_VERSION) end)
@@ -4678,7 +4828,8 @@ return function(mod)
     -- armed here rather than on the first draw: a screen that has been
     -- opened is a screen that has been seen, and the alternative -- arming
     -- inside draw -- runs again every frame
-    if newsSeen() ~= NEWS_VERSION then openNews() end
+    if olderThan(newsSeen(), NEWS_VERSION) then openNews() end
+    self.newsOlderThan = olderThan
 
     -- The panel is written in CLASSIC pixels and drawn at whole scale, so
     -- BIG and full screen get the SAME page twice as big rather than the
@@ -4855,13 +5006,25 @@ return function(mod)
       love.graphics.rectangle("fill", x, y, w, h)
       love.graphics.setColor(0, 0, 0, 1)
       outline(x, y, w, h)
+      -- The chosen row wears the game's own arrow, in the left margin,
+      -- exactly where ListMenu puts it (src/ui/ListMenu.lua:371). A box
+      -- ruled around the text was what this drew before, and a thin black
+      -- rectangle on a white panel beside black text is not a cursor --
+      -- it reads as a border, and the window looked like it had no
+      -- selection at all. The text starts one glyph further in to make
+      -- room for it, and the outline is kept as a fallback for a boot
+      -- where Theme did not load.
       local rowY = y + 4
       for i, name in ipairs(MARK_ORDER) do
         local text = fitTo((getMark(win.mon, name) and "*" or " ") .. Strings(name),
-          w - 16)
-        Font.draw(text, x + 8, rowY)
+          w - 24)
+        Font.draw(text, x + 16, rowY)
         if i == win.cursor then
-          outline(x + 4, rowY - 1, Font.width(text) + 6, 10)
+          if Theme and Theme.cursor then
+            Font.drawCode(Theme.cursor, x + 6, rowY)
+          else
+            outline(x + 4, rowY - 1, Font.width(text) + 14, 10)
+          end
         end
         rowY = rowY + 10
       end
@@ -5003,6 +5166,19 @@ return function(mod)
             local okDraw = pcall(function()
               love.graphics.push()
               love.graphics.translate(ox - 4, oy)
+              -- White under the panel FIRST, or a PLAIN box is not plain.
+              -- drawWallpaper returns without painting anything on PLAIN
+              -- (line 2542), so a box nobody has given a scene to used to
+              -- let the whole-surface scene behind it -- the CURSOR's box,
+              -- painted over everything a few lines up -- show straight
+              -- through: four boxes on screen, one wallpaper chosen, and
+              -- the other three wearing box 1's sea. Each panel is its own
+              -- opaque rectangle now, so a panel shows what its owner
+              -- picked and nothing else. The margins around the panels are
+              -- still the cursor's scene, which is the part that was meant.
+              love.graphics.setColor(1, 1, 1, 1)
+              love.graphics.rectangle("fill", 0, 0, PW - 4, PH - 4)
+              love.graphics.setColor(0, 0, 0, 1)
               drawWallpaper(pPaper, PW - 4, PH - 4, pStyle,
                 self.paperTick)
               love.graphics.pop()

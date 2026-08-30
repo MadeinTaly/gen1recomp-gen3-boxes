@@ -25,8 +25,18 @@ T.eq(#run.errors, 0, "loads clean (" .. tostring(run.errors[1]) .. ")")
 run.loader.modSave = run.loader.modSave or {}
 run.loader.modSave.gen3_box = run.loader.modSave.gen3_box or {}
 local newsStore = run.loader.modSave.gen3_box
-local NEWS_VERSION = "1.21.0"
-newsStore.newsSeen = NEWS_VERSION
+-- The stamp does NOT copy the mod's constant. Copying it glues this file to
+-- one version: the first NEWS_VERSION bump parts the two, the popup opens in
+-- every screen built here and eats every keypress, and tests blow up in
+-- places that have nothing to do with release notes. That is exactly what
+-- happened to the dex suite on the way to 0.18.0.
+--
+-- A FUTURE stamp survives any bump instead: the check is OLDER-THAN, so a
+-- save newer than the build never reopens the panel. The block at the bottom
+-- unsets it to test the popup for real, and there is a test devoted to the
+-- rule about when it is allowed to open.
+local NEWS_SEEN_FUTURE = "99999.0.0"
+newsStore.newsSeen = NEWS_SEEN_FUTURE
 
 -- ------- the screen exists and is the mod's own
 
@@ -351,7 +361,7 @@ do
   -- di rilascio risultano gia' lette, o il popup si prende i tasti
   gen2Run.loader.modSave = gen2Run.loader.modSave or {}
   gen2Run.loader.modSave.gen3_box = gen2Run.loader.modSave.gen3_box or {}
-  gen2Run.loader.modSave.gen3_box.newsSeen = NEWS_VERSION
+  gen2Run.loader.modSave.gen3_box.newsSeen = NEWS_SEEN_FUTURE
 
   local gen2Game = fakeGame({}, { mon("FIXMON_A", 1), mon("FIXMON_B", 2) }, D)
   gen2Game.save.generation = 2
@@ -1401,6 +1411,90 @@ do
 
     game.press("b"); screen:update()
     T.check(not screen.markMode, "the next B leaves MARK MODE instead (a back first)")
+  end
+
+  -- ------- the window is a COLUMN, so DOWN has to move in it
+  --
+  -- PLAN.md specified a row of four symbols and gave this window LEFT and
+  -- RIGHT. drawMarkWindow draws the four names stacked, one per line, so
+  -- the press a player actually makes -- DOWN, on a vertical list -- moved
+  -- nothing, and the panel read as dead. Whichever way the drawing goes
+  -- next, the keys that match it have to keep working.
+  do
+    local MARKS = 4 -- CIRCLE, SQUARE, TRIANGLE, HEART
+    local game = fakeGame({ mon("FIXMON_A", 5) })
+    local screen = factory.new(game)
+    game.press("up"); screen:update()
+    game.press("a"); screen:update()
+    local boxMenu = game.stack:top()
+    for i, item in ipairs(boxMenu.items) do
+      if item.label == "MARK MODE" then boxMenu.index = i end
+    end
+    game.press("a"); boxMenu:update()
+    game.press("a"); screen:update()
+    T.check(screen.markWindow ~= nil, "the window opened")
+    T.eq(screen.markWindow.cursor, 1, "it starts on the first symbol")
+
+    game.press("down"); screen:update()
+    T.eq(screen.markWindow.cursor, 2, "DOWN moves to the second symbol")
+    game.press("up"); screen:update()
+    T.eq(screen.markWindow.cursor, 1, "UP moves back to the first")
+    game.press("up"); screen:update()
+    T.eq(screen.markWindow.cursor, MARKS,
+      "and UP off the top wraps to the last, as LEFT always did")
+    game.press("down"); screen:update()
+    T.eq(screen.markWindow.cursor, 1, "DOWN off the bottom wraps to the first")
+
+    -- the pair the plan shipped is not taken away from anyone who learned it
+    game.press("right"); screen:update()
+    T.eq(screen.markWindow.cursor, 2, "RIGHT still moves too")
+  end
+
+  -- ------- and the chosen row wears the game's ARROW, not a rectangle
+  --
+  -- "nel menu non c'e' cursore". A thin black box ruled around black text
+  -- on a white panel is not a cursor, it is a border: the window looked
+  -- like nothing was selected. Every other menu in the game marks its row
+  -- with Theme.cursor through Font.drawCode, and so does this one now.
+  do
+    local Theme = require("src.ui.Theme")
+    local game = fakeGame({ mon("FIXMON_A", 5) })
+    local screen = factory.new(game)
+    game.press("up"); screen:update()
+    game.press("a"); screen:update()
+    local boxMenu = game.stack:top()
+    for i, item in ipairs(boxMenu.items) do
+      if item.label == "MARK MODE" then boxMenu.index = i end
+    end
+    game.press("a"); boxMenu:update()
+    game.press("a"); screen:update()
+    T.check(screen.markWindow ~= nil, "the window opened")
+
+    local realDrawCode = Font.drawCode
+    local codes = {}
+    Font.drawCode = function(c, x, y) codes[#codes + 1] = { code = c, x = x, y = y } end
+    screen:draw()
+    Font.drawCode = realDrawCode
+
+    local arrows = {}
+    for _, c in ipairs(codes) do
+      if c.code == Theme.cursor then arrows[#arrows + 1] = c end
+    end
+    T.eq(#arrows, 1, "exactly one arrow is drawn in the marking window")
+
+    -- and it follows the selection down the column rather than sitting still
+    local firstY = arrows[1].y
+    game.press("down"); screen:update()
+    codes = {}
+    Font.drawCode = function(c, x, y) codes[#codes + 1] = { code = c, x = x, y = y } end
+    screen:draw()
+    Font.drawCode = realDrawCode
+    local moved = nil
+    for _, c in ipairs(codes) do
+      if c.code == Theme.cursor then moved = c end
+    end
+    T.check(moved and moved.y > firstY,
+      "and it moves down the column with the selection")
   end
 
   -- the value survives a serialize/decode round trip through SaveSerializer
@@ -3775,6 +3869,146 @@ do
     Assets.image = realImage
     pokemon[Unown.SPECIES] = hadDef
   end
+end
+
+-- ------- LA POPPUP ESCE SOLO PER UNA FEATURE, O AL PRIMO AVVIO
+--
+-- Due casi e due soltanto: prima installazione, e un aggiornamento che
+-- porta davvero la cosa di cui il pannello parla. Tutto il resto tace.
+--
+-- Il confronto e' PIU' VECCHIO-DI, non DIVERSO-DA. `~=` era il difetto: un
+-- save che porta un timbro piu' NUOVO della build che sta girando --
+-- qualcuno che ha provato una prerelease ed e' tornato alla stabile --
+-- e' diverso da NEWS_VERSION, quindi il pannello si apriva e annunciava
+-- feature che quella build NON ha.
+do
+  local game = fakeGame({ mon("FIXMON_A", 5) })
+  local screen = factory.new(game)
+  local older = screen.newsOlderThan
+  local V = screen.newsVersion
+
+  T.check(older(nil, V), "prima installazione: nessun timbro, si apre")
+  T.check(older("", V), "e un timbro vuoto conta come nessun timbro")
+  T.check(not older(V, V), "chi l'ha gia' vista non la rivede")
+
+  -- il caso che questa release esiste per sistemare
+  T.check(not older("99.0.0", V),
+    "un timbro piu' nuovo della build NON riapre il pannello")
+
+  T.check(older("1.20.0", V), "un aggiornamento che porta la feature la mostra")
+  T.check(not older("1.21.0", "1.21.0"),
+    "e un bugfix, che non tocca NEWS_VERSION, non la mostra")
+
+  -- una prerelease confronta sui numeri di rilascio, non sulla coda
+  T.check(older("1.20.0-beta.1", "1.21.0"),
+    "una prerelease piu' vecchia si aggiorna comunque")
+
+  -- e la regola che tiene tutto in piedi: NEWS_VERSION non e' la versione
+  -- del manifest, o ogni bugfix interromperebbe chi gioca
+  local manifest = io.open(DIR .. "/manifest.json")
+  local blob = manifest:read("*a"); manifest:close()
+  local shipped = blob:match('"version"%s*:%s*"([^"]+)"')
+  T.check(shipped and shipped ~= V,
+    "NEWS_VERSION non e' incollata alla versione del manifest (" ..
+    tostring(shipped) .. " vs " .. tostring(V) .. ")")
+end
+
+-- ------- IN FULL SCREEN I POKEMON HANNO ANCORA I LORO COLORI
+--
+-- Una zona di palette e' indirizzata in TILE, quindi il passaggio si
+-- rifiuta di emetterne UNA SOLA se cell, gridX, gridY, partyX o partyY non
+-- sono multipli di 8 -- un'origine fuori dalla griglia colorerebbe un
+-- rettangolo disallineato rispetto alla figura che contiene.
+--
+-- `gridY` era 20 e `gridX` portava un `+ 6`: nessuno dei due e' mai stato
+-- multiplo di 8, quindi il pieno schermo falliva SEMPRE quel test. Niente
+-- zone, e `remapOff` falso di conseguenza, cioe' `species = nil` dentro
+-- paintPic: ogni battle pic sulla superficie piu' grande che il mod offre
+-- veniva disegnata in quattro grigi DMG. Gli sprite overworld lo
+-- nascondevano, perche' sono arte a colori propria e una zona non l'hanno
+-- mai voluta.
+--
+-- Il controllo e' sull'INVARIANTE, non sul numero: qualsiasi origine
+-- futura va bene purche' cada sulla griglia dei tile.
+do
+  local optStore = run.loader.modOptions.gen3_box
+  local hadFull, hadGrid = optStore.fullscreen, optStore.grid
+  optStore.fullscreen = true
+  -- GRID BIG, cioe' cella 56. Con CLASSIC la cella e' 28, che NON e' un
+  -- multiplo di 8, e rinunciare alle zone li' e' voluto da sempre -- PLAN.md
+  -- lo dice: "una cella da 28 pixel e' tre tile e mezzo". Il caso che questa
+  -- release ripara e' l'altro: cella allineata, origini che non lo erano.
+  optStore.grid = "big"
+
+  local G = love.graphics
+  local realDim = G.getDimensions
+  G.getDimensions = function() return 405, 900 end
+
+  local game = fakeGame({ mon("FIXMON_A", 5) })
+  local screen = factory.new(game)
+  local L = screen.layoutOf and screen.layoutOf(game) or nil
+
+  if L and L.full then
+    for _, k in ipairs({ "cell", "gridX", "gridY", "partyX", "partyY" }) do
+      T.eq(L[k] % 8, 0,
+        "in pieno schermo " .. k .. " cade sulla griglia dei tile")
+    end
+  end
+
+  local zones = screen:sgbPalettes(game)
+  T.check(zones ~= nil,
+    "il pieno schermo emette zone di palette invece di rinunciarci")
+
+  G.getDimensions = realDim
+  optStore.fullscreen, optStore.grid = hadFull, hadGrid
+end
+
+-- ------- SU GOLD IL PIENO SCHERMO RIEMPIE, NON STA IN MEZZO AL BIANCO
+--
+-- Su Gen 1 il layout pieno passa da uiSize() e il renderer lo adatta alla
+-- finestra. Su Gold il mod si disegna da solo (drawWidescreen) e scalava
+-- con `math.floor` del rapporto: fullLayout risponde con un numero INTERO
+-- di pannelli -- su una finestra da 405 restituisce 296 -- quindi il
+-- rapporto 1.37 finiva a 1 e Gold disegnava a grandezza naturale in mezzo
+-- allo schermo, con una banda bianca per lato. Stessa opzione, stesso
+-- layout, due immagini diverse.
+--
+-- Il floor resta giusto per BIG, che e' 320x288 fisso e vuole pixel interi.
+do
+  local optStore = run.loader.modOptions.gen3_box
+  local hadFull, hadGrid = optStore.fullscreen, optStore.grid
+  optStore.fullscreen = true
+  optStore.grid = "big"
+
+  local G = love.graphics
+  local realDim, realScale, realPush, realPop = G.getDimensions, G.scale, G.push, G.pop
+  G.getDimensions = function() return 405, 900 end
+
+  local game = fakeGame({ mon("FIXMON_A", 5) })
+  local screen = factory.new(game)
+
+  local scales = {}
+  G.scale = function(sx, sy) scales[#scales + 1] = sx; return realScale(sx, sy) end
+  pcall(function() screen:drawWidescreen(405, 900) end)
+  G.scale = realScale
+
+  T.check(#scales > 0, "drawWidescreen scala la superficie")
+  if #scales > 0 then
+    local s = scales[1]
+    T.check(s > 1,
+      "e la scala riempie invece di fermarsi a 1 (era " .. tostring(s) .. ")")
+    -- riempie almeno una delle due dimensioni, a meno di un pixel
+    local L = screen.layoutOf and screen.layoutOf(game)
+    if L then
+      local fillsW = math.abs(L.w * s - 405) < 1
+      local fillsH = math.abs(L.h * s - 900) < 1
+      T.check(fillsW or fillsH,
+        "e tocca almeno un bordo della finestra")
+    end
+  end
+
+  G.getDimensions, G.push, G.pop = realDim, realPush, realPop
+  optStore.fullscreen, optStore.grid = hadFull, hadGrid
 end
 
 T.finish("gen3_box")
