@@ -1,5 +1,30 @@
 # Changelog
 
+## 1.21.2 -- the art at the size it was drawn, and no sliced boxes at the sides
+
+**A painted wallpaper is never magnified past twice life size.** The scale
+was taken from the height being filled, which is fine until something asks
+for a tall one: the Pokedex's full-screen canvas is 576, so a 144-tall strip
+came out at four times and a 64-pixel tile at NINE -- four bricks filling a
+phone. The scale is the smallest whole one that covers, capped at two, and
+what the cap leaves over is REPEATED rather than magnified. These strips
+loop; repeating is what they are for.
+
+**No more sliced boxes at the sides in full screen.** Two versions of a side
+strip were tried and both were reported the same way. The reason is that the
+margin in that layout is forty pixels beside a panel of a hundred and fifty:
+a column standing in it reads as a broken part of the box next to it rather
+than as a neighbour. PEEK stays where it works -- the strip under the last
+panel, and the sliced neighbours in the single-box layouts, where the grid
+really is centred with a margin either side.
+
+**The suite measures the art now.** It lends drawArt a 320x144 strip and a
+64x64 tile, draws them into the five shapes this screen fills -- Game Boy,
+BIG, a panel, the Pokedex's tall canvas -- and fails if anything is drawn
+above twice life size or leaves the bottom of its rectangle bare. Putting
+the old line back fails it with "x4" and "x9", which is what the photographs
+showed.
+
 ## 1.21.1 -- the stray column in CLASSIC full screen
 
 One panel across and four deep -- which is what a phone gives you in

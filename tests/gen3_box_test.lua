@@ -3620,4 +3620,79 @@ do
   T.check(blob:find("CONTEST"), "e che il contest esiste")
 end
 
+-- ------- l'arte di un autore: quanto grande, e fin dove
+--
+-- Due volte questa riga ha sbagliato in due direzioni opposte:
+-- `floor(h/ih)` lasciava cento righe bianche sotto una scena dentro un
+-- pannello da 244, e `ceil(h/ih)` ha incontrato la tela alta 576 del
+-- Pokedex e ha ingrandito una mattonella da 64 pixel NOVE volte. Nessun
+-- test guardava la scala, perche' nel banco di prova le immagini sono
+-- larghe zero e drawArt non disegna niente. Qui le immagini si prestano.
+do
+  local G = love.graphics
+  local realNew, realDraw = G.newImage, G.draw
+  local exports = run.loader.exports.gen3_box
+  local paint = exports and exports.paintWallpaper
+  T.check(type(paint) == "function", "la mod espone il pittore degli sfondi")
+  if type(paint) == "function" then
+    -- l'arte arriva da Assets.image, non da love.graphics.newImage: e' quel
+    -- prestito che va intercettato, o drawArt vede un'immagine larga zero e
+    -- si arrende in silenzio -- che e' il motivo per cui nessun test aveva
+    -- mai guardato questa parte
+    local Assets = require("src.render.Assets")
+    local realImage = Assets.image
+    local sizes = { ["strip.png"] = { 320, 144 }, ["tile.png"] = { 64, 64 } }
+    local drawn
+    Assets.image = function(path)
+      local size = sizes[tostring(path)]
+      if not size then return realImage(path) end
+      return {
+        _fake = true,
+        getWidth = function() return size[1] end,
+        getHeight = function() return size[2] end,
+      }
+    end
+    G.draw = function(img, a, b, c, d, e, f)
+      -- solo le immagini prestate qui: la superficie propria su cui la
+      -- scena viene dipinta si posa con un draw suo, che non c'entra
+      if not (type(img) == "table" and img._fake) then return end
+      if type(a) == "table" then
+        -- draw(img, quad, x, y, r, sx, sy): il ritaglio e' alto UN pixel
+        -- (la riga in cima, stirata), quindi sy sono le righe coperte
+        drawn[#drawn + 1] = { scale = e or 1, y = c or 0, rows = f or 1 }
+      else
+        -- draw(img, x, y, r, sx, sy): sy e' una scala, non un'altezza
+        drawn[#drawn + 1] = { scale = d or 1, y = b or 0 }
+      end
+    end
+
+    local paper = { id = "TEST", pattern = "PLAIN2",
+                    palette = { { 255, 255, 255 }, { 200, 200, 200 },
+                                { 100, 100, 100 }, { 0, 0, 0 } } }
+    local cases = {
+      { name = "striscia sul Game Boy", image = "strip.png", w = 160, h = 144, src = 144 },
+      { name = "striscia in BIG", image = "strip.png", w = 320, h = 288, src = 144 },
+      { name = "striscia in un pannello", image = "strip.png", w = 284, h = 244, src = 144 },
+      { name = "striscia sulla tela alta del dex", image = "strip.png", w = 296, h = 576, src = 144 },
+      { name = "mattonella sulla tela alta", image = "tile.png", w = 296, h = 576, src = 64 },
+    }
+    for _, c in ipairs(cases) do
+      drawn = {}
+      paint(paper, c.w, c.h, { image = c.image, speed = 0, still = true }, 0)
+      local worst, bottom = 0, 0
+      for _, d in ipairs(drawn) do
+        worst = math.max(worst, d.scale)
+        bottom = math.max(bottom, d.y + (d.rows or (c.src * d.scale)))
+      end
+      T.check(#drawn > 0, c.name .. ": qualcosa si disegna")
+      T.check(worst <= 2,
+        c.name .. ": non si ingrandisce oltre il doppio (x" .. worst .. ")")
+      T.check(bottom >= c.h,
+        ("%s: si arriva in fondo (%d di %d)"):format(c.name, bottom, c.h))
+    end
+    G.newImage, G.draw = realNew, realDraw
+    Assets.image = realImage
+  end
+end
+
 T.finish("gen3_box")

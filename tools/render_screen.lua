@@ -214,7 +214,42 @@ local function pixelOf(img, ix, iy)
   return B[o] or 0, B[o + 1] or 0, B[o + 2] or 0, B[o + 3] or 0
 end
 
-function G.draw(img, x, y, _, sx, sy)
+-- Quads, because the scenes use one: a strip shorter than the frame is
+-- anchored to the floor and its TOP ROW is stretched up to fill the sky. A
+-- stub without quads renders the FALLBACK path instead -- the scene tiled --
+-- which is not what the game draws, and looking at the wrong picture is
+-- worse than looking at none.
+function G.newQuad(qx, qy, qw, qh)
+  return { _quad = true, x = qx, y = qy, w = qw, h = qh }
+end
+
+function G.draw(img, x, y, r, sx, sy, ...)
+  if type(x) == "table" and x._quad then
+    local quad = x
+    local qx, qy, qsx, qsy = y, r, sy, (select(1, ...))
+    if not (img and (img._d or img._buf)) then return end
+    local x0, y0 = tx(qx or 0, qy or 0)
+    local stepX = (qsx or 1) * sc
+    local stepY = (qsy or 1) * sc
+    local limW = target and target._w or W
+    local limH = target and target._h or H
+    for iy = 0, quad.h - 1 do
+      for ix = 0, quad.w - 1 do
+        local rr, gg, bb, aa = pixelOf(img, quad.x + ix, quad.y + iy)
+        if aa > 0 then
+          for py = 0, stepY - 1 do
+            for pxx = 0, stepX - 1 do
+              local px1, py1 = x0 + ix * stepX + pxx, y0 + iy * stepY + py
+              if px1 < limW and py1 < limH then
+                blend(px1, py1, rr, gg, bb, aa * (cur[4] or 1))
+              end
+            end
+          end
+        end
+      end
+    end
+    return
+  end
   if not (img and (img._d or img._buf)) then return end
   sx = sx or 1; sy = sy or sx
   local x0, y0 = tx(x or 0, y or 0)

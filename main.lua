@@ -1229,65 +1229,59 @@ return function(mod)
           return img:getWidth(), img:getHeight()
         end)
         if okDim and iw and iw > 0 and ih and ih > 0 then
-          -- COVER the rectangle, never fit inside it.
+          -- ------- HOW BIG, and the answer is not "as big as the canvas"
           --
-          -- This was `floor(h / ih)`, which is right only when the target is
-          -- a whole number of strips tall. A FULL SCREEN panel is 244, a
-          -- strip is 144, and floor answers 1: the painted scene drew its
-          -- 144 rows at the top of the panel and left a hundred rows of
-          -- white below it, in every panel, on every box wearing an
-          -- artist's wallpaper. The drawn patterns never showed it because
-          -- they are told the size and fill it.
+          -- Twice this got it wrong in opposite directions. `floor(h / ih)`
+          -- left a 144-tall strip across the top of a 244-tall panel with a
+          -- hundred rows of white under it. `ceil(h / ih)` covered the panel
+          -- and then met the Pokedex, whose full-screen canvas is 576 tall:
+          -- four times for a strip, NINE for one of Kenney's 64-pixel brick
+          -- tiles. "sto sfondi fanno cacare, si vedono malissimo".
           --
-          -- So: the smallest whole scale that COVERS the height, bumped
-          -- again if that still leaves the width short. Whole numbers only,
-          -- for the same reason as ever -- this is pixel art.
-          local scale = math.max(1, math.ceil(h / ih))
+          -- So: the smallest whole scale that covers, CAPPED AT TWO. Two is
+          -- the size BIG draws at and the biggest an artist's pixel is meant
+          -- to get; past it the art stops being art and becomes furniture.
+          -- What the cap leaves uncovered is repeated rather than magnified
+          -- -- these strips loop, repeating is what they are for, and a
+          -- second copy of a scene reads as a pattern where a nine-times
+          -- brick reads as a bug.
+          local scale = math.max(1, math.min(2,
+            math.max(math.ceil(h / ih), math.floor(w / 160))))
           local span = iw * scale
-          if span < w then
-            scale = math.max(scale, math.ceil(w / iw))
-            span = iw * scale
-          end
-          -- and the crop is taken from the MIDDLE of the picture, the way
-          -- the horizontal one is: a scene scaled to cover is taller than
-          -- the frame, and the artist did not paint the sky to be the only
-          -- thing you see
-          local oy = math.floor((ih * scale - h) / 2)
-          -- speed 0 is a layer that must not move: the buildings, the
-          -- rock, the ground. Only what loops is allowed to slide.
+          local rows = ih * scale
+
+          -- ------- WHERE, across
           --
-          -- A strip is two screens wide, which is what lets a moving layer
-          -- keep its seam off-screen -- but a STILL one then shows its
-          -- left half and nothing else, for ever. Every painted scene in
-          -- the pack was being cropped that way: the artist's composition
-          -- sat half off the right edge of the box. Centring is the whole
-          -- fix, and it is the same crop a wide photograph gets on a
-          -- narrow frame -- the middle, where the picture is.
+          -- speed 0 is a layer that must not move: the buildings, the rock,
+          -- the ground. Only what loops is allowed to slide. A still strip
+          -- is centred and panned gently over whatever width it has spare,
+          -- so the artist's composition is not cropped to its left half --
+          -- which is what shipped for four releases.
           local ox = 0
           local range = span - w
           if (layer.speed or 0) > 0 then
             ox = math.floor(t * layer.speed) % span
           elseif range > 0 and not layer.still then
-            -- The pan: a triangle wave over the margin, never a wrap. It
-            -- starts at the middle of the picture, so with ANIMATE off
-            -- the box wears the centre of the scene rather than its left
-            -- edge -- and because the offset never leaves 0..range, the
-            -- second copy of the strip always starts at or past the right
-            -- edge of the screen. The join exists; it is simply never
-            -- inside the frame.
             local sweep = t * STILL_DRIFT + range / 2
             local u = sweep % (2 * range)
             ox = math.floor(u <= range and u or (2 * range - u))
           elseif range > 0 then
             ox = math.floor(range / 2)
           end
+
+          -- ------- and down: crop from the middle, or repeat
+          local oy = rows >= h and math.floor((rows - h) / 2) or 0
           local ok = pcall(function()
             love.graphics.setColor(1, 1, 1, 1)
-            local x = -ox
-            while x < w do
-              love.graphics.draw(img, x, -oy, 0, scale, scale)
-              x = x + span
-            end
+            local y = -oy
+            repeat
+              local x = -ox
+              while x < w do
+                love.graphics.draw(img, x, y, 0, scale, scale)
+                x = x + span
+              end
+              y = y + rows
+            until y >= h
           end)
           drew = drew or ok
         end
@@ -5014,79 +5008,21 @@ return function(mod)
                   love.graphics.setColor(0, 0, 0, 1)
                 end
               end
-            elseif L.w - restX >= L.cell then
-              -- Sideways: the first column of the next box, cut off by the
-              -- right edge -- BESIDE THE LAST PANEL, which is where the box
-              -- after the last one belongs.
-              --
-              -- It used to be drawn at L.gridY, the top of the surface. In
-              -- a layout one panel wide and four deep that put a lone
-              -- column of empty cells against box 1, reading as a broken
-              -- sixth column of it rather than as the next box: "boxes con
-              -- Classic ha il layout rotto", and it was.
-              --
-              -- The width has to be a whole cell too. Twenty pixels was
-              -- enough to draw a sliver of a slot, which is not a box you
-              -- can see -- it is a smudge at the edge.
-              local okPeek = pcall(function()
-                love.graphics.push()
-                love.graphics.translate(restX, lastY)
-                drawWallpaper(paperOf(nextBox), L.w - restX, PH,
-                  artOf(nextBox), self.paperTick)
-                love.graphics.pop()
-              end)
-              if not okPeek then pcall(love.graphics.pop) end
-              local cells = game.save.boxes[nextBox] or {}
-              for r = 0, ROWS - 1 do
-                local y = lastY + 14 + r * L.cell
-                if y + L.cell <= L.h - 12 then
-                  drawCellWash(restX, y, L.cell)
-                  love.graphics.setColor(0, 0, 0, 0.25)
-                  outline(restX, y, L.cell, L.cell)
-                  love.graphics.setColor(1, 1, 1, 1)
-                  local mon = cells[r * COLS + 1]
-                  if mon then drawPic(mon, restX, y) end
-                  love.graphics.setColor(0, 0, 0, 1)
-                end
-              end
             end
-
-            -- ...and the box BEFORE the first one, at the other margin.
+            -- ...and NOTHING at the sides.
             --
-            -- One panel across on a phone leaves a band of nothing at each
-            -- side. The right-hand one now carries the next box; leaving
-            -- the left empty made the whole thing look off-centre rather
-            -- than framed -- and the boxes either side, sliced by the
-            -- screen, is exactly what this feature is.
-            local leftRoom = L.gridX - 4
-            if (L.acrossN or 1) == 1 and leftRoom >= L.cell then
-              local n = Boxes.COUNT or 12
-              local prevBox = ((self.pageBox or 1) - 2) % n + 1
-              local px0 = L.gridX - 4 - L.cell
-              local okPrev = pcall(function()
-                love.graphics.push()
-                love.graphics.translate(px0, L.gridY)
-                drawWallpaper(paperOf(prevBox), L.cell, PH, artOf(prevBox),
-                  self.paperTick)
-                love.graphics.pop()
-              end)
-              if not okPrev then pcall(love.graphics.pop) end
-              local cells = game.save.boxes[prevBox] or {}
-              for r = 0, ROWS - 1 do
-                local y = L.gridY + 14 + r * L.cell
-                if y + L.cell <= L.h - 12 then
-                  drawCellWash(px0, y, L.cell)
-                  love.graphics.setColor(0, 0, 0, 0.25)
-                  outline(px0, y, L.cell, L.cell)
-                  love.graphics.setColor(1, 1, 1, 1)
-                  -- its LAST column, because that is the edge you would
-                  -- see if you walked left into it
-                  local mon = cells[r * COLS + COLS]
-                  if mon then drawPic(mon, px0, y) end
-                  love.graphics.setColor(0, 0, 0, 1)
-                end
-              end
-            end
+            -- Two versions of a side strip were tried here: the next box's
+            -- column at the right margin, then the previous box's at the
+            -- left as well. Both were reported the same way -- "dai lati ci
+            -- sono ancora le box tagliate, e' ancora una merda" -- and the
+            -- reason is that a margin in this layout is 40 pixels of white
+            -- next to a panel that is 148: a column standing in it reads as
+            -- a broken part of the box beside it, not as a neighbour.
+            --
+            -- PEEK stays what it is where it works: the strip UNDER the last
+            -- panel when the surface leaves room for one, and the sliced
+            -- neighbours in the single-box layouts, where the grid really is
+            -- centred with a margin either side.
           end
         else
           drawWallpaper(paper, L.w, L.h, style, self.paperTick)
