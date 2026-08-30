@@ -1005,9 +1005,50 @@ return function(mod)
     --    out wrong. It is returned alongside the image from here on.
     local okPath, resolved, trueColor = pcall(Sprites.path, game.data,
       mon.species, "front", { mon = mon, kind = "summary" })
+
+    -- ------- UNOWN, whose picture is not the species' (issue #7)
+    --
+    -- The letter is a property of the MON: GetUnownLetter packs the middle
+    -- two bits of its four DVs (src/core/gen2/Unown.lua). The species
+    -- record's own `spriteFront` is letter A's pic, so a screen that
+    -- resolves art from the species draws a boxful of identical As -- which
+    -- is what a Ruins of Alph player saw here, twenty-six forms caught and
+    -- one shown. Every engine screen that draws an Unown resolves the form
+    -- first (BoxMenu:picFor, SummaryMenu, PokedexMenu) and this one did not.
+    --
+    -- It goes AFTER the hook and BEFORE the record: a pack that deliberately
+    -- answered with its own art keeps it (its path differs from the record's),
+    -- and a pass-through hook -- the ordinary case, and every unhooked boot --
+    -- falls through to the form. `formSprite` answers nil rather than letter A
+    -- when it cannot name the letter, so a mon with no DVs is left to the
+    -- record instead of being coerced into an A.
+    local formPath = nil
+    do
+      local okU, Unown = pcall(require, "src.core.gen2.Unown")
+      if okU and type(Unown) == "table" and mon.species == Unown.SPECIES then
+        local letter = Unown.monLetter(mon)
+        if letter then
+          formPath = Unown.formSprite(game.data and game.data.pokemon, letter)
+        end
+      end
+    end
+
     if okPath then
-      local img = tryPath(resolved)
-      if img then return img, trueColor and true or false end
+      -- a hook that replaced the art wins; one that passed the record
+      -- straight back does not get to overrule the letter
+      local replaced = type(resolved) == "string" and resolved ~= def.spriteFront
+      if replaced or not formPath then
+        local img = tryPath(resolved)
+        if img then return img, trueColor and true or false end
+      end
+    end
+    if formPath then
+      local img = tryPath(formPath)
+      if img then return img, def.trueColor and true or false end
+      -- the form exists but its file does not: the hook's answer is still
+      -- better than nothing
+      local hooked = okPath and tryPath(resolved) or nil
+      if hooked then return hooked, trueColor and true or false end
     end
 
     -- 2. The species record: an older engine with no seam, a wrapper that

@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.21.3 -- every Unown was an A (#7)
+
+Reported with a video from the Ruins of Alph: a box of Unown, every one of
+them drawn with the same shape, while the footer named the letter correctly
+underneath. Nothing was written to the save -- the Pokemon are exactly as
+they were caught -- but the grid showed one form for all of them.
+
+An Unown's letter is a property of the MON: GetUnownLetter packs the middle
+two bits of its four DVs. The species record's own `spriteFront` is letter
+A's picture, so a screen that resolves art from the species draws a boxful of
+identical As. Every engine screen that draws an Unown resolves the form first
+-- BoxMenu, SummaryMenu, the #DEX -- and this one did not.
+
+The form is resolved between the two candidates that were already there: a
+sprite pack that deliberately answered with its own art keeps it, a
+pass-through hook falls to the letter, and a mon with no DVs to read is left
+to the species record rather than being coerced into an A.
+
+Thanks to @deilwynna for the report and the video.
+
 ## 1.21.2 -- the art at the size it was drawn, and no sliced boxes at the sides
 
 **A painted wallpaper is never magnified past twice life size.** The scale

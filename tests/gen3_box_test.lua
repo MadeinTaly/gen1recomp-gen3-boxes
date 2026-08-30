@@ -3695,4 +3695,86 @@ do
   end
 end
 
+-- ------- UNOWN: la figura e' della LETTERA, non della specie (issue #7)
+--
+-- "gli unknown son tutti lettera A". Il record della specie porta la figura
+-- della A; la lettera invece sta nel MON, impacchettata nei due bit centrali
+-- dei suoi quattro DV. Una schermata che risolve l'arte dalla specie disegna
+-- una box di ventisei A uguali, ed e' quello che vedeva chi torna dalle
+-- Rovine di Alph.
+do
+  local okU, Unown = pcall(require, "src.core.gen2.Unown")
+  if not (okU and type(Unown) == "table") then
+    T.check(true, "engine senza modulo Unown: niente da verificare")
+  else
+    local Assets = require("src.render.Assets")
+    local pokemon = Data.pokemon
+    local hadDef = pokemon[Unown.SPECIES]
+    -- una specie UNOWN di prova con tre forme, ognuna con la sua figura
+    pokemon[Unown.SPECIES] = {
+      id = Unown.SPECIES, name = "UNOWN", dex = 201,
+      baseStats = { hp = 48, attack = 72, defense = 48, speed = 48, special = 72 },
+      spriteFront = "unown_a.png",
+      letters = {
+        A = { spriteFront = "unown_a.png" },
+        C = { spriteFront = "unown_c.png" },
+        Z = { spriteFront = "unown_z.png" },
+      },
+    }
+    local realImage = Assets.image
+    local asked = {}
+    Assets.image = function(path)
+      asked[#asked + 1] = tostring(path)
+      if tostring(path):find("^unown_") then
+        return { _fake = true, getWidth = function() return 56 end,
+                 getHeight = function() return 56 end }
+      end
+      return realImage(path)
+    end
+
+    -- un mon per lettera, con i DV che quella lettera vuole
+    local function unownWithLetter(name)
+      local want = Unown.index(name)
+      for atk = 0, 15 do
+        for def = 0, 15 do
+          for spd = 0, 15 do
+            for spc = 0, 15 do
+              local dvs = { attack = atk, defense = def, speed = spd, special = spc }
+              if Unown.letterFromDVs(dvs) == want then
+                return { species = Unown.SPECIES, level = 5, dvs = dvs }
+              end
+            end
+          end
+        end
+      end
+      return nil
+    end
+
+    local g = fakeGame({})
+    local s = factory.new(g)
+    local seenPaths = {}
+    for _, name in ipairs({ "A", "C", "Z" }) do
+      local mon = unownWithLetter(name)
+      T.check(mon ~= nil, "si trovano DV che scrivono la lettera " .. name)
+      if mon then
+        asked = {}
+        -- attraverso il seam che il disegno usa davvero
+        local chosen = s.spriteToDraw(mon)
+        local img = chosen and chosen.img or nil
+        local drew = asked[#asked]
+        T.check(img ~= nil, "l'Unown " .. name .. " ha una figura")
+        T.eq(drew, "unown_" .. name:lower() .. ".png",
+          "e la figura chiesta e' quella della sua lettera")
+        seenPaths[drew or "?"] = true
+      end
+    end
+    local distinct = 0
+    for _ in pairs(seenPaths) do distinct = distinct + 1 end
+    T.eq(distinct, 3, "tre Unown diversi, tre figure diverse -- non tre A")
+
+    Assets.image = realImage
+    pokemon[Unown.SPECIES] = hadDef
+  end
+end
+
 T.finish("gen3_box")
