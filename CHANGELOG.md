@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.23.0 -- full screen and fingers, out of the box
+
+**FULL SCREEN and TOUCH now ship ON.** The grid is what this mod is, and on a
+phone the Game Boy letterbox spends most of the glass on nothing; a d-pad
+drawn over that glass is not how anybody reaches for a box. Both go back to
+where they were from `START - MODS - OPTIONS`, and turning TOUCH off restores
+the buttons-only screen exactly, because the pointer hook returns before it
+looks at anything.
+
+Flipping a default is not free and it showed: ten checks failed at once,
+every one of them written when the answer was "off" and quietly assuming a
+160x144 surface with no widescreen and no fingers. The suite pins the old
+values at the top so those blocks keep saying what they meant, and the
+SHIPPED defaults are asserted separately against the options schema -- which
+is the only version of them that reaches a player.
+
 ## 1.22.2 -- one plain box was greying out its neighbours
 
 **The background went greyscale after a pinch.** The pinch was innocent: all

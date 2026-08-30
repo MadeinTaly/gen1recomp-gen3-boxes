@@ -38,6 +38,22 @@ local newsStore = run.loader.modSave.gen3_box
 local NEWS_SEEN_FUTURE = "99999.0.0"
 newsStore.newsSeen = NEWS_SEEN_FUTURE
 
+-- ------- LE OPZIONI DI PARTENZA DEL BANCO DI PROVA
+--
+-- Dalla 1.23.0 FULL SCREEN e TOUCH sono ACCESI di default. Questo file e'
+-- stato scritto quando erano spenti e quasi ogni blocco lo da' per
+-- scontato: la superficie e' 160x144, il widescreen non e' in gioco,
+-- nessun dito tocca niente. Fissarli qui tiene quelle prove a dire quello
+-- che volevano dire, invece di riscriverne trenta.
+--
+-- Il default SPEDITO non resta pero' senza controllo: c'e' un blocco in
+-- fondo che legge lo schema e verifica che sia acceso, perche' e' quello
+-- che vede chi installa.
+run.loader.modOptions = run.loader.modOptions or {}
+run.loader.modOptions.gen3_box = run.loader.modOptions.gen3_box or {}
+run.loader.modOptions.gen3_box.fullscreen = false
+run.loader.modOptions.gen3_box.touch = false
+
 -- ------- the screen exists and is the mod's own
 
 local factory = Data.screens and Data.screens.Gen3Box
@@ -4254,6 +4270,24 @@ do
   run.loader.modSave.gen3_box.boxPapers = papers
   G.getDimensions = realDim
   optStore.fullscreen, optStore.grid = hadFull, hadGrid
+end
+
+-- ------- E I DEFAULT SPEDITI SONO ACCESI
+--
+-- Il banco di prova li spegne in cima per non riscrivere trenta blocchi,
+-- quindi il valore che vede chi installa va verificato sullo SCHEMA, che e'
+-- l'unica cosa che finisce nello zip.
+do
+  local schema = run.loader.optionSchemas and run.loader.optionSchemas.gen3_box
+  T.check(schema ~= nil, "lo schema delle opzioni c'e'")
+  if schema then
+    local seen = {}
+    for _, row in ipairs(schema) do seen[row.key] = row end
+    T.check(seen.fullscreen and seen.fullscreen.default == true,
+      "FULL SCREEN parte acceso")
+    T.check(seen.touch and seen.touch.default == true,
+      "e TOUCH pure -- si tornano a spegnere dalle opzioni")
+  end
 end
 
 T.finish("gen3_box")

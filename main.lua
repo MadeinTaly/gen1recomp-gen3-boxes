@@ -155,8 +155,11 @@ return function(mod)
     -- BOX MENU opens from every panel's own name, FIND and JUMP TO BOX
     -- bring their box onto the screen and under the cursor, and the party
     -- pane is centred on this surface with the box's scene behind it.
+    -- ON by default from 1.23.0: the grid is what this mod is, and on a
+    -- phone the Game Boy letterbox spends most of the glass on nothing.
+    -- OPTIONS puts it back.
     { key = "fullscreen", label = "FULL SCREEN", type = "toggle",
-      default = false },
+      default = true },
     -- TOUCH is off by default and, while it is off, this screen is exactly
     -- the screen it was: the hook returns before it looks at anything, so
     -- the grid keeps whatever shape GRID was set to and no finger can move
@@ -166,7 +169,10 @@ return function(mod)
     -- this grid has two cell sizes and already has a setting that picks
     -- between them, so the change sticks after you leave and there is no
     -- second, hidden zoom to reconcile with the first.
-    { key = "touch", label = "TOUCH", type = "toggle", default = false },
+    -- ON by default from 1.23.0 as well: this is played on phones, and a
+    -- d-pad drawn over glass is not how anybody reaches for a box. Turning
+    -- it off restores the buttons-only screen exactly.
+    { key = "touch", label = "TOUCH", type = "toggle", default = true },
     -- The neighbours, sliced by the screen edge, the way Pokemon Box on the
     -- GameCube draws them. It is what makes storage read as a shelf you are
     -- standing in front of rather than a page you are turning: you can see
