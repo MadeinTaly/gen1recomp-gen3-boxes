@@ -1,6 +1,31 @@
 # Changelog
 
-## 1.22.0 -- fingers
+## 1.22.0 -- fingers, and the Unown letters again (#7)
+
+**A sprite pack was overruling the Unown form.** 1.21.3 resolved the letter
+from the mon and then let a pack's answer win over it -- "a pack that
+deliberately answered with its own art keeps it". That was the wrong call,
+and it is why the letters were still all the same after that fix while the
+game's own PC showed them correctly, which is exactly what the reporter
+said and what made it findable.
+
+The engine's Gold box never asks the sprite seam at all: it reads the
+species record and puts the form over it
+(`src/ui/gen2/BoxMenu.lua:668-676`), so a pack cannot reach an Unown there.
+This screen does ask -- that is how a Crystal pack's art gets on screen at
+all -- and a pack answers the ONE Unown picture it has, because
+`pokemon.sprite` is keyed by SPECIES and knows nothing about letters. One
+picture went onto all twenty-six forms.
+
+For Unown the form wins now, full stop, as it does on every engine screen.
+A pack that really wants to draw the forms still can: the place the engine
+reads them from is the species' own `letters` table, one entry per letter,
+and that is where `formSprite` looks. What a pack may no longer do is
+replace twenty-six pictures with one through a seam that only knows
+species. The Pokedex mod had the same ordering and the same fix.
+
+Four new checks: with a pack installed that offers a single Unown picture,
+three different Unown must still ask for three different files.
 
 **TOUCH, off by default.** While it is off this screen is exactly the screen
 it was: the pointer hook returns before it looks at anything, so the grid

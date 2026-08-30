@@ -3880,6 +3880,54 @@ do
     for _ in pairs(seenPaths) do distinct = distinct + 1 end
     T.eq(distinct, 3, "tre Unown diversi, tre figure diverse -- non tre A")
 
+    -- ------- E CON UN PACK DI SPRITE INSTALLATO, LA LETTERA VINCE LO STESSO
+    --
+    -- Questa e' la SECONDA segnalazione della issue #7: dopo la 1.21.3 le
+    -- lettere erano ancora tutte uguali, mentre il PC del gioco le mostrava
+    -- giuste. Il motivo: la 1.21.3 lasciava che un pack scavalcasse la
+    -- forma, e un pack risponde UNA sola figura di Unown, perche'
+    -- `pokemon.sprite` e' indicizzato per SPECIE. Ventisei forme con una
+    -- figura sola si legge come "la mod mi cambia gli Unown".
+    --
+    -- Il box dell'engine il seam non lo interroga nemmeno: legge il record
+    -- e ci posa sopra la forma (src/ui/gen2/BoxMenu.lua:668-676). Qui ora
+    -- si fa lo stesso.
+    do
+      local Sprites = require("src.pokemon.Sprites")
+      local realPath = Sprites.path
+      -- un pack che risponde la stessa figura per OGNI Unown, che e' quello
+      -- che fa qualsiasi pack indicizzato per specie
+      Sprites.path = function() return "pack_unown.png", false end
+      Assets.image = function(path)
+        asked[#asked + 1] = tostring(path)
+        if tostring(path):find("^unown_") or tostring(path):find("^pack_") then
+          return { _fake = true, getWidth = function() return 56 end,
+                   getHeight = function() return 56 end }
+        end
+        return realImage(path)
+      end
+
+      local packPaths = {}
+      for _, name in ipairs({ "A", "C", "Z" }) do
+        local mon = unownWithLetter(name)
+        if mon then
+          asked = {}
+          s.spriteToDraw(mon)
+          local drew = asked[#asked]
+          T.eq(drew, "unown_" .. name:lower() .. ".png",
+            "col pack installato l'Unown " .. name ..
+            " chiede ancora la figura della SUA lettera")
+          packPaths[drew or "?"] = true
+        end
+      end
+      local n = 0
+      for _ in pairs(packPaths) do n = n + 1 end
+      T.eq(n, 3,
+        "tre Unown restano tre figure anche con un pack che ne offre una sola")
+
+      Sprites.path = realPath
+    end
+
     Assets.image = realImage
     pokemon[Unown.SPECIES] = hadDef
   end

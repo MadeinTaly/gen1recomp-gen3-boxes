@@ -1066,14 +1066,31 @@ return function(mod)
       end
     end
 
-    if okPath then
-      -- a hook that replaced the art wins; one that passed the record
-      -- straight back does not get to overrule the letter
-      local replaced = type(resolved) == "string" and resolved ~= def.spriteFront
-      if replaced or not formPath then
-        local img = tryPath(resolved)
-        if img then return img, trueColor and true or false, resolved end
-      end
+    -- ------- THE LETTER BEATS THE PACK (issue #7, second report)
+    --
+    -- 1.21.3 let a sprite pack overrule the form: "a pack that deliberately
+    -- answered with its own art keeps it". That was wrong, and it is why
+    -- the letters were still all the same after that fix while the game's
+    -- OWN box showed them correctly.
+    --
+    -- The engine's Gold box never asks the sprite seam at all. It reads the
+    -- species record and then puts the form over it
+    -- (src/ui/gen2/BoxMenu.lua:668-676), so a pack cannot reach an Unown
+    -- there. This screen does ask, the pack answers with the ONE Unown
+    -- picture it has -- `pokemon.sprite` is keyed by species -- and that
+    -- single picture went on all twenty-six forms. From the outside it
+    -- looks exactly like the mod rewriting your Unown, which is what it
+    -- was reported as.
+    --
+    -- So for Unown the form wins, full stop, which is what every engine
+    -- screen does. A pack that genuinely wants to draw the forms has the
+    -- place the engine reads them from -- the species' own `letters` table,
+    -- one entry per letter -- and that route is honoured here, because it
+    -- is where formSprite looks. What a pack may no longer do is replace
+    -- twenty-six pictures with one through a seam that only knows species.
+    if okPath and not formPath then
+      local img = tryPath(resolved)
+      if img then return img, trueColor and true or false, resolved end
     end
     if formPath then
       local img = tryPath(formPath)
