@@ -4008,7 +4008,7 @@ do
 
   local game = fakeGame({ mon("FIXMON_A", 5) })
   local screen = factory.new(game)
-  local L = screen.layoutOf and screen.layoutOf(game) or nil
+  local L = screen.layout and screen.layout() or nil
 
   if L and L.full then
     for _, k in ipairs({ "cell", "gridX", "gridY", "partyX", "partyY" }) do
@@ -4180,7 +4180,7 @@ do
 
   local game = fakeGame({ mon("FIXMON_A", 5) })
   local screen = factory.new(game)
-  local L = screen.layoutOf and screen.layoutOf(game) or nil
+  local L = screen.layout and screen.layout() or nil
 
   if L and L.full then
     local down = L.downN or 1
@@ -4205,6 +4205,53 @@ do
     end
   end
 
+  G.getDimensions = realDim
+  optStore.fullscreen, optStore.grid = hadFull, hadGrid
+end
+
+-- ------- UNA BOX SENZA SFONDO NON SPEGNE I COLORI ALLE VICINE
+--
+-- La zona di base copre TUTTA la superficie, e veniva scelta guardando solo
+-- la box del cursore. In pieno schermo pero' ci sono piu' box a schermo,
+-- ognuna con quello che ha scelto il suo proprietario: se il cursore
+-- capitava su una box senza sfondo si ricadeva sulla zona GRAYS, che
+-- rimappa tutto -- e le scene dipinte delle ALTRE box venivano appiattite
+-- su quattro grigi insieme a lei.
+--
+-- Segnalato come "dopo il pinch lo sfondo va in scala di grigi": il pinch
+-- non c'entrava, si era limitato a spostare il cursore.
+do
+  local optStore = run.loader.modOptions.gen3_box
+  local hadFull, hadGrid = optStore.fullscreen, optStore.grid
+  optStore.fullscreen = true
+  optStore.grid = "big"
+  local G = love.graphics
+  local realDim = G.getDimensions
+  G.getDimensions = function() return 405, 900 end
+
+  local game = fakeGame({ mon("FIXMON_A", 5) })
+  local screen = factory.new(game)
+  local L = screen.layout and screen.layout() or nil
+
+  local papers = run.loader.modSave.gen3_box.boxPapers
+  if L and L.full then
+    -- il cursore su una box SENZA sfondo, una vicina CON lo sfondo
+    local cursorBox = game.save.currentBox
+    local other = (cursorBox % 12) + 1
+    run.loader.modSave.gen3_box.boxPapers = {
+      [cursorBox] = { id = "PLAIN", art = 1 },
+      [other] = { id = "SEA", art = 1 },
+    }
+    local zones = screen:sgbPalettes(game)
+    T.check(zones ~= nil and zones[1] ~= nil, "una zona di base c'e' sempre")
+    if zones and zones[1] then
+      T.check(zones[1].colors == false,
+        "e con una scena dipinta su un pannello qualsiasi la superficie " ..
+        "esce dal rimappaggio invece di finire sui grigi")
+    end
+  end
+
+  run.loader.modSave.gen3_box.boxPapers = papers
   G.getDimensions = realDim
   optStore.fullscreen, optStore.grid = hadFull, hadGrid
 end

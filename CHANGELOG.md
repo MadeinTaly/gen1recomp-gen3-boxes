@@ -1,5 +1,32 @@
 # Changelog
 
+## 1.22.2 -- one plain box was greying out its neighbours
+
+**The background went greyscale after a pinch.** The pinch was innocent: all
+it did was move the cursor.
+
+The base palette zone covers the WHOLE surface, and it was chosen by looking
+only at the box the cursor happened to be on. With one box filling the glass
+that is the same thing. In full screen it is not -- several boxes are on
+screen at once, each wearing what its owner chose -- so a cursor sitting on a
+box with no wallpaper fell through to the GRAYS zone, and a GRAYS zone
+flattens everything under it. One plain box took every painted scene beside
+it down to four greys.
+
+The question is not "does the cursor's box have a scene" but "is there
+painted art anywhere on this surface". If there is, the surface opts out of
+the remap and every panel keeps its colours.
+
+**The release notes now say the touch layer exists**, since 1.22.0 changed
+what the screen does and this panel is meant to open exactly then. It ships
+OFF, and the second page says where to turn it on.
+
+**Thirteen checks were silently not running.** Three blocks guarded
+themselves on `screen.layoutOf`, which this screen does not have -- it
+exposes `screen.layout` -- so the guard was always false and every assertion
+behind it was skipped, including the full-screen palette ones added earlier
+today. The suite is 519 checks now, up from 498 with nothing removed.
+
 ## 1.22.1 -- the touch landed on the wrong cell
 
 Two faults in the layer that shipped yesterday, both from the same root:

@@ -4756,7 +4756,30 @@ return function(mod)
       -- 1.5.2 rendered.
       -- An engine too old to know the opt-out gets the behaviour it always
       -- had, tint and all, rather than an error.
-      local bare = paper and paper.palette
+      -- ------- IN FULL SCREEN THE BASE ZONE ANSWERS FOR EVERY PANEL
+      --
+      -- `paper` above is the CURSOR's box, and on one box filling the glass
+      -- that is the whole surface. In full screen it is not: several boxes
+      -- are on screen at once, each wearing what its owner chose. If the
+      -- cursor happened to sit on a box with no wallpaper, this fell
+      -- through to the GRAYS zone -- and a GRAYS zone covers the WHOLE
+      -- surface, so every other panel's painted scene was flattened onto
+      -- four greys with it. One plain box greying out its neighbours,
+      -- reported as the background going greyscale after a pinch (the pinch
+      -- only ever moved the cursor).
+      --
+      -- So the question is not "does the cursor's box have a scene" but
+      -- "is there painted art anywhere on this surface". If there is, the
+      -- surface opts out of the remap and the panels keep their colours;
+      -- the per-cell zones below are unaffected either way.
+      local painted = paper and paper.palette
+      if not painted and L.full and self.mode == "box" then
+        for p = 0, panelsShown(L) - 1 do
+          local pp = paperOf(panelBox(p))
+          if pp and pp.palette then painted = pp.palette; break end
+        end
+      end
+      local bare = painted
         and type(PaletteFX.trueColorZone) == "function"
         and PaletteFX.trueColorZone(0, 0, L.w / 8 - 1, L.h / 8 - 1)
       local zones = {
@@ -4928,7 +4951,10 @@ return function(mod)
     --
     -- It is also in the BOX MENU, so it can be read again on purpose
     -- rather than only by accident.
-    local NEWS_VERSION = "1.21.0"
+    -- 1.22.x changed what the screen DOES -- fingers work on it now -- so
+    -- this moves with it. The bugfix releases in between did not, and did
+    -- not interrupt anybody.
+    local NEWS_VERSION = "1.22.0"
 
     -- `hi` is the accent colour: the line that names the thing, and the
     -- contest. Drawn in RGB and marked trueColor so the shade remap leaves
@@ -4936,6 +4962,35 @@ return function(mod)
     -- greys the base zone happens to carry, which is no accent at all.
     local NEWS_ACCENT = { 32, 96, 208 }
     local NEWS = {
+      {
+        title = "TOUCH",
+        lines = {
+          { "Play it with", true },
+          { "your fingers.", true },
+          { "" },
+          { "Tap a cell to" },
+          { "point, tap it" },
+          { "again to grab." },
+          { "" },
+          { "Drag: box to" },
+          { "box. Pinch:" },
+          { "cell size." },
+        },
+      },
+      {
+        title = "TURN IT ON",
+        lines = {
+          { "It ships OFF," },
+          { "so nothing" },
+          { "changes yet." },
+          { "" },
+          { "START - MODS -", true },
+          { "OPTIONS - TOUCH", true },
+          { "" },
+          { "Made for" },
+          { "phones." },
+        },
+      },
       {
         title = "WALLPAPERS",
         lines = {
