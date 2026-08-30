@@ -377,6 +377,20 @@ do
     "the letter followed FIXMON_B to its new slot")
   T.check(gen2Game.save.mail.party[2] == nil,
     "and did not stay behind on FIXMON_A's old slot, now FIXMON_A itself")
+
+  -- ------- SU GOLD I POKEMON HANNO I COLORI
+  --
+  -- `remapOff` chiede "il rimappaggio dell'engine NON colorera' queste
+  -- figure, quindi devono portarsi i colori da sole?". Su Gold la risposta
+  -- onesta e' sempre si': Game2 non fa mai il passaggio delle palette --
+  -- non chiede nemmeno `uiSize` a uno stato -- quindi nessuna zona viene
+  -- emessa e non arriva nient'altro.
+  --
+  -- Rispondeva false, sulla convinzione che "Gold colora da se' le proprie
+  -- figure". Non lo fa: il risultato era `species = nil` dentro paintPic e
+  -- quattro grigi DMG a schermo, catturati compresi.
+  T.check(screen.remapOff() == true,
+    "su Gold la figura si porta i colori da sola, o resta grigia")
   gen2Run.release()
 end
 

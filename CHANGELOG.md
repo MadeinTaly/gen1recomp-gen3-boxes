@@ -29,6 +29,16 @@ the file builds, and seven checks failed in places that have nothing to do
 with release notes. Both files now stamp a far-future version instead, which
 survives any bump precisely because the check is older-than.
 
+**On Gold every Pokemon was grey, caught ones included.** `remapOff` asks
+"is the engine's shade remap NOT going to colour these, so the picture has
+to carry its own?" and answered **false** on Gold, on the belief that Gold
+colours its own pictures. It does not: Gold composes through `Game2`, which
+never runs the palette pass at all -- it does not even ask a state for
+`uiSize` -- so no zone is ever emitted and nothing else is coming. The
+answer was `species = nil` into `paintPic` and four DMG greys on screen. It
+answers true there now, and the tile-alignment tests below it are skipped on
+that path because they are about addressing a zone and there are no zones.
+
 **A wallpaper belongs to ONE box, and the surround is blank.** Full screen
 painted the cursor box's scene across the whole surface first and laid the
 panels on top, on the argument that a plain margin read as "bande bianche

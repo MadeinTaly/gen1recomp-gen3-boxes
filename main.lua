@@ -4306,7 +4306,21 @@ return function(mod)
     -- the frame, this during it -- and a cached answer between them would
     -- be a third thing to keep true.
     local function remapOff()
-      if isGen2(game) then return false end
+      -- Gold: ALWAYS. This answered false, and that is why every Pokemon
+      -- on Gold came out grey, caught ones included.
+      --
+      -- The question this function asks is "is the engine's shade remap
+      -- NOT going to colour these, so the picture has to carry its own?"
+      -- On Gold the honest answer is yes, always: Game2 never runs the
+      -- palette pass -- it does not even ask a state for uiSize -- so no
+      -- zone is ever emitted and nothing else is coming. Answering false
+      -- meant `species = nil` into paintPic and four DMG greys on screen,
+      -- while the file that wrote it believed Gold was colouring its own
+      -- pictures.
+      --
+      -- The tile-alignment tests below are about addressing a ZONE, and
+      -- there are no zones here, so they are not asked on this path.
+      if isGen2(game) then return true end
       local L = layout(game)
       if L.cell % 8 ~= 0 or L.gridX % 8 ~= 0 or L.gridY % 8 ~= 0
          or L.partyX % 8 ~= 0 or L.partyY % 8 ~= 0 then
