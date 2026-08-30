@@ -1,5 +1,43 @@
 # Changelog
 
+## 1.22.0 -- fingers
+
+**TOUCH, off by default.** While it is off this screen is exactly the screen
+it was: the pointer hook returns before it looks at anything, so the grid
+keeps whatever shape GRID was set to and no finger can move it. That is the
+whole of "touch disabled means standard" -- there is no special case for it
+because there is nothing to special-case.
+
+**A tap moves the cursor; a second tap on the same cell is A.** On a phone a
+cell is a few millimetres across, and acting on the first touch means acting
+on whatever you happened to land on. The second tap does not reimplement
+anything either: it queues a real button press through `mod.input:tap`, so
+it goes down whichever of the four branches A already means here -- grab,
+put down, tick, or open the marking window. A fifth answer written for touch
+would have drifted out of step with the other four.
+
+**A drag walks the boxes**, through `changeBox` itself rather than a second
+idea of what "next box" means -- the wrap, the panel bookkeeping and the
+party guard all live in there already. Travel is clamped: a pointer that
+teleports arrives as ONE enormous delta and would otherwise fling you
+through every box at once.
+
+**Two fingers drive GRID.** Not a zoom of its own -- this grid has exactly
+two cell sizes and already has a setting that picks between them, so
+spreading asks for the bigger cell and pinching for the smaller. Because it
+is that same setting, the change survives leaving the screen, and there is
+no second hidden zoom to reconcile with the first.
+
+The on-screen pad keeps first refusal by contract rather than by arithmetic
+here: a pointer that begins on a virtual control belongs to the pad for its
+whole life and never reaches the hook. And a finger that lands while a menu
+is open does nothing, because the state on top of the stack owns the screen
+and this grid is not it.
+
+Fourteen new checks: a finger lands back on the cell it was drawn in, the
+first tap only moves, a drag changes box and comes back, and a point outside
+the grid is nobody's cell.
+
 ## 1.21.4 -- the marking window works, and the notes stop interrupting
 
 **The notes popup opened when it had nothing to say.** The gate was

@@ -4025,4 +4025,52 @@ do
   optStore.fullscreen, optStore.grid = hadFull, hadGrid
 end
 
+-- ------- IL TOCCO
+--
+-- Spento di default, e finche' e' spento questa schermata e' quella di
+-- prima: il gancio esce prima di guardare qualsiasi cosa. E' tutto qui
+-- "tocco disabilitato = formato standard", senza un ramo apposta.
+--
+-- Le azioni passano per lo STESSO codice dei tasti: il cursore e'
+-- col/row, cambiare box e' changeBox, e il secondo tocco accoda una
+-- pressione VERA di A invece di reimplementarla -- A qui vuol dire
+-- afferrare, o posare, o spuntare, o aprire la finestrella di marcatura, a
+-- seconda di quattro pezzi di stato, e una quinta risposta si sfaserebbe
+-- dalle altre quattro.
+do
+  local game = fakeGame({ mon("FIXMON_A", 5) })
+  local screen = factory.new(game)
+
+  -- un dito diventa una cella con l'aritmetica del disegno letta al
+  -- contrario: cellRect dice dove sta la cella, hitAt chi c'e' sotto
+  local L = screen.layout and screen.layout(game) or nil
+  for i0 = 0, 4 do
+    local x, y = screen.cellRect(i0)
+    local cell = (L and L.cell) or 28
+    local got = screen.hitAt(x + cell / 2, y + cell / 2)
+    T.eq(got, i0, "il centro della cella " .. i0 .. " torna alla cella " .. i0)
+  end
+  local gx = (L and L.gridX) or 0
+  local gy = (L and L.gridY) or 0
+  T.check(screen.hitAt(gx - 6, gy - 6) == nil,
+    "un dito fuori dalla griglia non e' su nessuna cella")
+
+  -- il PRIMO tocco su una cella sposta solo il cursore: su un telefono una
+  -- cella e' pochi millimetri, e agire al primo tocco vuol dire agire su
+  -- quello che ti capita sotto il dito
+  screen.col, screen.row = 0, 0
+  T.check(screen.touchTap(3) == true, "il primo tocco altrove fa qualcosa")
+  T.eq(screen.col, 3, "e quel qualcosa e' spostare il cursore")
+  T.eq(screen.row, 0, "sulla riga giusta")
+  T.check(screen.held == nil, "senza afferrare niente al primo tocco")
+
+  -- e il trascinamento cambia box passando per changeBox, non per una
+  -- seconda idea di cosa sia "la box dopo"
+  local was = game.save.currentBox
+  T.check(screen.touchBox(1) == true, "trascinare cambia box")
+  T.check(game.save.currentBox ~= was, "e la box aperta e' un'altra")
+  T.check(screen.touchBox(-1) == true, "e si torna indietro")
+  T.eq(game.save.currentBox, was, "a quella di partenza")
+end
+
 T.finish("gen3_box")

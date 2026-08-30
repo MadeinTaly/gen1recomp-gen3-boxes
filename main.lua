@@ -157,6 +157,16 @@ return function(mod)
     -- pane is centred on this surface with the box's scene behind it.
     { key = "fullscreen", label = "FULL SCREEN", type = "toggle",
       default = false },
+    -- TOUCH is off by default and, while it is off, this screen is exactly
+    -- the screen it was: the hook returns before it looks at anything, so
+    -- the grid keeps whatever shape GRID was set to and no finger can move
+    -- it. That is the whole of "touch disabled means standard".
+    --
+    -- Two fingers drive the GRID setting rather than a zoom of their own:
+    -- this grid has two cell sizes and already has a setting that picks
+    -- between them, so the change sticks after you leave and there is no
+    -- second, hidden zoom to reconcile with the first.
+    { key = "touch", label = "TOUCH", type = "toggle", default = false },
     -- The neighbours, sliced by the screen edge, the way Pokemon Box on the
     -- GameCube draws them. It is what makes storage read as a shelf you are
     -- standing in front of rather than a page you are turning: you can see
@@ -3184,6 +3194,17 @@ return function(mod)
       focusBox(((game.save.currentBox - 1 + step) % n) + 1)
     end
 
+    -- The touch drag walks the boxes through changeBox itself rather than
+    -- through a second idea of what "next box" means -- the wrap, the
+    -- panel bookkeeping and the party guard all live in there already.
+    -- Answers true when it moved, so the hook knows to consume the event.
+    self.touchBox = function(step)
+      if self.mode ~= "box" then return false end
+      local was = game.save.currentBox
+      changeBox(step)
+      return game.save.currentBox ~= was
+    end
+
     -- Walking off the left or right edge of a box steps to the next one, the
     -- way Ruby's L/R do -- a Game Boy has no shoulder buttons to spare, and
     -- this frees START to be a way out that always works. In the party pane
@@ -4022,8 +4043,74 @@ return function(mod)
       end
       return L.gridX + c * L.cell, L.gridY + r * L.cell
     end
+    self.cellRect = cellRect
 
-    -- The scale is derived from the picture the game actually handed us,
+    -- ------- A FINGER, TURNED BACK INTO A CELL
+    --
+    -- cellRect read backwards, and deliberately the only place a point is
+    -- converted: the drawing and the touch cannot end up disagreeing about
+    -- where a cell is when they are the same arithmetic either way.
+    --
+    -- Full screen answers the PANEL too, because there the same cell index
+    -- exists once per box on screen and "which slot" is only half the
+    -- question. `gameX/gameY` arrive already local to the game viewport, so
+    -- nothing here has to know about the window scale or the surround.
+    local function hitAt(px, py)
+      local L = layout(game)
+      if not L or not L.cell or L.cell <= 0 then return nil end
+      if self.mode == "box" and L.full then
+        for p = 0, panelsShown(L) - 1 do
+          local ox, oy = panelOrigin(L, p)
+          local c = math.floor((px - ox) / L.cell)
+          local r = math.floor((py - (oy + 14)) / L.cell)
+          if c >= 0 and r >= 0 and c < COLS and r < ROWS then
+            return r * COLS + c, p
+          end
+        end
+        return nil
+      end
+      local n = self.mode == "box" and COLS or PARTY_COLS
+      local rows = self.mode == "box" and ROWS or PARTY_ROWS
+      local bx = self.mode == "box" and L.gridX or L.partyX
+      local by = self.mode == "box" and L.gridY or L.partyY
+      local c = math.floor((px - bx) / L.cell)
+      local r = math.floor((py - by) / L.cell)
+      if c < 0 or r < 0 or c >= n or r >= rows then return nil end
+      return r * n + c, nil
+    end
+    self.hitAt = hitAt
+
+    -- ------- what a finger is allowed to do
+    --
+    -- Through the same code the buttons use: the cursor is `self.col` and
+    -- `self.row`, and acting is the same `a` branch. Both answer true when
+    -- they did something, so the hook knows whether to consume the event.
+    self.touchTap = function(i0, panel)
+      local n = self.mode == "box" and COLS or PARTY_COLS
+      local c, r = i0 % n, math.floor(i0 / n)
+      local samePanel = (panel == nil) or (panel == (self.panel or 0))
+      if not samePanel or c ~= self.col or r ~= self.row then
+        if panel ~= nil and panel ~= (self.panel or 0) then
+          self.panel = panel
+          local L = layout(game)
+          if L.full and panelBox then
+            local b = panelBox(panel)
+            if b then game.save.currentBox = b end
+          end
+        end
+        self.col, self.row = c, r
+        self.header = false
+        return true
+      end
+      -- Second tap on the cell the cursor is already on: that is A, and it
+      -- is queued as a REAL button press rather than reimplemented here.
+      -- A on this grid means grab, or put down, or tick, or open the
+      -- marking window, depending on four pieces of state; a touch path
+      -- that decided any of that for itself would be a fifth answer to
+      -- drift out of step with the other four.
+      pcall(function() mod.input:tap(game, "a") end)
+      return true
+    end
     -- never assumed. Pics reach this screen through Assets.image, which is
     -- the seam a sprite mod shadows -- the README calls that a feature --
     -- so a 112x112 or 168x168 replacement is a thing that will happen, and
@@ -5597,7 +5684,140 @@ return function(mod)
     return self
   end
 
-  mod.content.screens:register(SCREEN, { new = newScreen })
+  -- ------- TOUCH
+  --
+  -- Off by default; while it is off this returns before looking at
+  -- anything. The pad keeps first refusal by contract, not by arithmetic
+  -- here: a pointer that begins on a virtual control belongs to the pad for
+  -- its whole life and never reaches this hook (docs/modding.md), so the
+  -- d-pad and the fingers cannot fight over the same press.
+  --
+  -- `live` is the grid on screen; every use is guarded by "is it still the
+  -- top of the stack", so a finger landing while a menu is open does
+  -- nothing -- the state on top owns the screen, and this is not it.
+  local live = nil
+
+  do
+    local TAP_SLOP = 12
+    local DRAG_STEP = 40   -- travel that turns a drag into one box
+    local DRAG_MAX = 3     -- a teleported pointer arrives as ONE huge delta
+                           -- and would otherwise fling through every box
+    local PINCH_STEP = 48
+
+    local fingers, pinch = {}, nil
+
+    local function count()
+      local n = 0
+      for _ in pairs(fingers) do n = n + 1 end
+      return n
+    end
+
+    local function onTop(game)
+      if not live then return false end
+      local ok, top = pcall(function() return game.stack:top() end)
+      return ok and top == live
+    end
+
+    local function touchOn()
+      local ok, v = pcall(function() return mod.options:get("touch") end)
+      return ok and v == true
+    end
+
+    local function setGrid(value)
+      local ok, cur = pcall(function() return mod.options:get("grid") end)
+      if ok and cur == value then return false end
+      return pcall(function() mod.options:set("grid", value) end)
+    end
+
+    local function beginPinch()
+      if pinch or count() < 2 then return end
+      local ids = {}
+      for id in pairs(fingers) do ids[#ids + 1] = id end
+      local a, b = fingers[ids[1]], fingers[ids[2]]
+      local dx, dy = a.x - b.x, a.y - b.y
+      local gap = math.sqrt(dx * dx + dy * dy)
+      if gap < 16 then return end
+      pinch = { a = ids[1], b = ids[2], gap = gap }
+    end
+
+    local function updatePinch()
+      if not pinch then return false end
+      local a, b = fingers[pinch.a], fingers[pinch.b]
+      if not (a and b) then pinch = nil; return false end
+      local dx, dy = a.x - b.x, a.y - b.y
+      local gap = math.sqrt(dx * dx + dy * dy)
+      local moved = gap - pinch.gap
+      if math.abs(moved) < PINCH_STEP then return false end
+      pinch.gap = gap
+      return setGrid(moved > 0 and "big" or "classic")
+    end
+
+    mod.hooks:wrap("input.pointer", function(next, game, ev)
+      if not (ev and touchOn() and onTop(game)) then return next(game, ev) end
+
+      if ev.phase == "pressed" then
+        if not ev.insideGame then return next(game, ev) end
+        fingers[ev.id] = { x = ev.gameX, y = ev.gameY,
+                           x0 = ev.gameX, y0 = ev.gameY, moved = false }
+        beginPinch()
+        return next(game, ev)
+      end
+
+      local f = fingers[ev.id]
+      if not f then return next(game, ev) end
+
+      if ev.phase == "moved" then
+        f.x, f.y = ev.gameX, ev.gameY
+        if math.abs(f.x - f.x0) > TAP_SLOP
+           or math.abs(f.y - f.y0) > TAP_SLOP then
+          f.moved = true
+        end
+        if count() >= 2 then
+          if not pinch then beginPinch() end
+          if updatePinch() then return true end
+          return next(game, ev)
+        end
+        -- One finger dragged sideways walks the boxes, the same direction
+        -- the shoulder-less Gen 1 does it: off the left edge is the box
+        -- before, off the right is the one after.
+        local dx = f.x - f.x0
+        local steps = math.floor(math.abs(dx) / DRAG_STEP)
+        if steps > 0 and live.touchBox then
+          steps = math.min(steps, DRAG_MAX)
+          f.x0 = f.x
+          local dir = dx > 0 and -1 or 1
+          local moved = false
+          for _ = 1, steps do
+            if live.touchBox(dir) then moved = true end
+          end
+          if moved then return true end
+        end
+        return next(game, ev)
+      end
+
+      if ev.phase == "released" or ev.phase == "cancelled" then
+        local wasPinch = pinch ~= nil
+        fingers[ev.id] = nil
+        if pinch and (ev.id == pinch.a or ev.id == pinch.b) then pinch = nil end
+        if ev.phase == "cancelled" or f.moved or wasPinch then
+          return next(game, ev)
+        end
+        if not live.hitAt then return next(game, ev) end
+        local slot, panel = live.hitAt(f.x, f.y)
+        if slot == nil then return next(game, ev) end
+        if live.touchTap and live.touchTap(slot, panel) then return true end
+        return next(game, ev)
+      end
+
+      return next(game, ev)
+    end)
+  end
+
+  mod.content.screens:register(SCREEN, { new = function(game)
+    local screen = newScreen(game)
+    live = screen
+    return screen
+  end })
 
   -- ------- reaching it
   --
