@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.21.1 -- the stray column in CLASSIC full screen
+
+One panel across and four deep -- which is what a phone gives you in
+CLASSIC -- left no room under the last box for the PEEK strip, so it fell to
+the sideways branch and drew the next box's column at the TOP of the
+surface, against box 1. A lone file of empty cells beside a full box reads
+as a broken sixth column of it, not as the next box: "boxes con Classic ha
+il layout rotto", and it was.
+
+The sideways peek is drawn beside the LAST panel now, where the box after
+the last one belongs, and it wants a whole cell of width rather than twenty
+pixels -- a sliver of a slot is a smudge at the edge, not a box you can see.
+
+**And the other margin carries the box BEFORE the first one**, sliced by the
+left edge the same way. One panel across leaves a band of nothing at each
+side; with a neighbour in both the layout reads as a shelf you are standing
+in front of instead of a column that has drifted off-centre.
+
+**The suite draws now.** Every WHAT'S NEW page, in CLASSIC, BIG and full
+screen. The Pokedex mod shipped a popup that called a function that did not
+exist and closed the application on its first frame, with a green suite
+behind it, because nothing in either file had ever called draw().
+
 ## 1.21.0 -- a popup that says what changed, and where the thing is
 
 "ho come la sensazione che nessuno vede le nuove feature". Three releases

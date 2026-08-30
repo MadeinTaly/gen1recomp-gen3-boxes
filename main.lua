@@ -5014,11 +5014,23 @@ return function(mod)
                   love.graphics.setColor(0, 0, 0, 1)
                 end
               end
-            elseif L.w - restX >= 20 then
-              -- landscape: the first column of the next box, cut off right
+            elseif L.w - restX >= L.cell then
+              -- Sideways: the first column of the next box, cut off by the
+              -- right edge -- BESIDE THE LAST PANEL, which is where the box
+              -- after the last one belongs.
+              --
+              -- It used to be drawn at L.gridY, the top of the surface. In
+              -- a layout one panel wide and four deep that put a lone
+              -- column of empty cells against box 1, reading as a broken
+              -- sixth column of it rather than as the next box: "boxes con
+              -- Classic ha il layout rotto", and it was.
+              --
+              -- The width has to be a whole cell too. Twenty pixels was
+              -- enough to draw a sliver of a slot, which is not a box you
+              -- can see -- it is a smudge at the edge.
               local okPeek = pcall(function()
                 love.graphics.push()
-                love.graphics.translate(restX, L.gridY)
+                love.graphics.translate(restX, lastY)
                 drawWallpaper(paperOf(nextBox), L.w - restX, PH,
                   artOf(nextBox), self.paperTick)
                 love.graphics.pop()
@@ -5026,14 +5038,53 @@ return function(mod)
               if not okPeek then pcall(love.graphics.pop) end
               local cells = game.save.boxes[nextBox] or {}
               for r = 0, ROWS - 1 do
+                local y = lastY + 14 + r * L.cell
+                if y + L.cell <= L.h - 12 then
+                  drawCellWash(restX, y, L.cell)
+                  love.graphics.setColor(0, 0, 0, 0.25)
+                  outline(restX, y, L.cell, L.cell)
+                  love.graphics.setColor(1, 1, 1, 1)
+                  local mon = cells[r * COLS + 1]
+                  if mon then drawPic(mon, restX, y) end
+                  love.graphics.setColor(0, 0, 0, 1)
+                end
+              end
+            end
+
+            -- ...and the box BEFORE the first one, at the other margin.
+            --
+            -- One panel across on a phone leaves a band of nothing at each
+            -- side. The right-hand one now carries the next box; leaving
+            -- the left empty made the whole thing look off-centre rather
+            -- than framed -- and the boxes either side, sliced by the
+            -- screen, is exactly what this feature is.
+            local leftRoom = L.gridX - 4
+            if (L.acrossN or 1) == 1 and leftRoom >= L.cell then
+              local n = Boxes.COUNT or 12
+              local prevBox = ((self.pageBox or 1) - 2) % n + 1
+              local px0 = L.gridX - 4 - L.cell
+              local okPrev = pcall(function()
+                love.graphics.push()
+                love.graphics.translate(px0, L.gridY)
+                drawWallpaper(paperOf(prevBox), L.cell, PH, artOf(prevBox),
+                  self.paperTick)
+                love.graphics.pop()
+              end)
+              if not okPrev then pcall(love.graphics.pop) end
+              local cells = game.save.boxes[prevBox] or {}
+              for r = 0, ROWS - 1 do
                 local y = L.gridY + 14 + r * L.cell
-                drawCellWash(restX, y, L.cell)
-                love.graphics.setColor(0, 0, 0, 0.25)
-                outline(restX, y, L.cell, L.cell)
-                love.graphics.setColor(1, 1, 1, 1)
-                local mon = cells[r * COLS + 1]
-                if mon then drawPic(mon, restX, y) end
-                love.graphics.setColor(0, 0, 0, 1)
+                if y + L.cell <= L.h - 12 then
+                  drawCellWash(px0, y, L.cell)
+                  love.graphics.setColor(0, 0, 0, 0.25)
+                  outline(px0, y, L.cell, L.cell)
+                  love.graphics.setColor(1, 1, 1, 1)
+                  -- its LAST column, because that is the edge you would
+                  -- see if you walked left into it
+                  local mon = cells[r * COLS + COLS]
+                  if mon then drawPic(mon, px0, y) end
+                  love.graphics.setColor(0, 0, 0, 1)
+                end
               end
             end
           end

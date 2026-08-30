@@ -3545,6 +3545,34 @@ do
   g.press("b"); s2:update()
   T.check(s2.news == nil, "B chiude da qualsiasi pagina")
 
+  -- ------- e adesso lo si DISEGNA davvero
+  --
+  -- La mod del Pokedex e' uscita con una chiamata a una funzione che non
+  -- esisteva dentro drawNews, e l'applicazione si chiudeva al primo
+  -- fotogramma del popup: nessun test aveva mai chiamato draw(), quindi la
+  -- suite era verde su codice che non poteva girare. Qui ogni pagina viene
+  -- disegnata davvero, in tutte e tre le disposizioni.
+  do
+    local optStore = run.loader.modOptions.gen3_box
+    local wasGrid, wasFull = optStore.grid, optStore.fullscreen
+    for _, mode in ipairs({ "classic", "big", "full" }) do
+      optStore.grid = mode == "full" and "big" or mode
+      optStore.fullscreen = (mode == "full")
+      local s3 = factory.new(g)
+      for page = 1, #s3.newsPages do
+        s3.news = { page = page }
+        local ok, err = pcall(function() s3:draw() end)
+        T.check(ok, ("la pagina %d si disegna in %s (%s)")
+          :format(page, mode, tostring(err)))
+      end
+      s3.news = nil
+      local ok, err = pcall(function() s3:draw() end)
+      T.check(ok, ("e la schermata si disegna in %s senza popup (%s)")
+        :format(mode, tostring(err)))
+    end
+    optStore.grid, optStore.fullscreen = wasGrid, wasFull
+  end
+
   -- ogni riga, avvolta contro la larghezza vera del riquadro, ci sta
   local L = s2.layout()
   local x, y, w, h, k = s2.newsRect(L)
