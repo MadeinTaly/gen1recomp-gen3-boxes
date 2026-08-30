@@ -29,6 +29,17 @@ the file builds, and seven checks failed in places that have nothing to do
 with release notes. Both files now stamp a far-future version instead, which
 survives any bump precisely because the check is older-than.
 
+**A wallpaper belongs to ONE box, and the surround is blank.** Full screen
+painted the cursor box's scene across the whole surface first and laid the
+panels on top, on the argument that a plain margin read as "bande bianche
+antiestetiche". From outside the code that does not read as a choice, it
+reads as a fault -- "LO SFONDO E' SOLO PER BOX. LO METTE ANCHE AL WRAPPER
+DELLE BOXES" -- and it is one: box 2's sky ended up behind boxes 1, 3 and 4
+as well, so a per-BOX setting quietly became a per-SCREEN one and the boxes
+that had chosen their own scene looked like cut-outs pasted onto somebody
+else's. The surround is white now and every scene stays inside the panel
+that chose it.
+
 Two faults in the same panel, reported together as "la MARK MODE non
 funziona, nel menu non c'e' cursore". Both were real, and both were in the
 window itself rather than in the mode that opens it.

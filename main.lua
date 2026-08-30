@@ -5143,16 +5143,23 @@ return function(mod)
           -- the panel is as big as the cell GRID asked for, so its size
           -- comes off the layout rather than off a constant
           local PW, PH = L.panelW or PANEL_W, L.panelH or PANEL_H
-          -- Behind everything, the CURSOR'S OWN scene over the whole
-          -- surface. The panels never tile the canvas exactly -- a phone
-          -- leaves a margin at the sides, a wider cell leaves one at the
-          -- foot -- and that leftover used to be painted white, which is
-          -- the "bande bianche antiestetiche" complaint moved from the
-          -- header to the border. A scene there costs one more paint and
-          -- makes the margin read as the room the boxes are sitting in.
+          -- The surround is BLANK, and stays blank.
+          --
+          -- It used to carry the cursor box's own scene, stretched over the
+          -- whole surface, on the argument that a plain margin read as
+          -- "bande bianche antiestetiche". That argument was wrong, and
+          -- from outside the code it looks like a bug rather than a
+          -- choice: "LO SFONDO E' SOLO PER BOX. LO METTE ANCHE AL WRAPPER
+          -- DELLE BOXES". Quite -- a wallpaper belongs to ONE box. Painting
+          -- box 2's sky across the whole screen puts it behind boxes 1, 3
+          -- and 4 as well, so a per-box setting silently became a
+          -- per-screen one and the boxes that had their own scene looked
+          -- like cut-outs pasted on somebody else's.
+          --
+          -- White here, and every scene confined to the panel that chose
+          -- it. The margin is the table the boxes are lying on, not a room.
           love.graphics.setColor(1, 1, 1, 1)
           love.graphics.rectangle("fill", 0, 0, L.w, L.h)
-          drawWallpaper(paper, L.w, L.h, style, self.paperTick)
           for p = 0, panelsShown(L) - 1 do
             local ox, oy = panelOrigin(L, p)
             local boxNum = panelBox(p)
