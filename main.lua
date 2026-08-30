@@ -294,9 +294,31 @@ return function(mod)
   -- picks is the SIZE OF A CELL, and that question still has two answers on
   -- any surface. Choosing CLASSIC and getting 56-pixel cells reads as the
   -- setting being broken -- which is exactly how it was reported.
-  local function fullCell()
+  -- ------- WHICH GRID, AND WHERE THAT CHOICE LIVES
+  --
+  -- The SAVE first, the option second, because `mod.options` is READ-ONLY:
+  -- it has `define` and `get` and nothing else
+  -- (src/mods/Loader.lua:1493-1510). `mod.options:set` was a call to a
+  -- function that does not exist, swallowed by its own pcall -- which is
+  -- why the two-finger pinch appeared to do nothing. `mod.save` is the
+  -- writable one, so a pinch lands there and is read back ahead of the
+  -- option, and the option stays what a fresh save starts from.
+  local function gridChoice()
+    local okS, saved = pcall(function() return mod.save:get("grid") end)
+    if okS and (saved == "big" or saved == "classic") then return saved end
     local ok, value = pcall(function() return mod.options:get("grid") end)
-    return (ok and value == "classic") and 28 or FULL_CELL
+    return (ok and value) or "classic"
+  end
+
+  local function setGridChoice(value)
+    if value ~= "big" and value ~= "classic" then return false end
+    if gridChoice() == value then return false end
+    local ok = pcall(function() mod.save:set("grid", value) end)
+    return ok and gridChoice() == value
+  end
+
+  local function fullCell()
+    return gridChoice() == "classic" and 28 or FULL_CELL
   end
 
   -- A panel is a 5x4 box at whatever that cell is, plus its own name row.
@@ -408,8 +430,7 @@ return function(mod)
     -- Same layout either way, which is the point of computing it here.
     if fullOn() then return fullLayout() end
     if isGen2(game) then return LAYOUT.classic end
-    local ok, value = pcall(function() return mod.options:get("grid") end)
-    return LAYOUT[(ok and value) or "classic"] or LAYOUT.classic
+    return LAYOUT[gridChoice()] or LAYOUT.classic
   end
 
   -- ------- the box as a nurse
@@ -2749,6 +2770,11 @@ return function(mod)
 
     function self:drawWidescreen(winW, winH)
       local L = layout(game)
+      -- Recorded for the touch layer: on Gold this screen applies its OWN
+      -- translate and scale, so this is the only place that knows how a
+      -- window point maps back onto the surface the cells were laid out
+      -- on. Written every frame it draws, read by toUI below.
+      self.touchXform = nil
       -- FULL fills; BIG stays on whole pixels.
       --
       -- Flooring the ratio is right for BIG, a fixed 320x288 that wants
@@ -2764,12 +2790,50 @@ return function(mod)
       local scale = L.full and fit or math.max(1, math.floor(fit))
       local ox = math.floor((winW - L.w * scale) / 2)
       local oy = math.floor((winH - L.h * scale) / 2)
+      self.touchXform = { ox = ox, oy = oy, sx = scale, sy = scale }
       love.graphics.push()
       love.graphics.translate(ox, oy)
       love.graphics.scale(scale, scale)
       self:draw()
       love.graphics.pop()
     end
+
+    -- ------- A WINDOW POINT, BROUGHT ONTO THE SURFACE THE CELLS ARE ON
+    --
+    -- This is the piece the first cut of touch was missing, and it is the
+    -- same lesson the scissor taught: a coordinate is worth nothing until
+    -- you know which space it is in.
+    --
+    -- `ev.x/y` are LOVE window units, and so are `gameX/gameY` -- the
+    -- viewport only ever SUBTRACTS an origin from them
+    -- (src/render/GameViewport.lua:127-133, no scaling anywhere). The cells
+    -- are laid out on this screen's own surface, which is 320x288 in BIG or
+    -- the full layout's size, and something scales that surface into the
+    -- window. Feeding window units to hitAt asks "which cell is at pixel
+    -- 700 of a 296-wide screen", and the answer is nonsense.
+    --
+    -- Two scalers, so two answers. On Gold this screen scales itself, in
+    -- drawWidescreen just above, and the numbers it used are recorded
+    -- there. On Gen 1 the renderer does it, and frameRects hands back the
+    -- UI surface's origin and draw scale -- `uox/uoy` and `Ux/Uy` -- which
+    -- is exactly this transform read forwards.
+    local function toUI(x, y)
+      local t = self.touchXform
+      if t and t.sx and t.sx > 0 and t.sy and t.sy > 0 then
+        return (x - t.ox) / t.sx, (y - t.oy) / t.sy
+      end
+      local okR, Renderer = pcall(require, "src.render.Renderer")
+      if not okR then return x, y end
+      local ok, r = pcall(function() return Renderer:frameRects() end)
+      if ok and type(r) == "table" and r.Ux and r.Ux > 0
+         and r.Uy and r.Uy > 0 then
+        return (x - (r.uox or 0)) / r.Ux, (y - (r.uoy or 0)) / r.Uy
+      end
+      -- no transform to be had: the raw point is the best guess there is,
+      -- and on an unscaled 1:1 boot it is also the right one
+      return x, y
+    end
+    self.toUI = toUI
 
     -- StateStack calls this on pop and only on pop -- a screen pushed ON TOP
     -- of this one (the summary) does not fire it -- so it is exactly "the
@@ -3211,15 +3275,47 @@ return function(mod)
       focusBox(((game.save.currentBox - 1 + step) % n) + 1)
     end
 
-    -- The touch drag walks the boxes through changeBox itself rather than
-    -- through a second idea of what "next box" means -- the wrap, the
-    -- panel bookkeeping and the party guard all live in there already.
-    -- Answers true when it moved, so the hook knows to consume the event.
-    self.touchBox = function(step)
+    -- ------- WHAT A DRAG MEANS, PER LAYOUT
+    --
+    -- Not the same verb on the two surfaces, and the first cut used the
+    -- wrong one on the bigger of them.
+    --
+    -- On the ordinary screen one box fills the grid, so a drag is "the box
+    -- before / the box after" and goes through `changeBox` -- the wrap and
+    -- the party guard already live in there.
+    --
+    -- In FULL SCREEN several boxes are on screen at once, stacked down the
+    -- glass on a phone. "The next box" is not a scroll there, it is a
+    -- cursor move; what scrolls is `pageBox`, the box the first panel
+    -- stands for, and it moves by a ROW of panels at a time -- which is
+    -- exactly what movePanel does when the cursor walks off the edge
+    -- (see it advance pageBox by `across` there). Dragging drove
+    -- `changeBox` instead, so the cursor hopped between the panels already
+    -- on screen and nothing ever scrolled.
+    --
+    -- The axis follows the layout rather than a fixed guess: panels are
+    -- laid out `acrossN` by `downN`, so a column of them scrolls
+    -- vertically and a row of them horizontally. The hook hands over the
+    -- axis the finger actually travelled on and this decides whether that
+    -- axis means anything here.
+    self.touchScroll = function(dir, axis)
       if self.mode ~= "box" then return false end
-      local was = game.save.currentBox
-      changeBox(step)
-      return game.save.currentBox ~= was
+      local L = layout(game)
+      if not L.full then
+        -- one box on screen: either axis reads as "the next one"
+        local was = game.save.currentBox
+        changeBox(dir)
+        return game.save.currentBox ~= was
+      end
+      local across, down = L.acrossN or 1, L.downN or 1
+      -- the axis that has more than one panel on it is the one that scrolls
+      local wants = (down > 1 and "y") or (across > 1 and "x") or "y"
+      if axis ~= wants then return false end
+      local was = self.pageBox or 1
+      local step = (wants == "y") and across or 1
+      self.pageBox = ((was - 1 + dir * step) % Boxes.COUNT) + 1
+      game.save.currentBox = panelBox(self.panel or 0)
+      return self.pageBox ~= was
     end
 
     -- Walking off the left or right edge of a box steps to the next one, the
@@ -5740,11 +5836,7 @@ return function(mod)
       return ok and v == true
     end
 
-    local function setGrid(value)
-      local ok, cur = pcall(function() return mod.options:get("grid") end)
-      if ok and cur == value then return false end
-      return pcall(function() mod.options:set("grid", value) end)
-    end
+    local setGrid = setGridChoice
 
     local function beginPinch()
       if pinch or count() < 2 then return end
@@ -5774,8 +5866,10 @@ return function(mod)
 
       if ev.phase == "pressed" then
         if not ev.insideGame then return next(game, ev) end
-        fingers[ev.id] = { x = ev.gameX, y = ev.gameY,
-                           x0 = ev.gameX, y0 = ev.gameY, moved = false }
+        -- brought onto THIS screen's surface first: gameX/gameY are window
+        -- units and the cells are not laid out in window units
+        local ux, uy = live.toUI(ev.gameX, ev.gameY)
+        fingers[ev.id] = { x = ux, y = uy, x0 = ux, y0 = uy, moved = false }
         beginPinch()
         return next(game, ev)
       end
@@ -5784,7 +5878,7 @@ return function(mod)
       if not f then return next(game, ev) end
 
       if ev.phase == "moved" then
-        f.x, f.y = ev.gameX, ev.gameY
+        f.x, f.y = live.toUI(ev.gameX, ev.gameY)
         if math.abs(f.x - f.x0) > TAP_SLOP
            or math.abs(f.y - f.y0) > TAP_SLOP then
           f.moved = true
@@ -5794,18 +5888,24 @@ return function(mod)
           if updatePinch() then return true end
           return next(game, ev)
         end
-        -- One finger dragged sideways walks the boxes, the same direction
-        -- the shoulder-less Gen 1 does it: off the left edge is the box
-        -- before, off the right is the one after.
-        local dx = f.x - f.x0
-        local steps = math.floor(math.abs(dx) / DRAG_STEP)
-        if steps > 0 and live.touchBox then
+        -- One finger dragged walks the boxes. BOTH axes are offered and
+        -- the screen decides which one means anything on the layout it is
+        -- wearing: one box on the glass takes either, a column of panels
+        -- scrolls vertically, a row of them horizontally. The first cut
+        -- offered only the horizontal one, so full screen -- where the
+        -- panels stack downwards on a phone -- had nothing to drag.
+        local dx, dy = f.x - f.x0, f.y - f.y0
+        local axis = (math.abs(dy) > math.abs(dx)) and "y" or "x"
+        local travel = (axis == "y") and dy or dx
+        local steps = math.floor(math.abs(travel) / DRAG_STEP)
+        if steps > 0 and live.touchScroll then
           steps = math.min(steps, DRAG_MAX)
-          f.x0 = f.x
-          local dir = dx > 0 and -1 or 1
+          f.x0, f.y0 = f.x, f.y
+          -- dragging the content up shows what is further down the list
+          local dir = travel > 0 and -1 or 1
           local moved = false
           for _ = 1, steps do
-            if live.touchBox(dir) then moved = true end
+            if live.touchScroll(dir, axis) then moved = true end
           end
           if moved then return true end
         end

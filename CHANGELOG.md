@@ -1,5 +1,48 @@
 # Changelog
 
+## 1.22.1 -- the touch landed on the wrong cell
+
+Two faults in the layer that shipped yesterday, both from the same root:
+a coordinate is worth nothing until you know which space it is in.
+
+**The point arrived in WINDOW units and was read as surface units.**
+`ev.gameX/gameY` are LOVE window units -- the viewport only ever subtracts
+an origin from them (`src/render/GameViewport.lua:127-133`, no scaling
+anywhere) -- while the cells are laid out on this screen's own surface,
+which something then scales into the window. Feeding one to the other asks
+which cell sits at pixel 700 of a 296-wide screen, and the answer is
+nonsense that happens to look plausible on a 1:1 boot.
+
+There are two scalers, so there are two answers. On Gold this screen scales
+itself in `drawWidescreen`, and it now records the numbers it used. On Gen 1
+the renderer does it, and `Renderer:frameRects` hands back the UI surface's
+origin and draw scale -- `uox/uoy` and `Ux/Uy` -- which is that transform
+read forwards. Either way the finger is brought onto the surface first and
+`hitAt` is asked a question in its own units.
+
+**The pinch was writing into the void.** `mod.options` is read-only: it has
+`define` and `get` and nothing else (`src/mods/Loader.lua:1493-1510`). The
+two-finger gesture called `mod.options:set("grid", ...)` -- a function that
+does not exist -- inside its own `pcall`, so it failed silently and the
+gesture appeared to do nothing. The choice lives in the SAVE now and is read
+back ahead of the option, so the size a pinch leaves you on survives leaving
+the screen.
+
+**A drag did nothing in full screen.** On the ordinary screen one box fills
+the grid, so a drag means "the box before / the box after" and `changeBox`
+is the right verb. In full screen several boxes are on the glass at once and
+that verb only hops the cursor between panels already visible; what scrolls
+is `pageBox`, and it moves by a ROW of panels. The drag also offered only
+the horizontal axis, while on a phone the panels stack downwards -- so the
+one gesture that could have worked was the one not being listened for. Both
+axes are offered now and the screen decides which one means anything on the
+layout it is wearing.
+
+Five new checks, and they fail on the old code: a window point under a known
+transform lands back on the cell it was drawn in, the raw unconverted point
+does not, and a drag scrolls the page in full screen while the axis with no
+panels on it is left alone.
+
 ## 1.22.0 -- fingers, and the Unown letters again (#7)
 
 **A sprite pack was overruling the Unown form.** 1.21.3 resolved the letter

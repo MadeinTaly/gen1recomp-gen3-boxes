@@ -4103,6 +4103,39 @@ do
   T.check(screen.hitAt(gx - 6, gy - 6) == nil,
     "un dito fuori dalla griglia non e' su nessuna cella")
 
+  -- ------- E IL PUNTO ARRIVA IN UNITA' FINESTRA, NON DELLA SUPERFICIE
+  --
+  -- Questo e' il difetto della prima versione del tocco, ed e' la stessa
+  -- lezione dello scissor: una coordinata non vale niente finche' non sai
+  -- in che spazio sta. `ev.gameX/gameY` sono unita' FINESTRA -- il viewport
+  -- si limita a sottrarre un'origine, non scala niente -- mentre le celle
+  -- sono disposte sulla superficie di questo schermo, che qualcuno scala
+  -- dentro la finestra. Passare unita' finestra a hitAt vuol dire chiedere
+  -- quale cella sta al pixel 700 di uno schermo largo 296.
+  do
+    local cell = (L and L.cell) or 28
+    local hadX = screen.touchXform
+    -- una trasformata come quella che il mod applica su Gold: raddoppiata
+    -- e spostata di cento pixel
+    screen.touchXform = { ox = 100, oy = 60, sx = 2, sy = 2 }
+    for i0 = 0, 3 do
+      local cx, cy = screen.cellRect(i0)
+      -- il punto FINESTRA che corrisponde al centro di quella cella
+      local wx = 100 + (cx + cell / 2) * 2
+      local wy = 60 + (cy + cell / 2) * 2
+      local ux, uy = screen.toUI(wx, wy)
+      T.eq(screen.hitAt(ux, uy), i0,
+        "il punto finestra della cella " .. i0 .. " torna alla cella " .. i0)
+    end
+    -- e senza conversione lo stesso punto cadeva altrove
+    local cx, cy = screen.cellRect(0)
+    local wx = 100 + (cx + cell / 2) * 2
+    local wy = 60 + (cy + cell / 2) * 2
+    T.check(screen.hitAt(wx, wy) ~= 0,
+      "mentre il punto grezzo, non convertito, NON e' la cella 0")
+    screen.touchXform = hadX
+  end
+
   -- il PRIMO tocco su una cella sposta solo il cursore: su un telefono una
   -- cella e' pochi millimetri, e agire al primo tocco vuol dire agire su
   -- quello che ti capita sotto il dito
@@ -4115,10 +4148,65 @@ do
   -- e il trascinamento cambia box passando per changeBox, non per una
   -- seconda idea di cosa sia "la box dopo"
   local was = game.save.currentBox
-  T.check(screen.touchBox(1) == true, "trascinare cambia box")
+  T.check(screen.touchScroll(1, "x") == true, "trascinare cambia box")
   T.check(game.save.currentBox ~= was, "e la box aperta e' un'altra")
-  T.check(screen.touchBox(-1) == true, "e si torna indietro")
+  T.check(screen.touchScroll(-1, "x") == true, "e si torna indietro")
   T.eq(game.save.currentBox, was, "a quella di partenza")
+  -- su una schermata normale c'e' una box sola, quindi vale anche l'altro
+  -- asse: non c'e' niente da cui distinguerlo
+  T.check(screen.touchScroll(1, "y") == true,
+    "e con una box sola sullo schermo vale anche il verticale")
+  screen.touchScroll(-1, "y")
+end
+
+-- ------- IN PIENO SCHERMO IL TRASCINAMENTO SCORRE, NON SALTA FRA I PANNELLI
+--
+-- Su questa superficie ci sono piu' box a schermo insieme, impilate sul
+-- vetro di un telefono. "La box dopo" li' non e' uno scorrimento, e' uno
+-- spostamento del cursore; quello che scorre e' `pageBox`, la box per cui
+-- sta il primo pannello, e si muove di una RIGA di pannelli per volta.
+--
+-- La prima versione trascinava chiamando changeBox e offriva solo l'asse
+-- orizzontale: il cursore saltellava fra i pannelli gia' a schermo e non
+-- scorreva mai niente.
+do
+  local optStore = run.loader.modOptions.gen3_box
+  local hadFull, hadGrid = optStore.fullscreen, optStore.grid
+  optStore.fullscreen = true
+  optStore.grid = "big"
+  local G = love.graphics
+  local realDim = G.getDimensions
+  G.getDimensions = function() return 405, 900 end
+
+  local game = fakeGame({ mon("FIXMON_A", 5) })
+  local screen = factory.new(game)
+  local L = screen.layoutOf and screen.layoutOf(game) or nil
+
+  if L and L.full then
+    local down = L.downN or 1
+    local across = L.acrossN or 1
+    local axis = (down > 1 and "y") or (across > 1 and "x") or "y"
+    local was = screen.pageBox or 1
+    T.check(screen.touchScroll(1, axis) == true,
+      "in pieno schermo il trascinamento scorre la pagina")
+    T.check((screen.pageBox or 1) ~= was, "e la prima box mostrata cambia")
+    T.check(screen.touchScroll(-1, axis) == true, "e si torna su")
+    T.eq(screen.pageBox or 1, was, "alla pagina di partenza")
+
+    -- l'asse che non ha pannelli sopra non scorre: su una colonna di
+    -- pannelli il trascinamento laterale non deve rubare il gesto
+    local other = axis == "y" and "x" or "y"
+    local onlyOne = (other == "y" and down == 1) or (other == "x" and across == 1)
+    if onlyOne then
+      local before = screen.pageBox or 1
+      T.check(screen.touchScroll(1, other) == false,
+        "e l'asse senza pannelli non scorre niente")
+      T.eq(screen.pageBox or 1, before, "quindi la pagina resta dov'era")
+    end
+  end
+
+  G.getDimensions = realDim
+  optStore.fullscreen, optStore.grid = hadFull, hadGrid
 end
 
 T.finish("gen3_box")
