@@ -4341,12 +4341,52 @@ return function(mod)
     -- pass would have sent, and only when this screen has taken the zones
     -- away. No shader, no colours: DMG greys, which is what CLASSIC has
     -- always drawn.
-    local function paintPic(img, dx, dy, k, species)
+    -- ------- WHERE A SPECIES' FOUR COLOURS COME FROM, PER GENERATION
+    --
+    -- Not the same place, and asking the wrong one is why every Pokemon on
+    -- Gold came out grey. `PaletteFX.monPal` reads the GEN 1 pack
+    -- (`data.palettes`, src/render/PaletteFX.lua:435-444) and answers nil
+    -- on a Gold boot -- nil colours, no shader, four DMG greys, and a file
+    -- that thinks it asked properly.
+    --
+    -- Gold keeps its own table and its own reader, and its own screens use
+    -- them: `Palettes.monColors(data.gen2Palettes, species, shiny)`
+    -- (src/ui/gen2/BoxMenu.lua:683-684). It answers the same shape --
+    -- four colours, lightest first -- so only the question changes.
+    --
+    -- Shiny travels with the MON, not the species, which is why this takes
+    -- one: Gold gives a shiny its own colour pair in the same table.
+    local function monColours(species, mon)
+      if isGen2(game) then
+        local okP, P = pcall(require, "src.world.gen2.Palettes")
+        if not (okP and type(P) == "table"
+                and type(P.monColors) == "function") then
+          return nil
+        end
+        local shiny = false
+        if mon and mon.dvs then
+          local okS, Stats = pcall(require, "src.pokemon.Stats")
+          if okS and type(Stats.isShiny) == "function" then
+            local ok, v = pcall(Stats.isShiny, mon.dvs)
+            shiny = ok and v or false
+          end
+        end
+        local ok, colours =
+          pcall(P.monColors, game.data and game.data.gen2Palettes,
+                species, shiny)
+        return ok and colours or nil
+      end
+      local okFX, FX = pcall(require, "src.render.PaletteFX")
+      if not okFX then return nil end
+      return FX.monPal(game.data, species)
+    end
+
+    local function paintPic(img, dx, dy, k, species, mon)
       local g = love.graphics
       local sh = nil
       local okFX, FX = pcall(require, "src.render.PaletteFX")
       if okFX and species and type(FX.shader) == "function" then
-        local colors = FX.monPal(game.data, species)
+        local colors = monColours(species, mon)
         local ok, made = pcall(FX.shader)
         if colors and ok and made then
           local sent = pcall(FX.sendColors, made, colors)
@@ -4379,7 +4419,7 @@ return function(mod)
       local remap = self.remapNow
       if remap == nil then remap = remapOff() end
       local species = (not chosen.trueColor) and remap and mon.species or nil
-      paintPic(img, dx, dy, k, species)
+      paintPic(img, dx, dy, k, species, mon)
       if chosen.trueColor then markTrueColor(dx, dy, w, h) end
     end
 

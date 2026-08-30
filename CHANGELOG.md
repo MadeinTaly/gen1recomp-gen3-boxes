@@ -29,9 +29,18 @@ the file builds, and seven checks failed in places that have nothing to do
 with release notes. Both files now stamp a far-future version instead, which
 survives any bump precisely because the check is older-than.
 
-**On Gold every Pokemon was grey, caught ones included.** `remapOff` asks
-"is the engine's shade remap NOT going to colour these, so the picture has
-to carry its own?" and answered **false** on Gold, on the belief that Gold
+**On Gold every Pokemon was grey, caught ones included -- and the real
+reason was that this mod asked the wrong table.** `PaletteFX.monPal` reads
+the GEN 1 pack (`data.palettes`, `src/render/PaletteFX.lua:435-444`) and
+answers nil on a Gold boot: nil colours, no shader, four DMG greys. Gold
+keeps its own table and its own reader, and its own screens use them --
+`Palettes.monColors(data.gen2Palettes, species, shiny)`
+(`src/ui/gen2/BoxMenu.lua:683-684`). Same answer shape, four colours
+lightest first, so only the question changed. Shiny travels with the MON
+rather than the species, so the picture's own Pokemon is passed along and
+a shiny gets the pair Gold reserves for it.
+
+Alongside that, `remapOff` also answered **false** on Gold, on the belief that Gold
 colours its own pictures. It does not: Gold composes through `Game2`, which
 never runs the palette pass at all -- it does not even ask a state for
 `uiSize` -- so no zone is ever emitted and nothing else is coming. The
