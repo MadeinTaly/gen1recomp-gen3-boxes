@@ -66,12 +66,25 @@ the BOX MENU — is the same screen doing the same thing.
 The header row is the box title at the top, reached by moving up from the grid
 in CLASSIC or BIG layout. It carries a **MENU** button on its right-hand end —
 that is the BOX MENU, and everything this screen gained in 1.6.0 is behind it:
-FIND, JUMP TO BOX, SORT, MARK MODE, NAME BOX and WALLPAPER. Press UP from the
+FIND, JUMP TO BOX, SORT, MARK MODE, NAME BOX, WALLPAPER and WHAT'S NEW. Press UP from the
 top row, then A. B works from anywhere and only back — the convention
 every other screen in this game follows — and that is what frees START to be
 the summary when the cursor is on a Pokémon. With `CURSOR WRAP` on, UP from
 the top row moves to the header, and UP again wraps to the bottom, not back as
 in 1.5.2.
+
+## WHAT'S NEW
+
+Most of what this mod does lives behind a menu or an option, and a screen that
+looks the same as last week is a screen where nothing happened — so a wallpaper
+per box, FULL SCREEN, PEEK and MOVE MANY all shipped and went unnoticed.
+
+So the first time the box opens after an update — or after you install it —
+a **WHAT'S NEW** popup says what changed and, more to the point, **where the
+thing is**: which menu, which option row, which keys. Six pages, ordered by how
+hard the feature is to reach; the accent colour marks the line that names the
+thing. `A` turns the page, `B` closes, and it does not come back until the next
+version. `BOX MENU → WHAT'S NEW` reopens it whenever you like.
 
 ## Options
 

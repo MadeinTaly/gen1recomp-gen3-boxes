@@ -302,6 +302,12 @@ if #walls > 0 then
   save.boxPapers = papers
 end
 
+-- NEWS=<n> apre il popup delle novita' su quella pagina: e' testo dentro un
+-- riquadro, e se una riga sborda o una pagina e' piu' lunga del riquadro lo
+-- si vede qui e da nessun'altra parte
+local NEWS = tonumber(os.getenv("NEWS") or "0")
+if NEWS > 0 then screen.news = { page = NEWS } else screen.news = nil end
+
 local L = screen.layout()
 W, H = L.w, L.h
 if store.fullscreen then

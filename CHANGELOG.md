@@ -1,5 +1,30 @@
 # Changelog
 
+## 1.21.0 -- a popup that says what changed, and where the thing is
+
+"ho come la sensazione che nessuno vede le nuove feature". Three releases
+added a wallpaper per box, a full-screen layout, the boxes either side and a
+contest anybody can enter -- and every one of them lives behind a menu or an
+option. A player who never opens OPTIONS never learns that FULL SCREEN
+exists.
+
+**WHAT'S NEW.** The first time the box opens after an update, or after you
+install it, a popup says what changed and, more to the point, WHERE the
+thing is: which menu, which option row, which keys. Six pages, ordered by
+how hard the feature is to reach -- what you can see straight away first,
+what needs two menus last, because that is the order in which somebody stops
+reading. The accent colour marks the line that names the thing, and the
+contest. `A` turns the page, `B` closes, and it does not come back until the
+next version.
+
+It is written in Game Boy pixels and drawn at whole scale, so BIG and full
+screen get the same page twice the size rather than the same page in a
+corner in tiny text. The panel is drawn in real colours and reported as
+trueColor, or the frame's shade remap would flatten the accent into one of
+four greys. The suite measures every line against the panel it is drawn in.
+
+`BOX MENU -> WHAT'S NEW` reopens it whenever you like.
+
 ## 1.20.0 -- the scene under the Pokemon, and GRID means something again
 
 Three faults, all reported from photographs of a phone.

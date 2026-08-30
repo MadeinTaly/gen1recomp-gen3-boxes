@@ -15,6 +15,19 @@ local DIR = os.getenv("GEN3_BOX_DIR") or "mods/gen3_box"
 local run = T.sdk.loadMod(DIR, { data = Data })
 T.eq(#run.errors, 0, "loads clean (" .. tostring(run.errors[1]) .. ")")
 
+-- ------- WHAT'S NEW, marked as already read
+--
+-- The popup opens on the first screen built after an update and owns every
+-- key while it is open, which is the point of it -- and which would make
+-- every keypress in this file land on a page of release notes. So the save
+-- says the notes have been read, exactly as a second boot would, and the
+-- block at the bottom of this file unsets it to test the popup itself.
+run.loader.modSave = run.loader.modSave or {}
+run.loader.modSave.gen3_box = run.loader.modSave.gen3_box or {}
+local newsStore = run.loader.modSave.gen3_box
+local NEWS_VERSION = "1.21.0"
+newsStore.newsSeen = NEWS_VERSION
+
 -- ------- the screen exists and is the mod's own
 
 local factory = Data.screens and Data.screens.Gen3Box
@@ -333,6 +346,12 @@ do
 
   local gen2Factory = D.screens and D.screens.Gen3Box
   T.check(gen2Factory ~= nil, "and registers the screen on that boot")
+
+  -- questo e' un SECONDO loader, con un salvataggio suo: anche qui le note
+  -- di rilascio risultano gia' lette, o il popup si prende i tasti
+  gen2Run.loader.modSave = gen2Run.loader.modSave or {}
+  gen2Run.loader.modSave.gen3_box = gen2Run.loader.modSave.gen3_box or {}
+  gen2Run.loader.modSave.gen3_box.newsSeen = NEWS_VERSION
 
   local gen2Game = fakeGame({}, { mon("FIXMON_A", 1), mon("FIXMON_B", 2) }, D)
   gen2Game.save.generation = 2
@@ -974,8 +993,8 @@ do
   T.check(menu ~= nil, "A on the header opens a menu titled with the box's name")
   T.check(menu == game.stack:top(), "and it is what is now on top of the stack")
   T.eq(labels(menu.items),
-    "FIND|SORT|JUMP TO BOX|NAME BOX|WALLPAPER|MARK MODE|MOVE MANY|CANCEL",
-    "holding FIND, SORT, JUMP TO BOX, NAME BOX, WALLPAPER, MARK MODE, MOVE MANY and CANCEL")
+    "FIND|SORT|JUMP TO BOX|NAME BOX|WALLPAPER|MARK MODE|MOVE MANY|WHAT'S NEW|CANCEL",
+    "holding FIND, SORT, JUMP TO BOX, NAME BOX, WALLPAPER, MARK MODE, MOVE MANY, WHAT'S NEW and CANCEL")
 
   for i, item in ipairs(menu.items) do
     if item.label == "CANCEL" then menu.index = i end
@@ -3479,6 +3498,98 @@ do
   T.eq(#boxes[4], 3, "una destinazione senza posto per tutti non ne prende nessuno")
   T.eq(#boxes[3], 19, "e la destinazione resta com'era")
   quiet()
+end
+
+-- ------- WHAT'S NEW
+--
+-- Il popup delle novita': si apre da solo la PRIMA volta dopo un
+-- aggiornamento (o dopo l'installazione), si chiude e non torna piu'.
+-- Tre cose vanno verificate qui e non a occhio: che si apra quando deve,
+-- che si prenda i tasti mentre e' aperto (o il cursore gira dietro una
+-- pagina che stai leggendo), e che ogni riga ENTRI nel riquadro -- una
+-- riga che sborda e' esattamente il difetto che nessun test che guarda
+-- solo "non e' crashato" vede mai.
+do
+  local Font = require("src.render.Font")
+  local g = fakeGame({ mon("FIXMON_A", 5) })
+
+  newsStore.newsSeen = nil
+  local s = factory.new(g)
+  T.check(s.news ~= nil, "senza note lette il popup si apre da solo")
+  T.eq(s.news.page, 1, "dalla prima pagina")
+
+  -- i tasti sono suoi: la freccia non muove il cursore nella griglia
+  local row0, col0 = s.row, s.col
+  g.press("down"); s:update()
+  T.eq(s.row, row0, "mentre e' aperto il cursore non si muove")
+  T.eq(s.col, col0, "in nessuna direzione")
+
+  g.press("a"); s:update()
+  T.eq(s.news.page, 2, "A gira pagina")
+  g.press("left"); s:update()
+  T.eq(s.news.page, 1, "e sinistra torna indietro")
+
+  for _ = 1, #s.newsPages do
+    if s.news then g.press("a"); s:update() end
+  end
+  T.check(s.news == nil, "A sull'ultima pagina chiude")
+  T.eq(newsStore.newsSeen, s.newsVersion,
+    "e il salvataggio si segna la versione letta")
+
+  local s2 = factory.new(g)
+  T.check(s2.news == nil, "riaprendo la schermata non torna")
+
+  -- ...ma dal BOX MENU si rilegge quando si vuole
+  s2.openNews()
+  T.check(s2.news ~= nil, "la voce WHAT'S NEW lo riapre")
+  g.press("b"); s2:update()
+  T.check(s2.news == nil, "B chiude da qualsiasi pagina")
+
+  -- ogni riga, avvolta contro la larghezza vera del riquadro, ci sta
+  local L = s2.layout()
+  local x, y, w, h, k = s2.newsRect(L)
+  T.check(x >= 0 and y >= 0 and x + w <= L.w and y + h <= L.h,
+    "il riquadro sta dentro la superficie")
+  -- il testo si disegna a scala intera, quindi larghezze e altezze si
+  -- misurano in pixel di FONT, non di schermo
+  local inner = s2.newsInner(L)
+  h = math.floor(h / k)
+  local tooWide, tooTall = {}, {}
+  for i, page in ipairs(s2.newsPages) do
+    T.check(Font.width(page.title) <= inner,
+      "il titolo della pagina " .. i .. " ci sta")
+    local rows = 0
+    for _, entry in ipairs(page.lines) do
+      local text = type(entry) == "table" and entry[1] or entry
+      for _, line in ipairs(s2.wrapNews(text, inner)) do
+        rows = rows + 1
+        if Font.width(line) > inner then
+          tooWide[#tooWide + 1] = ("pagina %d: %s"):format(i, line)
+        end
+      end
+    end
+    -- 14 per il titolo, 12 per il piede, 10 per riga
+    if 14 + rows * 10 + 12 > h then
+      tooTall[#tooTall + 1] = ("pagina %d: %d righe"):format(i, rows)
+    end
+  end
+  T.eq(#tooWide, 0, "nessuna riga sborda dal riquadro (" ..
+    table.concat(tooWide, "; ") .. ")")
+  T.eq(#tooTall, 0, "e nessuna pagina e' piu' lunga del riquadro (" ..
+    table.concat(tooTall, "; ") .. ")")
+
+  -- e il testo dice DOVE si trova la roba: una pagina che annuncia una
+  -- feature senza dire come si raggiunge e' il problema, non la cura
+  local all = {}
+  for _, page in ipairs(s2.newsPages) do
+    for _, entry in ipairs(page.lines) do
+      all[#all + 1] = type(entry) == "table" and entry[1] or entry
+    end
+  end
+  local blob = table.concat(all, " ")
+  T.check(blob:find("BOX MENU"), "le note dicono dove si cambia lo sfondo")
+  T.check(blob:find("OPTIONS"), "e dove si accende il pieno schermo")
+  T.check(blob:find("CONTEST"), "e che il contest esiste")
 end
 
 T.finish("gen3_box")

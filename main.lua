@@ -3498,6 +3498,9 @@ return function(mod)
       table.insert(items, { label = Strings("WALLPAPER"), value = "wallpaper" })
       table.insert(items, { label = Strings("MARK MODE"), value = "markmode" })
       table.insert(items, { label = Strings("MOVE MANY"), value = "movemany" })
+      -- so the news can be read on purpose, not only on the one boot after
+      -- an update
+      table.insert(items, { label = Strings("WHAT'S NEW"), value = "news" })
       table.insert(items, { label = Strings("CANCEL"), value = "cancel" })
       return items
     end
@@ -3684,6 +3687,10 @@ return function(mod)
               and Strings("A:TICK START:MOVE")
               or Strings("MOVE MANY OFF."))
             menu:close()
+          elseif item.value == "news" then
+            self.openNews()
+            self.header = false
+            menu:close()
           elseif item.value == "cancel" then
             menu:close()
           end
@@ -3746,6 +3753,13 @@ return function(mod)
       -- Before the early returns below: the box behind an open menu keeps
       -- breathing rather than freezing the moment you press A.
       self.paperTick = (self.paperTick or 0) + 1
+
+      -- WHAT'S NEW owns every key while it is open, like the chooser below:
+      -- a popup you can walk out from behind is a popup nobody reads.
+      if self.news then
+        self.updateNews()
+        return
+      end
 
       -- the wallpaper chooser owns the keys while it is open, and nothing
       -- else on this screen moves: the cursor in the grid must not wander
@@ -4495,6 +4509,265 @@ return function(mod)
 
     local function fit(text) return fitTo(text, textMax()) end
 
+    -- ------- WHAT'S NEW: the popup nobody asked for and everybody needed
+    --
+    -- "ho come la sensazione che nessuno vede le nuove feature". Three
+    -- releases added a wallpaper per box, a full-screen layout, the boxes
+    -- either side and a contest anybody can enter, and every one of them
+    -- lives behind a menu or an option: a player who never opens OPTIONS
+    -- never learns that FULL SCREEN exists, and a screen that looks the
+    -- same as last week is a screen where nothing happened.
+    --
+    -- So: once per version, on the first open after an update or an
+    -- install, this screen says what changed and WHERE the thing is. The
+    -- pages are ordered by how hard the thing is to reach -- what you can
+    -- see straight away first, what needs two menus last -- because that
+    -- is the order in which somebody stops reading.
+    --
+    -- It is also in the BOX MENU, so it can be read again on purpose
+    -- rather than only by accident.
+    local NEWS_VERSION = "1.21.0"
+
+    -- `hi` is the accent colour: the line that names the thing, and the
+    -- contest. Drawn in RGB and marked trueColor so the shade remap leaves
+    -- it alone -- otherwise the accent is mapped onto whichever of four
+    -- greys the base zone happens to carry, which is no accent at all.
+    local NEWS_ACCENT = { 32, 96, 208 }
+    local NEWS = {
+      {
+        title = "WALLPAPERS",
+        lines = {
+          { "91 wallpapers,", true },
+          { "one per box.", true },
+          { "" },
+          { "Places, drawn" },
+          { "here and by 20" },
+          { "artists." },
+          { "" },
+          { "Next page: how" },
+          { "to change one." },
+        },
+      },
+      {
+        title = "SET A WALLPAPER",
+        lines = {
+          { "UP on the box" },
+          { "name opens the" },
+          { "BOX MENU." },
+          { "" },
+          { "Pick WALLPAPER.", true },
+          { "" },
+          { "Up, down: place" },
+          { "Left, right: who" },
+          { "SELECT: a" },
+          { "favourite" },
+        },
+      },
+      {
+        title = "FULL SCREEN",
+        lines = {
+          { "The box fills", true },
+          { "your whole", true },
+          { "device, several", true },
+          { "boxes at once.", true },
+          { "" },
+          { "It is off until" },
+          { "you turn it on." },
+          { "" },
+          { "Next page: where" },
+        },
+      },
+      {
+        title = "TURN IT ON",
+        lines = {
+          { "OPTIONS, then" },
+          { "MODS, then" },
+          { "GEN 3 BOX, then", true },
+          { "FULL SCREEN.", true },
+          { "" },
+          { "GRID is there" },
+          { "too: CLASSIC" },
+          { "fits more boxes," },
+          { "BIG draws them" },
+          { "bigger." },
+        },
+      },
+      {
+        title = "IN THE BOX",
+        lines = {
+          { "PEEK: the boxes", true },
+          { "either side show" },
+          { "at the edges." },
+          { "" },
+          { "MOVE MANY, in", true },
+          { "the BOX MENU:" },
+          { "A ticks, START" },
+          { "moves them all." },
+        },
+      },
+      {
+        title = "THE CONTEST",
+        lines = {
+          { "Your wallpaper", true },
+          { "can ship with", true },
+          { "the mod.", true },
+          { "" },
+          { "320x144, four" },
+          { "colours, looping" },
+          { "left to right." },
+          { "" },
+          { "See CONTEST.md", true },
+          { "on the mod page." },
+        },
+      },
+    }
+
+    local function newsSeen()
+      local ok, value = pcall(function() return mod.save:get("newsSeen") end)
+      return ok and value or nil
+    end
+
+    local function closeNews()
+      self.news = nil
+      pcall(function() mod.save:set("newsSeen", NEWS_VERSION) end)
+    end
+    self.closeNews = closeNews
+
+    local function openNews()
+      self.news = { page = 1 }
+    end
+    self.openNews = openNews
+    self.newsPages = NEWS
+    self.newsVersion = NEWS_VERSION
+
+    -- armed here rather than on the first draw: a screen that has been
+    -- opened is a screen that has been seen, and the alternative -- arming
+    -- inside draw -- runs again every frame
+    if newsSeen() ~= NEWS_VERSION then openNews() end
+
+    -- The panel is written in CLASSIC pixels and drawn at whole scale, so
+    -- BIG and full screen get the SAME page twice as big rather than the
+    -- same page in a corner with tiny text. Font.draw has no scale of its
+    -- own, so the transform carries it.
+    local function newsScale(L)
+      return math.max(1, math.floor(L.cell / 28))
+    end
+    local function newsRect(L)
+      local k = newsScale(L)
+      local w = math.min(L.w - 8, 152 * k)
+      local h = math.min(L.h - 8, 136 * k)
+      local x = math.floor((L.w - w) / 2)
+      local y = math.floor((L.h - h) / 2)
+      return x - x % 8, y - y % 8, w, h, k
+    end
+    self.newsRect = newsRect
+    -- how wide a line may be IN FONT PIXELS: the panel less its margins,
+    -- divided by the scale it is drawn at
+    local function newsInner(L)
+      local _, _, w, _, k = newsRect(L)
+      return math.floor((w - 16 * k) / k)
+    end
+    self.newsInner = newsInner
+
+    -- Wrapped at DRAW time against the panel, never at 16 characters in the
+    -- source: the same page is read on a Game Boy screen and on a phone
+    -- filling 640 pixels, and text broken for the narrow one reads as a
+    -- ransom note on the wide one.
+    local function wrapTo(text, maxW)
+      local out, line = {}, nil
+      for word in tostring(text or ""):gmatch("%S+") do
+        local try = line and (line .. " " .. word) or word
+        if Font.width(try) <= maxW or not line then
+          line = try
+        else
+          out[#out + 1] = line
+          line = word
+        end
+      end
+      out[#out + 1] = line or ""
+      return out
+    end
+    self.wrapNews = wrapTo
+
+    local function drawNews()
+      local page = NEWS[self.news and self.news.page or 1]
+      if not page then return end
+      local L = layout(game)
+      local x, y, w, h, k = newsRect(L)
+      local g = love.graphics
+      g.setColor(1, 1, 1, 1)
+      g.rectangle("fill", x, y, w, h)
+      g.setColor(0, 0, 0, 1)
+      outline(x, y, w, h)
+      outline(x + 2, y + 2, w - 4, h - 4)
+
+      local inner = newsInner(L)
+      local scaled = k > 1 and pcall(function()
+        g.push()
+        g.translate(x, y)
+        g.scale(k, k)
+      end)
+      -- if the transform did not take, the page is still drawn -- small,
+      -- where it belongs, and readable -- rather than not at all
+      local ox0, oy0 = x, y
+      if scaled then ox0, oy0 = 0, 0 end
+      local step = scaled and 1 or k
+      local ty = oy0 + 8 * (scaled and 1 or k)
+      local tx0 = ox0 + 8 * (scaled and 1 or k)
+      local bottom = (scaled and (h / k) or h) + oy0
+      g.setColor(0, 0, 0, 1)
+      Font.draw(fitTo(Strings("%s %s", page.title, NEWS_VERSION), inner),
+        tx0, ty)
+      ty = ty + 14 * step
+      for _, entry in ipairs(page.lines) do
+        local text = type(entry) == "table" and entry[1] or entry
+        local hi = type(entry) == "table" and entry[2]
+        for _, line in ipairs(wrapTo(text, inner)) do
+          if ty + 8 * step <= bottom - 14 * step then
+            if hi then
+              g.setColor(NEWS_ACCENT[1] / 255, NEWS_ACCENT[2] / 255,
+                NEWS_ACCENT[3] / 255, 1)
+            else
+              g.setColor(0, 0, 0, 1)
+            end
+            Font.draw(line, tx0, ty)
+            ty = ty + 10 * step
+          end
+        end
+      end
+
+      g.setColor(0, 0, 0, 1)
+      local last = self.news.page >= #NEWS
+      Font.draw(fitTo(Strings("%d/%d %s", self.news.page, #NEWS,
+        last and "A:CLOSE" or "A:NEXT B:EXIT"), inner),
+        tx0, bottom - 12 * step)
+      if scaled then pcall(g.pop) end
+      -- the panel is drawn in real colours, so it has to be reported as
+      -- such or the frame's shade remap flattens the accent into a grey
+      markTrueColor(x, y, w, h)
+      g.setColor(0, 0, 0, 1)
+    end
+    self.drawNews = drawNews
+
+    local function updateNews()
+      local input = game.input
+      if input:wasPressed("b") then
+        closeNews()
+      elseif input:wasPressed("a") or input:wasPressed("right")
+             or input:wasPressed("start") then
+        if self.news.page >= #NEWS then
+          closeNews()
+        else
+          self.news.page = self.news.page + 1
+        end
+      elseif input:wasPressed("left") then
+        self.news.page = math.max(1, self.news.page - 1)
+      end
+    end
+    -- on `self` because self:update() is written ABOVE this point in the
+    -- file: a local declared here is still nil when that function runs
+    self.updateNews = updateNews
+
     -- ------- the wallpaper chooser, which draws almost nothing
     --
     -- The first cut of this put a panel over the grid, and the panel covered
@@ -5008,6 +5281,7 @@ return function(mod)
         local w = Font.width(pickBy)
         caption(pickBy, layout(game).w - TEXT_X - w, footerY())
         drawMarkWindow()
+        if self.news then drawNews() end
         return
       end
 
@@ -5043,6 +5317,9 @@ return function(mod)
 
       -- the marking window, last, so it sits over the grid and the cursor
       drawMarkWindow()
+      -- ...and WHAT'S NEW over even that: it owns the keys while it is
+      -- open, so it has to own the screen too
+      if self.news then drawNews() end
     end
 
     -- The button says there is a menu; this says how to reach it, once, on
