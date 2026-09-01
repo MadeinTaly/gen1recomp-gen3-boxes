@@ -173,6 +173,16 @@ return function(mod)
     -- d-pad drawn over glass is not how anybody reaches for a box. Turning
     -- it off restores the buttons-only screen exactly.
     { key = "touch", label = "TOUCH", type = "toggle", default = true },
+    -- Crystal's Pokemon move; how many of them at once is a matter of
+    -- taste. Twenty animations on one screen is a lot of motion to read a
+    -- box through, so ONE animates only the Pokemon the cursor is on --
+    -- which is also the one you are looking at.
+    { key = "anim", label = "ANIMATE", type = "choice", default = "all",
+      choices = {
+        { "ALL", "all" },
+        { "ONE", "one" },
+        { "OFF", "off" },
+      } },
     -- The neighbours, sliced by the screen edge, the way Pokemon Box on the
     -- GameCube draws them. It is what makes storage read as a shelf you are
     -- standing in front of rather than a page you are turning: you can see
@@ -4641,8 +4651,29 @@ return function(mod)
     -- does: each letter carries its own `anim`, and taking the species'
     -- would put letter A's movement on all twenty-six.
     local animSheets = {}
+    local function animMode()
+      local ok, v = pcall(function() return mod.options:get("anim") end)
+      return (ok and v) or "all"
+    end
+
+    -- Which Pokemon the cursor is on, by identity rather than by index:
+    -- the grid is redrawn from the save's own tables, so the mon under the
+    -- cursor IS the table this is handed, and comparing them needs no
+    -- coordinates threaded through four call sites.
+    local function cursorMon()
+      if self.held and self.held.mon then return self.held.mon end
+      local ok, set = pcall(list)
+      if not ok or type(set) ~= "table" then return nil end
+      local okI, i = pcall(index)
+      if not okI then return nil end
+      return set[i]
+    end
+
     local function crystalAnim(def, mon)
       if not def then return nil end
+      local mode = animMode()
+      if mode == "off" then return nil end
+      if mode == "one" and mon ~= cursorMon() then return nil end
       local rec = def.anim
       local okU, Unown = pcall(require, "src.core.gen2.Unown")
       if okU and type(Unown) == "table" and def.id == Unown.SPECIES then
@@ -4663,7 +4694,11 @@ return function(mod)
       if not hit then return nil end
       local size = hit:getWidth()
       local total = rec.count + 1          -- the base picture, then the frames
-      local at = math.floor((self.paperTick or 0) / 6) % total
+      -- Ten ticks a frame, not six. Crystal's own PokeAnim carries a
+      -- duration per frame and this does not read them, so the rate is a
+      -- flat one -- and at six it ran a ten-frame Pokemon through a whole
+      -- cycle a second, which is a fidget rather than a breath.
+      local at = math.floor((self.paperTick or 0) / 10) % total
       local okQ, quad = pcall(love.graphics.newQuad, 0, at * size,
         size, size, hit:getWidth(), hit:getHeight())
       if not okQ or not quad then return nil end

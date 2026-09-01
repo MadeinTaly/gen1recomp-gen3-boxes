@@ -2,6 +2,19 @@
 
 ## 1.24.0 -- Crystal animates its own Pokemon, so the box does too
 
+**ANIMATE, and a calmer rate.** Twenty Crystal animations on one screen is a
+lot of motion to read a box through, so the option offers ALL, ONE -- only
+the Pokemon the cursor is on, which is the one you are looking at -- and
+OFF. Which one the cursor is on is decided by IDENTITY rather than by
+coordinates: the grid is redrawn from the save's own tables, so the mon
+under the cursor IS the table the draw is handed, and nothing has to be
+threaded through four call sites.
+
+The rate went from six ticks a frame to ten. Crystal's own PokeAnim carries
+a duration per frame and this does not read them, so the rate here is a flat
+one -- and at six it ran a ten-frame Pokemon through a whole cycle every
+second, which is a fidget rather than a breath.
+
 The sprites in here were still. I said that was because the ROM ships one
 picture per species and there were no frames to find -- and that is true of
 Gold and Silver, and wrong about Crystal, which is the Gen 2 game that

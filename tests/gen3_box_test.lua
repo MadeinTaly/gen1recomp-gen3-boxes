@@ -4346,4 +4346,25 @@ do
   end
 end
 
+-- ------- L'OPZIONE ANIMATE ESISTE E HA LE TRE SCELTE
+--
+-- Le animazioni native di Crystal si vedono solo con una ROM importata,
+-- che il banco di prova non ha: qui si verifica che la riga sia
+-- raggiungibile da chi gioca, che e' la meta' che si puo' verificare.
+do
+  local schema = run.loader.optionSchemas and run.loader.optionSchemas.gen3_box
+  T.check(schema ~= nil, "lo schema delle opzioni c'e'")
+  if schema then
+    local row
+    for _, r in ipairs(schema) do if r.key == "anim" then row = r end end
+    T.check(row ~= nil, "e ha la riga ANIMATE")
+    local want = { all = false, one = false, off = false }
+    for _, c in ipairs((row and row.choices) or {}) do
+      if want[c[2]] ~= nil then want[c[2]] = true end
+    end
+    T.check(want.all and want.one and want.off,
+      "con ALL, ONE e OFF fra le scelte")
+  end
+end
+
 T.finish("gen3_box")
