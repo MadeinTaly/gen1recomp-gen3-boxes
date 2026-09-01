@@ -1,5 +1,31 @@
 # Changelog
 
+## 1.24.0 -- Crystal animates its own Pokemon, so the box does too
+
+The sprites in here were still. I said that was because the ROM ships one
+picture per species and there were no frames to find -- and that is true of
+Gold and Silver, and wrong about Crystal, which is the Gen 2 game that
+moves.
+
+The engine has been extracting those frames all along. A species record
+carries `anim` with a `sheet` and a `count`
+(`src/import/RomExtractorGen2.lua:1631`), and the sheet is a COLUMN of whole
+pictures: the still one on top, the animation frames below it. That is the
+same shape as an overworld sprite sheet, so it is drawn the same way -- one
+quad, walked down the strip on the tick that was already there. Nothing is
+probed and nothing guessed; the frames were in the cartridge.
+
+Two limits, both deliberate. **Unown resolves its animation from the
+LETTER**, the way its picture does -- each letter carries its own `anim`,
+and taking the species' would put letter A's movement on all twenty-six,
+which is the bug 1.23.1 just closed. And it runs on GRID BIG and full screen
+only: CLASSIC draws a battle pic halved, and twenty half-size animations is
+motion nobody asked for.
+
+This does not replace the sprite-pack path added in 1.22.0. A pack that
+numbers its frames still animates; Crystal's own frames are simply there
+without one.
+
 ## 1.23.1 -- the Unown fix had a hole in it, and the reporter's save found it
 
 The save attached to #7 settles what was actually stored, and it is worth

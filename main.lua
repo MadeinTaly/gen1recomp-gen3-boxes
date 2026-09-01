@@ -4604,7 +4604,7 @@ return function(mod)
       return FX.monPal(game.data, species)
     end
 
-    local function paintPic(img, dx, dy, k, species, mon)
+    local function paintPic(img, dx, dy, k, species, mon, quad)
       local g = love.graphics
       local sh = nil
       local okFX, FX = pcall(require, "src.render.PaletteFX")
@@ -4616,8 +4616,58 @@ return function(mod)
           if sent and pcall(g.setShader, made) then sh = made end
         end
       end
-      pcall(g.draw, img, dx, dy, 0, k, k)
+      if quad then
+        pcall(g.draw, img, quad, dx, dy, 0, k, k)
+      else
+        pcall(g.draw, img, dx, dy, 0, k, k)
+      end
       if sh then pcall(g.setShader) end
+    end
+
+    -- ------- CRYSTAL ANIMATES ITS OWN POKEMON
+    --
+    -- Not every Gen 2 game does: Gold and Silver draw one still picture,
+    -- and Crystal is the one that moves. The engine extracts that -- the
+    -- species record carries `anim` with a `sheet` and a `count`
+    -- (src/import/RomExtractorGen2.lua:1631) -- and the sheet is a COLUMN
+    -- of whole pictures, the base one on top and `count` frames under it.
+    --
+    -- Which is the same shape as an overworld sprite sheet, so this is
+    -- drawn the same way: one quad, moved down the strip. No files are
+    -- probed and nothing is guessed; the frames were in the cartridge all
+    -- along.
+    --
+    -- Unown resolves its animation from the LETTER, the way its picture
+    -- does: each letter carries its own `anim`, and taking the species'
+    -- would put letter A's movement on all twenty-six.
+    local animSheets = {}
+    local function crystalAnim(def, mon)
+      if not def then return nil end
+      local rec = def.anim
+      local okU, Unown = pcall(require, "src.core.gen2.Unown")
+      if okU and type(Unown) == "table" and def.id == Unown.SPECIES then
+        local letter = mon and Unown.monLetter(mon)
+        local named = letter and Unown.name(Unown.index(letter))
+        local form = named and def.letters and def.letters[named]
+        rec = (form and form.anim) or rec
+      end
+      if not (rec and rec.sheet and rec.count and rec.count > 0) then
+        return nil
+      end
+      local hit = animSheets[rec.sheet]
+      if hit == nil then
+        local ok, img = pcall(Assets.image, rec.sheet)
+        hit = (ok and img) or false
+        animSheets[rec.sheet] = hit
+      end
+      if not hit then return nil end
+      local size = hit:getWidth()
+      local total = rec.count + 1          -- the base picture, then the frames
+      local at = math.floor((self.paperTick or 0) / 6) % total
+      local okQ, quad = pcall(love.graphics.newQuad, 0, at * size,
+        size, size, hit:getWidth(), hit:getHeight())
+      if not okQ or not quad then return nil end
+      return hit, quad, size
     end
 
     local function drawPic(mon, x, y)
@@ -4634,15 +4684,23 @@ return function(mod)
         return
       end
       local img = chosen.img
-      local k = picScale(img, L.cell)
-      local w, h = img:getWidth() * k, img:getHeight() * k
+      local quad, qsize = nil, nil
+      -- Crystal's own frames win over the still picture, but only where
+      -- there is room to see them: CLASSIC draws a battle pic halved.
+      if not chosen.trueColor and L.cell > LAYOUT.classic.cell then
+        local sheet, q, size = crystalAnim(defOf(game, mon), mon)
+        if sheet then img, quad, qsize = sheet, q, size end
+      end
+      local k = quad and scaleFor(qsize, qsize, L.cell) or picScale(img, L.cell)
+      local w = (quad and qsize or img:getWidth()) * k
+      local h = (quad and qsize or img:getHeight()) * k
       local dx, dy = x + (L.cell - w) / 2, y + (L.cell - h) / 2
       -- coloured art is drawn as it is: a shade remap is what RUINS it,
       -- which is the whole reason markTrueColor exists two lines down
       local remap = self.remapNow
       if remap == nil then remap = remapOff() end
       local species = (not chosen.trueColor) and remap and mon.species or nil
-      paintPic(img, dx, dy, k, species, mon)
+      paintPic(img, dx, dy, k, species, mon, quad)
       if chosen.trueColor then markTrueColor(dx, dy, w, h) end
     end
 
