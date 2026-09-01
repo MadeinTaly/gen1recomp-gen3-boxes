@@ -1089,6 +1089,23 @@ return function(mod)
         local letter = Unown.monLetter(mon)
         if letter then
           formPath = Unown.formSprite(game.data and game.data.pokemon, letter)
+          -- ...but only if it IS a form. `formSprite` never answers nil: with
+          -- no `letters` table on the species it falls back to the species'
+          -- own picture (src/core/gen2/Unown.lua:325), which is letter A's.
+          -- Since 1.22.0 the form beats a sprite pack, so on a boot whose
+          -- data carries no letters that fallback would win -- and put ONE
+          -- picture, the A, on all twenty-six forms. Which is the bug that
+          -- change was made to fix, wearing different clothes.
+          --
+          -- The tell is the `letters` table itself, asked directly.
+          -- Comparing paths does not work: the species record IS letter A's
+          -- picture, so a legitimate A would compare equal and be thrown
+          -- away with the fallbacks. (The suite says so -- "col pack
+          -- installato l'Unown A chiede ancora la figura della SUA lettera"
+          -- fails the moment you try it that way.)
+          local letters = def and def.letters
+          local named = letters and Unown.name(Unown.index(letter))
+          if not (named and letters[named]) then formPath = nil end
         end
       end
     end

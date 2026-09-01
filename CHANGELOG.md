@@ -1,5 +1,36 @@
 # Changelog
 
+## 1.23.1 -- the Unown fix had a hole in it, and the reporter's save found it
+
+The save attached to #7 settles what was actually stored, and it is worth
+writing down because it is not what either of us assumed. In the box caught
+with perfect DVs, every Unown carries BOTH:
+
+    unownLetter = 17 (Q)     -- the letter it was caught as, kept
+    dvs 15/15/15/15          -- which letterFromDVs reads as 26 (Z)
+
+So the caught letter is not lost. `Unown.monLetter` prefers the stored field
+over the DVs, and a test built from that exact pair -- perfect DVs, a stored
+letter -- shows this screen asking for the stored letter's picture. That part
+was already right.
+
+**What was not right was the fallback 1.22.0 introduced.** `formSprite` never
+answers nil: on a species with no `letters` table it returns the species'
+own picture, which IS letter A's (`src/core/gen2/Unown.lua:325`). Since
+1.22.0 the form beats a sprite pack -- so on any boot whose data carries no
+per-letter art, that fallback won and put ONE picture, the A, on all
+twenty-six forms. The bug 1.22.0 was written to fix, wearing different
+clothes.
+
+The form is now preferred only when there is a form: the `letters` table is
+asked directly. Comparing paths does not work and the suite says so -- the
+species record IS letter A's picture, so a legitimate A compares equal to it
+and would be thrown away with the fallbacks.
+
+Two new checks: an Unown with perfect DVs and a stored letter asks for the
+stored letter's picture, and a species with no `letters` table hands the
+question back to the sprite pack instead of answering A for everything.
+
 ## 1.23.0 -- full screen and fingers, out of the box
 
 **FULL SCREEN and TOUCH now ship ON.** The grid is what this mod is, and on a

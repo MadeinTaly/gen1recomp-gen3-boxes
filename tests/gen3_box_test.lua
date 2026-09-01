@@ -3896,6 +3896,33 @@ do
     for _ in pairs(seenPaths) do distinct = distinct + 1 end
     T.eq(distinct, 3, "tre Unown diversi, tre figure diverse -- non tre A")
 
+    -- ------- IL CASO VERO DEL SEGNALATORE (issue #7, salvataggio allegato)
+    --
+    -- Nella sua box 2 gli Unown sono stati catturati con i DV perfetti e
+    -- rinominati a mano con la lettera con cui li ha presi. Il salvataggio
+    -- dice due cose insieme, e sono in disaccordo:
+    --
+    --   unownLetter = 17 (Q)   <- la lettera VERA, conservata
+    --   dvs 15/15/15/15        -> letterFromDVs = 26 (Z)
+    --
+    -- `Unown.monLetter` guarda PRIMA il campo memorizzato, quindi la
+    -- risposta giusta e' Q. Se questa schermata mostra Z, sta ricalcolando
+    -- dai DV qualcosa che non deve.
+    do
+      local perfect = { attack = 15, defense = 15, speed = 15, special = 15 }
+      T.eq(Unown.letterFromDVs(perfect), 26,
+        "i DV perfetti calcolano Z, che e' il sintomo segnalato")
+      local mon = { species = Unown.SPECIES, level = 5,
+                    dvs = perfect, unownLetter = Unown.index("C") }
+      T.eq(Unown.monLetter(mon), Unown.index("C"),
+        "ma la lettera conservata vince sui DV")
+      asked = {}
+      local chosen = s.spriteToDraw(mon)
+      T.check(chosen ~= nil, "l'Unown a DV perfetti ha una figura")
+      T.eq(asked[#asked], "unown_c.png",
+        "e la figura chiesta e' quella della lettera CONSERVATA, non Z")
+    end
+
     -- ------- E CON UN PACK DI SPRITE INSTALLATO, LA LETTERA VINCE LO STESSO
     --
     -- Questa e' la SECONDA segnalazione della issue #7: dopo la 1.21.3 le
@@ -3940,6 +3967,35 @@ do
       for _ in pairs(packPaths) do n = n + 1 end
       T.eq(n, 3,
         "tre Unown restano tre figure anche con un pack che ne offre una sola")
+
+      -- ------- MA SENZA UNA TABELLA `letters` NON C'E' NESSUNA FORMA DA
+      -- PREFERIRE, E IL PACK RIPRENDE LA PAROLA
+      --
+      -- `formSprite` non risponde MAI nil: senza `letters` ripiega sulla
+      -- figura della specie, che e' quella della A. Dato che dalla 1.22.0
+      -- la forma batte il pack, su un boot i cui dati non hanno le lettere
+      -- quel ripiego vincerebbe e metterebbe UNA figura, la A, su tutte e
+      -- ventisei le forme -- cioe' esattamente il bug che quella modifica
+      -- doveva chiudere, con un altro vestito.
+      do
+        local noLetters = {
+          id = Unown.SPECIES, name = "UNOWN", dex = 201,
+          baseStats = pokemon[Unown.SPECIES].baseStats,
+          spriteFront = "unown_a.png",
+        }
+        local had = pokemon[Unown.SPECIES]
+        pokemon[Unown.SPECIES] = noLetters
+        Sprites.path = function() return "pack_unown.png", false end
+        local sNo = factory.new(fakeGame({}))
+        local monC = unownWithLetter("C")
+        if monC then
+          asked = {}
+          sNo.spriteToDraw(monC)
+          T.eq(asked[#asked], "pack_unown.png",
+            "senza `letters` il pack risponde, invece di mettere la A su tutti")
+        end
+        pokemon[Unown.SPECIES] = had
+      end
 
       Sprites.path = realPath
     end
