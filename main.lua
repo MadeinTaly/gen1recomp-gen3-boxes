@@ -5151,9 +5151,18 @@ return function(mod)
     -- It is also in the BOX MENU, so it can be read again on purpose
     -- rather than only by accident.
     -- 1.22.x changed what the screen DOES -- fingers work on it now -- so
-    -- this moves with it. The bugfix releases in between did not, and did
+    -- this moved with it. The bugfix releases in between did not, and did
     -- not interrupt anybody.
-    local NEWS_VERSION = "1.22.0"
+    --
+    -- 1.25.0 moves it for a different reason: the panel was LYING. Since
+    -- 1.23.0 TOUCH and FULL SCREEN ship on, and two pages still said "it is
+    -- off until you turn it on"; the contest page asked for 320x144 in four
+    -- looping colours, which is not what CONTEST.md has asked for since the
+    -- check learned to measure seams. And the contest sat on the LAST of
+    -- eight pages -- "the order in which somebody stops reading", as the
+    -- header above says -- and in a month nobody entered. So it goes first,
+    -- the pages that were wrong are right, and everybody reads them once.
+    local NEWS_VERSION = "1.25.0"
 
     -- `hi` is the accent colour: the line that names the thing, and the
     -- contest. Drawn in RGB and marked trueColor so the shade remap leaves
@@ -5161,6 +5170,49 @@ return function(mod)
     -- greys the base zone happens to carry, which is no accent at all.
     local NEWS_ACCENT = { 32, 96, 208 }
     local NEWS = {
+      {
+        title = "THE CONTEST",
+        lines = {
+          { "Draw a box", true },
+          { "wallpaper and", true },
+          { "it ships with", true },
+          { "your name on it.", true },
+          { "" },
+          { "The menu shows" },
+          { "who drew each" },
+          { "wallpaper, so" },
+          { "your name is" },
+          { "where it counts." },
+        },
+      },
+      {
+        title = "WHAT TO DRAW",
+        lines = {
+          { "144 pixels tall." },
+          { "Any width, any" },
+          { "colours." },
+          { "" },
+          { "Nobody has drawn" },
+          { "SAKURA, STORM,", true },
+          { "CIRCUIT, TRAIN", true },
+          { "or 90S yet.", true },
+        },
+      },
+      {
+        title = "HOW TO ENTER",
+        lines = {
+          { "A pull request" },
+          { "on GitHub:" },
+          { "MadeinTaly/", true },
+          { "gen1recomp-", true },
+          { "gen3-boxes", true },
+          { "" },
+          { "CONTEST.md has" },
+          { "the rest. CC0 or" },
+          { "CC BY art, and" },
+          { "no deadline." },
+        },
+      },
       {
         title = "TOUCH",
         lines = {
@@ -5177,17 +5229,16 @@ return function(mod)
         },
       },
       {
-        title = "TURN IT ON",
+        title = "IT IS ON",
         lines = {
-          { "It ships OFF," },
-          { "so nothing" },
-          { "changes yet." },
+          { "Made for phones," },
+          { "and on from the" },
+          { "start." },
           { "" },
+          { "To turn it off:" },
           { "START - MODS -", true },
+          { "GEN 3 BOX -", true },
           { "OPTIONS - TOUCH", true },
-          { "" },
-          { "Made for" },
-          { "phones." },
         },
       },
       {
@@ -5197,7 +5248,7 @@ return function(mod)
           { "one per box.", true },
           { "" },
           { "Places, drawn" },
-          { "here and by 20" },
+          { "here and by 27" },
           { "artists." },
           { "" },
           { "Next page: how" },
@@ -5227,18 +5278,18 @@ return function(mod)
           { "device, several", true },
           { "boxes at once.", true },
           { "" },
-          { "It is off until" },
-          { "you turn it on." },
+          { "It is on from" },
+          { "the start." },
           { "" },
           { "Next page: where" },
         },
       },
       {
-        title = "TURN IT ON",
+        title = "WHERE IT IS",
         lines = {
-          { "OPTIONS, then" },
-          { "MODS, then" },
-          { "GEN 3 BOX, then", true },
+          { "START - MODS -" },
+          { "GEN 3 BOX -" },
+          { "OPTIONS -" },
           { "FULL SCREEN.", true },
           { "" },
           { "GRID is there" },
@@ -5259,21 +5310,6 @@ return function(mod)
           { "the BOX MENU:" },
           { "A ticks, START" },
           { "moves them all." },
-        },
-      },
-      {
-        title = "THE CONTEST",
-        lines = {
-          { "Your wallpaper", true },
-          { "can ship with", true },
-          { "the mod.", true },
-          { "" },
-          { "320x144, four" },
-          { "colours, looping" },
-          { "left to right." },
-          { "" },
-          { "See CONTEST.md", true },
-          { "on the mod page." },
         },
       },
     }

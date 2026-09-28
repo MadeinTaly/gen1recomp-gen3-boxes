@@ -1,5 +1,34 @@
 # Changelog
 
+## 1.25.0 -- the contest goes first, and WHAT'S NEW stops lying
+
+WHAT'S NEW opens once more for everyone, because three of its eight pages had
+gone wrong and the one that mattered most was the one nobody reached.
+
+- **The contest is the first thing it says now**, over three pages: what you
+  get (your name in the menu next to your art), what to draw, and how to
+  enter. It used to be page eight of eight -- the header of that panel says
+  pages are "ordered by how hard the thing is to reach", and by that measure
+  the contest was ranked as the hardest thing in the mod. A month on, nobody
+  had entered.
+- **The contest page asked for the wrong art.** "320x144, four colours,
+  looping left to right" is what the first round wanted; CONTEST.md has asked
+  for 144 pixels tall, any width, any colours since the check learned to
+  measure seams and decide motion for you. The page now says what CONTEST.md
+  says, and names the places that have no outside art yet: SAKURA, STORM,
+  CIRCUIT, TRAIN and 90S.
+- **TOUCH and FULL SCREEN have been on by default since 1.23.0**, and their
+  pages still said "it ships OFF" and "it is off until you turn it on". They
+  now say where to turn them off, by the one path that exists: START - MODS -
+  GEN 3 BOX - OPTIONS. (The two pages had also given two different paths.)
+- **Twenty-seven artists**, not twenty.
+
+The rule for NEWS_VERSION's test changed with it. It checked that
+NEWS_VERSION differs from the manifest version, as a proxy for "the two are
+not wired together" -- which fails on exactly the release that bumps the
+panel, this one. It now checks the real thing: NEWS_VERSION is a literal
+written in `main.lua`, and never newer than the version that ships.
+
 ## 1.24.1 -- an egg is an egg (#8)
 
 The box put the hatchling on screen. A Gold egg is a whole Pokemon with

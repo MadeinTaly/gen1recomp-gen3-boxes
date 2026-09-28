@@ -4038,12 +4038,22 @@ do
     "una prerelease piu' vecchia si aggiorna comunque")
 
   -- e la regola che tiene tutto in piedi: NEWS_VERSION non e' la versione
-  -- del manifest, o ogni bugfix interromperebbe chi gioca
+  -- del manifest, o ogni bugfix interromperebbe chi gioca.
+  --
+  -- Si controlla che sia una COSTANTE scritta a mano, non che sia diversa:
+  -- nella release che cambia il pannello le due coincidono per forza (la
+  -- 1.25.0 lo ha fatto e il vecchio controllo "diverse" la bocciava), ed e'
+  -- proprio il caso giusto. Quello sbagliato e' leggerla dal manifest.
+  local src = io.open(DIR .. "/main.lua")
+  local code = src:read("*a"); src:close()
+  local literal = code:match('local NEWS_VERSION = "([^"]+)"')
+  T.eq(literal, V,
+    "NEWS_VERSION e' una costante scritta a mano, non la versione del manifest")
   local manifest = io.open(DIR .. "/manifest.json")
   local blob = manifest:read("*a"); manifest:close()
   local shipped = blob:match('"version"%s*:%s*"([^"]+)"')
-  T.check(shipped and shipped ~= V,
-    "NEWS_VERSION non e' incollata alla versione del manifest (" ..
+  T.check(shipped and not older(shipped, V),
+    "e non annuncia una versione piu' nuova di quella spedita (" ..
     tostring(shipped) .. " vs " .. tostring(V) .. ")")
 end
 
