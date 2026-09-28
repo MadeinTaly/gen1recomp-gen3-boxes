@@ -4328,6 +4328,148 @@ do
   optStore.fullscreen, optStore.grid = hadFull, hadGrid
 end
 
+-- ------- UN UOVO E' UN UOVO (issue #8)
+--
+-- Un uovo di Gold e' un Pokemon intero con `isEgg = true`: specie, livello
+-- e DV sono gia' quelli del nascituro. La box chiedeva tutto alla specie e
+-- metteva uno Smoochum e "EGG :L5" dove il PC del gioco disegna un uovo.
+-- Qui si verifica ogni strada da cui la specie usciva: la figura, il verso,
+-- la ricerca e l'ordinamento.
+do
+  local function egg(species, level)
+    return { species = species, level = level, isEgg = true, nickname = "EGG" }
+  end
+
+  local Assets = require("src.render.Assets")
+  local realImage = Assets.image
+  local asked
+  local function fakeImg(w, h)
+    return { _fake = true, getWidth = function() return w end,
+             getHeight = function() return h end }
+  end
+  Assets.image = function(path)
+    asked[#asked + 1] = tostring(path)
+    if tostring(path):find("^egg") then return fakeImg(56, 56) end
+    if tostring(path):find("^icon_egg") then return fakeImg(16, 32) end
+    return realImage(path)
+  end
+  local hadGfx, hadIcons = Data.gen2MenuGfx, Data.gen2Icons
+
+  -- la figura: EggPic, non quella della specie
+  do
+    Data.gen2MenuGfx = { eggHatch = { egg = "egg.png" } }
+    local s = factory.new(fakeGame({}))
+    asked = {}
+    local chosen = s.spriteToDraw(egg("FIXMON_A", 5))
+    T.check(chosen ~= nil and chosen.img ~= nil, "un uovo ha una figura")
+    local sawSpecies = false
+    for _, p in ipairs(asked) do
+      if p ~= "egg.png" then sawSpecies = true end
+    end
+    T.eq(asked[1], "egg.png", "ed e' EggPic, quella del PC del gioco")
+    T.check(not sawSpecies, "la figura del nascituro non viene nemmeno chiesta")
+    T.check(chosen and not chosen.trueColor,
+      "e prende la palette EGG, non passa a colori pieni")
+  end
+
+  -- senza EggPic (cache estratta prima): il primo frame di ICON_EGG
+  do
+    Data.gen2MenuGfx = nil
+    Data.gen2Icons = { icons = { ICON_EGG = {
+      image = "icon_egg.png", width = 16, height = 32, frames = 2 } } }
+    local s = factory.new(fakeGame({}))
+    asked = {}
+    local chosen = s.spriteToDraw(egg("FIXMON_A", 5))
+    T.check(chosen ~= nil and chosen.quad ~= nil,
+      "senza EggPic c'e' l'icona dell'uovo, un frame solo")
+    T.eq(asked[1], "icon_egg.png", "chiesta al foglio ICON_EGG")
+  end
+
+  -- nessuna delle due: niente figura, mai il nascituro
+  do
+    Data.gen2MenuGfx, Data.gen2Icons = nil, nil
+    local s = factory.new(fakeGame({}))
+    asked = {}
+    T.check(s.spriteToDraw(egg("FIXMON_A", 5)) == nil,
+      "senza arte dell'uovo la cella resta vuota invece di fare spoiler")
+  end
+
+  Data.gen2MenuGfx, Data.gen2Icons = hadGfx, hadIcons
+  Assets.image = realImage
+
+  -- il verso all'atterraggio: un uovo non ne ha
+  do
+    local Sound = require("src.core.Sound")
+    local realPlayCry = Sound.playCry
+    local calls = 0
+    Sound.playCry = function() calls = calls + 1 end
+    local store = run.loader.modOptions.gen3_box
+    local hadCry = store.placeCry
+    store.placeCry = true
+    local game = fakeGame({ egg("FIXMON_A", 5) })
+    local screen = factory.new(game)
+    game.press("a"); screen:update()
+    game.press("right"); screen:update()
+    game.press("a"); screen:update()
+    T.eq(calls, 0, "posare un uovo non fa sentire il verso del nascituro")
+    store.placeCry = hadCry
+    Sound.playCry = realPlayCry
+  end
+
+  -- FIND: la specie non trova l'uovo, il nome si'
+  do
+    local function openFind(game, screen)
+      game.press("up"); screen:update()
+      game.press("a"); screen:update()
+      local boxMenu = game.stack:top()
+      for i, item in ipairs(boxMenu.items) do
+        if item.label == "FIND" then boxMenu.index = i end
+      end
+      game.press("a"); boxMenu:update()
+      return game.stack:top()
+    end
+    local function choose(list, game, label)
+      for i, item in ipairs(list.items) do
+        if item.label == label then list.index = i end
+      end
+      game.press("a"); list:update()
+    end
+    local function search(glyphs)
+      local game = fakeGame({})
+      game.save.boxes[4][3] = egg("FIXMON_C", 5)
+      local screen = factory.new(game)
+      choose(openFind(game, screen), game, "SPECIES")
+      local naming = game.stack:top()
+      naming.glyphs = glyphs
+      naming:confirm()
+      return game.save.currentBox
+    end
+    T.eq(search({ "F", "I", "X", "M", "O", "N", " ", "C" }), 1,
+      "cercare la specie non porta all'uovo che la contiene")
+    T.eq(search({ "E", "G", "G" }), 4, "cercare EGG invece lo trova")
+  end
+
+  -- SORT BY LEVEL: l'uovo non si mette in mezzo ai livelli
+  do
+    local game = fakeGame({ egg("FIXMON_A", 50), mon("FIXMON_B", 5), mon("FIXMON_C", 20) })
+    local screen = factory.new(game)
+    game.press("up"); screen:update()
+    game.press("a"); screen:update()
+    local boxMenu = game.stack:top()
+    for i, item in ipairs(boxMenu.items) do
+      if item.label == "SORT" then boxMenu.index = i end
+    end
+    game.press("a"); boxMenu:update()
+    local sortMenu = game.stack:top()
+    for i, item in ipairs(sortMenu.items) do
+      if item.label == "BY LEVEL" then sortMenu.index = i end
+    end
+    game.press("a"); sortMenu:update()
+    T.eq(ids(game.save.boxes[1]), "FIXMON_C,FIXMON_B,FIXMON_A",
+      "per livello l'uovo va in fondo, non al livello del nascituro")
+  end
+end
+
 -- ------- E I DEFAULT SPEDITI SONO ACCESI
 --
 -- Il banco di prova li spegne in cima per non riscrivere trenta blocchi,

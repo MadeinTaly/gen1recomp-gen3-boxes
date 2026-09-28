@@ -610,6 +610,10 @@ return function(mod)
   -- back to the raw id shows the player something true instead of taking
   -- the frame down with it.
   local function nameOf(game, mon)
+    -- GiveEgg writes "EGG" over the nickname, so this only matters for a
+    -- save that lost it: the species name is the one thing an egg must not
+    -- say (issue #8).
+    if mon.isEgg then return mon.nickname or Strings("EGG") end
     local def = defOf(game, mon)
     return mon.nickname or (def and def.name) or mon.species or "?"
   end
@@ -1033,7 +1037,55 @@ return function(mod)
   --
   -- `kind = "summary"` because that is what this screen is to a wrapper: a
   -- menu showing one Pokemon's own picture, not a battle.
+  --
+  -- ------- AN EGG IS AN EGG (issue #8)
+  --
+  -- A Gold egg is a whole Pokemon with `isEgg = true` on it: species, level,
+  -- moves and DVs are the hatchling's from the moment the Day-Care hands it
+  -- over (src/core/gen2/Breeding.lua:180). Every question this file asked
+  -- of the mon -- its picture, its level, its cry, its colours -- got the
+  -- hatchling's answer, so the box put a Smoochum and `EGG :L5` where the
+  -- game's own PC and party draw an egg. That is the spoiler as reported.
+  --
+  -- The cart settles every one of those with the same `cp EGG` test, and
+  -- the port with `mon.isEgg`: GetFrontpic hands back EggPic
+  -- (src/ui/gen2/BoxMenu.lua:852-860), PCMonInfo prints no level and no
+  -- name, HealParty skips the slot. So this screen asks the same question
+  -- in the same places. The picture is the one the engine's own box and
+  -- summary draw: menu_gfx.eggHatch.egg, and ICON_EGG's first frame for a
+  -- cache extracted before the extractor learned EggPic.
+  --
+  -- Answers `image, quad`; the quad is nil for EggPic (one whole picture)
+  -- and set for the icon, whose sheet stacks its frames.
+  local function eggArt(game)
+    local data = game and game.data or {}
+    local gfx = data.gen2MenuGfx and data.gen2MenuGfx.eggHatch
+    if gfx and type(gfx.egg) == "string" then
+      local ok, img = pcall(Assets.image, gfx.egg)
+      if ok and img then return img, nil end
+    end
+    local icons = data.gen2Icons and data.gen2Icons.icons
+    local entry = icons and icons.ICON_EGG
+    if not (entry and type(entry.image) == "string") then return nil end
+    local ok, img = pcall(Assets.image, entry.image)
+    if not (ok and img) then return nil end
+    local w = entry.width or 16
+    local h = math.min(entry.height or 16, img:getHeight())
+    if (entry.frames or 1) > 1 then h = math.floor(h / entry.frames) end
+    local okQ, quad = pcall(love.graphics.newQuad, 0, 0, w, h,
+      img:getWidth(), img:getHeight())
+    if not okQ then return nil end
+    return img, quad
+  end
+
   local function picOf(game, mon)
+    -- Before the species record, and before any sprite pack: a pack keyed
+    -- by species would answer with the hatchling, which is the spoiler.
+    -- No path goes back, so nothing tries to animate an egg.
+    if mon and mon.isEgg then
+      local img, quad = eggArt(game)
+      return img, false, nil, quad
+    end
     local def = defOf(game, mon)
     if not def then return nil end
 
@@ -1324,6 +1376,9 @@ return function(mod)
   -- it a silent no-op on Gold. HealParty's own recipe (engine/events/
   -- heal_party.asm), read off game.data.moves instead of that singleton.
   local function gen2Heal(game, mon)
+    -- HealParty's `cp EGG / jr z, .next`: an egg has no HP to restore, and
+    -- giving it some would hand it a stat block it does not have yet.
+    if type(mon) ~= "table" or mon.isEgg then return end
     gen2EnsureStats(game, mon)
     if type(mon.stats) ~= "table" then return end
     mon.hp = mon.stats.hp
@@ -3145,6 +3200,8 @@ return function(mod)
     -- never reaches here, because nothing landed.
     local function playLandingCry(mon)
       if not placeCryOn() then return end
+      -- an egg has no voice yet, and the hatchling's cry names it (#8)
+      if mon.isEgg then return end
       pcall(Sound.playCry, game.data, mon.species)
     end
 
@@ -3493,6 +3550,11 @@ return function(mod)
     -- array stays exactly as compact as it was: this only ever reorders in
     -- place, never removes or appends.
     local function sortKey(mon, key)
+      -- An egg has no dex number, type or level to sort by that is not the
+      -- hatchling's -- and sorting by them would place it among its own
+      -- species, which is the spoiler by another route (#8). No key: it
+      -- goes to the end with the other keyless mons. By name it is "EGG".
+      if mon.isEgg and key ~= "name" then return nil end
       if key == "dex" then
         local def = defOf(game, mon)
         return def and def.dex
@@ -3593,6 +3655,13 @@ return function(mod)
     local function slotOf(boxNum, idx) return (boxNum - 1) * Boxes.CAPACITY + idx end
 
     local function matchesQuery(mon, query)
+      -- FIND SPECIES "SMOOCHUM" must not light up an egg, or the search is
+      -- a way of asking what is inside it (#8). Its name still matches, so
+      -- CHAR "EGG" finds every egg in the PC.
+      if mon.isEgg then
+        if query.kind ~= "species" then return false end
+        return (mon.nickname or "EGG"):lower():find(query.value:lower(), 1, true) ~= nil
+      end
       if query.kind == "species" then
         local q = query.value:lower()
         local def = defOf(game, mon)
@@ -4464,13 +4533,19 @@ return function(mod)
     -- place. Exposed so the suite can check the seam without a graphics
     -- context, the same reason self.picScale is exposed above.
     local function spriteToDraw(mon)
-      if owSpritesOn() and layout(game).cell == LAYOUT.classic.cell then
+      -- An egg skips Wilds of Kanto: that mod resolves by species and would
+      -- draw the hatchling's overworld sprite (#8). picOf answers the egg.
+      if owSpritesOn() and not mon.isEgg
+          and layout(game).cell == LAYOUT.classic.cell then
         local sprite = owSpriteFor(mon)
         if sprite then
           return { kind = "ow", sprite = sprite, trueColor = sprite.trueColor }
         end
       end
-      local img, trueColor, path = picOf(game, mon)
+      local img, trueColor, path, quad = picOf(game, mon)
+      if img and quad then
+        return { kind = "battle", img = img, quad = quad, trueColor = false }
+      end
       if img then
         -- The pack's own animation, on the surface that has room for it.
         -- CLASSIC's cell is 28 -- a battle pic is drawn halved there, and a
@@ -4720,9 +4795,15 @@ return function(mod)
       end
       local img = chosen.img
       local quad, qsize = nil, nil
+      if chosen.quad then
+        -- ICON_EGG's first frame: square, as wide as its sheet
+        quad, qsize = chosen.quad, img:getWidth()
+      end
       -- Crystal's own frames win over the still picture, but only where
-      -- there is room to see them: CLASSIC draws a battle pic halved.
-      if not chosen.trueColor and L.cell > LAYOUT.classic.cell then
+      -- there is room to see them: CLASSIC draws a battle pic halved. An
+      -- egg's species record is the hatchling's, and so is its `anim`.
+      if not quad and not mon.isEgg and not chosen.trueColor
+          and L.cell > LAYOUT.classic.cell then
         local sheet, q, size = crystalAnim(defOf(game, mon), mon)
         if sheet then img, quad, qsize = sheet, q, size end
       end
@@ -4734,7 +4815,9 @@ return function(mod)
       -- which is the whole reason markTrueColor exists two lines down
       local remap = self.remapNow
       if remap == nil then remap = remapOff() end
-      local species = (not chosen.trueColor) and remap and mon.species or nil
+      -- the egg wears Gold's own EGG palette row, not the hatchling's
+      local species = (not chosen.trueColor) and remap
+        and (mon.isEgg and "EGG" or mon.species) or nil
       paintPic(img, dx, dy, k, species, mon, quad)
       if chosen.trueColor then markTrueColor(dx, dy, w, h) end
     end
@@ -5935,7 +6018,12 @@ return function(mod)
         local mon = self.held and self.held.mon
           or (not onHeader and set[index()])
         if mon then
-          line = Strings("%s :L%d", nameOf(game, mon), mon.level or 0)
+          -- PCMonInfo's `cp EGG / ret z`: an egg shows no level (#8)
+          if mon.isEgg then
+            line = nameOf(game, mon)
+          else
+            line = Strings("%s :L%d", nameOf(game, mon), mon.level or 0)
+          end
         elseif onHeader then
           line = Strings("A:BOX MENU B:EXIT")
         elseif self.mode == "box" then

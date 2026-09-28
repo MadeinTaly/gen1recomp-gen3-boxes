@@ -1,5 +1,35 @@
 # Changelog
 
+## 1.24.1 -- an egg is an egg (#8)
+
+The box put the hatchling on screen. A Gold egg is a whole Pokemon with
+`isEgg = true` on it -- species, level, moves and DVs are the hatchling's
+from the moment the Day-Care hands it over (`src/core/gen2/Breeding.lua:180`)
+-- and every question this screen asked of it went to the species: the
+picture, the level, the cry, the colours. So the cell drew a Smoochum and the
+footer read `EGG :L5`, where the game's own PC and party draw an egg.
+
+The cart answers every one of those with the same `cp EGG` test, and the
+port with `mon.isEgg`. This screen now asks it in the same places:
+
+- **The picture** is EggPic, the one the engine's own box and summary draw
+  (`menu_gfx.eggHatch.egg`, `src/ui/gen2/BoxMenu.lua:852-860`), with
+  ICON_EGG's first frame for a cache extracted before the extractor learned
+  EggPic. It is asked BEFORE the sprite seam: a pack keyed by species would
+  answer with the hatchling, and so would Wilds of Kanto's overworld sprites,
+  which an egg now skips. It wears Gold's own EGG palette row and never
+  animates -- Crystal's frames on the species record are the hatchling's too.
+- **The footer** says `EGG` and no level, PCMonInfo's `cp EGG / ret z`.
+- **PLACE CRY** plays nothing for an egg.
+- **FIND** by species no longer lands on an egg of that species -- which was
+  the same spoiler asked as a question. Searching `EGG` finds them.
+- **SORT** by dex, level or type sends eggs to the end instead of among
+  their own species; by name they sort as `EGG`.
+- **The nurse** skips eggs, as HealParty does: an egg has no HP to restore.
+
+STATS on an egg already opened the engine's own egg page, so that is
+unchanged. Eleven checks cover it, and eight of them fail on 1.24.0.
+
 ## 1.24.0 -- Crystal animates its own Pokemon, so the box does too
 
 **ANIMATE, and a calmer rate.** Twenty Crystal animations on one screen is a
