@@ -257,7 +257,7 @@ every box set to it without touching any of them.
 
 ### The scenes, and who drew them
 
-**Sixteen places, ninety-one wallpapers, twenty-seven outside hands.** Every scene is drawn here in code
+**Sixteen places, ninety-eight wallpapers, twenty-seven outside hands.** Every scene is drawn here in code
 first — that is the GEN3 BOX entry, and it is what a box wears until you
 change it — and then the same place again by pixel artists whose work is CC0
 or CC BY. The artist's name is the label you scroll through, which is where
@@ -280,11 +280,14 @@ credit actually gets read.
 | STORM | GEN3 BOX | + NIGHT, DUSK, SEA, MONO |
 | CIRCUIT | GEN3 BOX | + AMBER, BLUE, RED, MONO |
 | TRAIN | GEN3 BOX | + NIGHT, DUSK, SNOW, SEPIA |
-| 90S | GEN3 BOX | + MINT, SUNSET, GRAPE, MONO |
+| 90S | GEN3 BOX · **GEN3 BLUE** · **GEN3 PINK** · **GEN3 PRISM** · **GEN3 PRISM MINT** · **GEN3 PRISM BLUE** · **GEN3 PRISM SUN** · **GEN3 PRISM ROSE** | + MINT, SUNSET, GRAPE, MONO |
 
 The right-hand column is the same scene drawn here through another palette —
 `SAKURA < GEN3 NIGHT >` is a night hanami, not a toggle — so every place has
-at least five wallpapers behind it and none has more than seven.
+at least five wallpapers behind it and none has more than twelve. 90S has
+twelve: five existing palettes, two added colours, and five palettes of the new PRISM design.
+To see a PRISM design, move to 90S with UP/DOWN, then scroll through its artist
+choices with LEFT/RIGHT; choose it with A.
 
 FAVOURITE comes after all of them and stays there: it is a pointer to
 whatever you marked with SELECT rather than a place of its own, so it belongs

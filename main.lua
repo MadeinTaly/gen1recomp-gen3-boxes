@@ -663,18 +663,17 @@ return function(mod)
     { id = "SKY",    pattern = "SKY",
       palette = { { 240, 250, 255 }, { 186, 224, 248 }, { 120, 178, 226 }, { 50, 96, 150 } } },
     { id = "CAVE",   pattern = "CAVE",
-      palette = { { 238, 234, 228 }, { 190, 180, 168 }, { 128, 116, 104 }, { 52, 46, 42 } } },
+      palette = { { 198, 247, 255 }, { 103, 165, 189 }, { 40, 76, 108 }, { 12, 22, 43 } } },
     { id = "CITY",   pattern = "CITY",
-      palette = { { 240, 238, 246 }, { 196, 192, 214 }, { 132, 128, 158 }, { 48, 46, 66 } } },
+      palette = { { 254, 226, 166 }, { 152, 163, 207 }, { 73, 82, 131 }, { 24, 31, 59 } } },
     { id = "SNOW",   pattern = "SNOW",
       palette = { { 250, 252, 255 }, { 216, 230, 244 }, { 158, 184, 212 }, { 70, 96, 130 } } },
     { id = "NIGHT",  pattern = "NIGHT",
       palette = { { 30, 30, 40 }, { 70, 70, 92 }, { 140, 140, 168 }, { 226, 226, 240 } } },
-    -- The one wallpaper that is not a place. 1998 is what this whole mod is
-    -- about, and 1998 had a look: shapes scattered on a pale ground for no
-    -- reason at all, on every folder, cup and school jumper.
+    -- Memphis prints use the first colour as their backdrop and the next two
+    -- as contrasting inks; the painter adds ivory, yellow and black accents.
     { id = "90S",    pattern = "90S",
-      palette = { { 250, 246, 236 }, { 236, 108, 148 }, { 84, 196, 196 }, { 60, 56, 108 } } },
+      palette = { { 152, 115, 195 }, { 246, 142, 185 }, { 71, 209, 194 }, { 47, 31, 80 } } },
     -- Four more places, and two of them run their ramp backwards the way
     -- NIGHT does: a volcano and deep space are dark rooms, and a palette
     -- that starts light would make them grey rooms instead.
@@ -685,7 +684,7 @@ return function(mod)
     { id = "SPACE",  pattern = "SPACE",
       palette = { { 14, 12, 30 }, { 54, 46, 96 }, { 128, 118, 196 }, { 238, 238, 255 } } },
     { id = "CASTLE", pattern = "CASTLE",
-      palette = { { 236, 234, 240 }, { 178, 176, 192 }, { 112, 112, 132 }, { 44, 46, 60 } } },
+      palette = { { 255, 225, 165 }, { 150, 144, 166 }, { 71, 79, 105 }, { 22, 27, 48 } } },
     -- The five that were proposed in a list and then never drawn, which is
     -- the worst place for an idea to sit. SAKURA and TRAIN are the two that
     -- are not weather or rock: a tree over water, and the view out of a
@@ -835,10 +834,17 @@ return function(mod)
                V("GEN3 BLOOD", { { 26, 14, 20 }, { 72, 26, 36 }, { 160, 58, 62 }, { 244, 196, 168 } }),
                V("GEN3 MOSS", { { 14, 24, 22 }, { 34, 58, 50 }, { 84, 132, 104 }, { 206, 232, 200 } }) },
     ["90S"] = { { by = "GEN3 BOX" },
-               V("GEN3 MINT", { { 236, 252, 246 }, { 92, 210, 186 }, { 244, 148, 96 }, { 42, 66, 88 } }),
-               V("GEN3 SUNSET", { { 254, 240, 220 }, { 246, 132, 92 }, { 122, 106, 200 }, { 44, 38, 70 } }),
-               V("GEN3 GRAPE", { { 244, 238, 252 }, { 176, 132, 220 }, { 96, 200, 176 }, { 52, 40, 84 } }),
-               V("GEN3 MONO", { { 246, 246, 244 }, { 176, 176, 176 }, { 104, 104, 104 }, { 36, 36, 36 } }) },
+               V("GEN3 MINT", { { 117, 205, 183 }, { 250, 121, 143 }, { 128, 91, 194 }, { 28, 70, 70 } }),
+               V("GEN3 SUNSET", { { 247, 164, 112 }, { 224, 81, 139 }, { 92, 131, 211 }, { 75, 40, 66 } }),
+               V("GEN3 GRAPE", { { 69, 43, 108 }, { 250, 135, 192 }, { 94, 220, 202 }, { 27, 17, 46 } }),
+               V("GEN3 MONO", { { 212, 212, 212 }, { 144, 144, 144 }, { 92, 92, 92 }, { 30, 30, 30 } }),
+               V("GEN3 BLUE", { { 92, 155, 218 }, { 255, 151, 178 }, { 91, 225, 198 }, { 27, 48, 88 } }),
+               V("GEN3 PINK", { { 235, 145, 180 }, { 129, 90, 194 }, { 66, 203, 187 }, { 73, 35, 72 } }),
+               V("GEN3 PRISM", { { 59, 39, 99 }, { 240, 116, 175 }, { 64, 206, 203 }, { 24, 17, 43 } }, "90S_PRISM"),
+               V("GEN3 PRISM MINT", { { 56, 131, 119 }, { 250, 134, 152 }, { 158, 223, 174 }, { 20, 49, 51 } }, "90S_PRISM"),
+               V("GEN3 PRISM BLUE", { { 43, 83, 155 }, { 248, 126, 171 }, { 89, 201, 228 }, { 18, 32, 65 } }, "90S_PRISM"),
+               V("GEN3 PRISM SUN", { { 182, 83, 68 }, { 252, 166, 100 }, { 102, 191, 205 }, { 61, 28, 41 } }, "90S_PRISM"),
+               V("GEN3 PRISM ROSE", { { 166, 73, 117 }, { 249, 169, 189 }, { 88, 209, 187 }, { 58, 25, 60 } }, "90S_PRISM") },
     -- The five newest places have one hand each so far. CC0 parallax art
     -- for a cherry tree, an aurora, a circuit board or a train window is
     -- not a thing that exists in quantity -- which is exactly what the
@@ -1005,13 +1011,14 @@ return function(mod)
     return WALLPAPER_BY_ID[id] and id or "PLAIN"
   end
 
-  local function paperOf(n)
-    return WALLPAPER_BY_ID[paperIdOf(n)] or WALLPAPER_BY_ID.PLAIN
+  local function paperOf(n, entry)
+    local id = entry and resolvePaper(entry.id, entry.art, n) or paperIdOf(n)
+    return WALLPAPER_BY_ID[id] or WALLPAPER_BY_ID.PLAIN
   end
 
   -- which hand drew the paper this box is wearing
-  local function artOf(n)
-    local e = paperEntry(n)
+  local function artOf(n, entry)
+    local e = entry or paperEntry(n)
     local id, art = resolvePaper(e.id, e.art, n)
     local list = artFor(id)
     return list[math.max(1, math.min(#list, art))] or list[1]
@@ -1399,7 +1406,7 @@ return function(mod)
   --
   -- All of this lived inside the box screen's constructor, which was fine
   -- while the box was the only thing that wanted a scene behind it. The
-  -- Pokedex wants the same ninety-one wallpapers, and the answer to that is
+  -- Pokedex wants the same wallpapers, and the answer to that is
   -- not a second copy of the drawing code and a second copy of the art: it
   -- is one painter, exported, that any screen can call.
   --
@@ -1422,26 +1429,6 @@ return function(mod)
   local function poly(...)
     local f = love.graphics.polygon
     if f then f(...) end
-  end
-
-  -- A silhouette drawn COLUMN by column from a smooth profile, rather than
-  -- as a row of triangles. Triangles are what a horizon looks like when
-  -- nobody has looked at it: the dunes came out a zigzag and the volcano
-  -- came out a fence. Two sines of different periods, plus a hashed
-  -- wobble, give a ridge that repeats without reading as a pattern.
-  local function ridge(w, h, baseY, amp, seed, step)
-    step = step or 2
-    for x = 0, w, step do
-      local hx = ((x + seed) * 2654435761) % 4294967296
-      local jitter = (math.floor(hx / 65536) % 5) - 2
-      local y = baseY
-        - math.floor(amp * math.sin((x + seed * 7) / 37))
-        - math.floor(amp * 0.45 * math.sin((x + seed * 13) / 11))
-        + jitter
-      if y < h then
-        love.graphics.rectangle("fill", x, y, step, h - y)
-      end
-    end
   end
 
   local function disc(cx, cy, r)
@@ -1550,1108 +1537,1008 @@ return function(mod)
     return drew
   end
 
-  -- Every scene below is drawn in literal pixels of the 160x144 Game Boy
-  -- screen: `for i = 0, 9` roofs at 18 apart is a street across THAT
-  -- screen and nothing wider. So this takes the size it is given and
-  -- paints at that size -- and the caller is what makes BIG work.
+  -- Original scenes share a pixel grid and a 32-second loop at 60 ticks/s.
+  -- Geometry stays still; only weather, water and explicitly travelling layers move.
   local function drawPattern(paper, w, h, t)
     local pattern = paper.pattern
-    -- The ground colour first: the whole surface, so nothing shows white
-    -- except what this screen deliberately paints white on top.
-    shade(paper, 1)
-    love.graphics.rectangle("fill", 0, 0, w, h)
+    local phase = (t % 1920) / 1920
+    local tau = math.pi * 2
+    local function wave(turns, offset)
+      return math.sin(tau * (phase * (turns or 1) + (offset or 0)))
+    end
+    local function rect(tone, alpha, x, y, rw, rh)
+      if rw <= 0 or rh <= 0 then return end
+      shade(paper, tone, alpha)
+      love.graphics.rectangle("fill", math.floor(x), math.floor(y),
+        math.max(1, math.floor(rw)), math.max(1, math.floor(rh)))
+    end
+    local function ball(tone, alpha, x, y, radius)
+      shade(paper, tone, alpha)
+      disc(math.floor(x), math.floor(y), math.max(1, math.floor(radius)))
+    end
+    local function stroke(tone, alpha, x1, y1, x2, y2, width)
+      shade(paper, tone, alpha)
+      x1, y1, x2, y2 = math.floor(x1), math.floor(y1), math.floor(x2), math.floor(y2)
+      if x1 == x2 or y1 == y2 then
+        love.graphics.rectangle("fill", math.min(x1, x2), math.min(y1, y2),
+          math.abs(x2 - x1) + (width or 1), math.abs(y2 - y1) + (width or 1))
+        return
+      end
+      local steps = math.max(math.abs(x2 - x1), math.abs(y2 - y1), 1)
+      for n = 0, steps do
+        love.graphics.rectangle("fill", math.floor(x1 + (x2 - x1) * n / steps),
+          math.floor(y1 + (y2 - y1) * n / steps), width or 1, width or 1)
+      end
+    end
+    local function hash(i, salt)
+      return math.floor(((i * 2654435761 + (salt or 0) * 2246822519) % 4294967296) / 65536)
+    end
+    local function cloud(x, y, size, tone, alpha)
+      -- Paint the silhouette once: overlapping translucent discs leave dark seams.
+      for dy = -4 * size, 2 * size do
+        local left, right = math.huge, -math.huge
+        for lobe = 0, 2 do
+          local cx, cy = (2 + lobe * 3) * size, lobe == 1 and -size or 0
+          local radius = (lobe == 1 and 3 or 2) * size
+          if math.abs(dy - cy) <= radius then
+            local half = math.floor(math.sqrt(radius * radius - (dy - cy)^2))
+            left, right = math.min(left, cx - half), math.max(right, cx + half)
+          end
+        end
+        if dy >= 0 then left, right = 0, size * 10 end
+        if right > left then rect(tone, alpha, x + left, y + dy, right - left, 1) end
+      end
+    end
+    local function haze(tone, bottom, topAlpha, bottomAlpha)
+      for y = 0, math.ceil(bottom) - 1, 2 do
+        rect(tone, topAlpha + (bottomAlpha - topAlpha) * y / math.max(1, bottom),
+          0, y, w, math.min(2, math.ceil(bottom) - y))
+      end
+    end
+    local function pine(x, base, size, tone, alpha)
+      rect(tone, alpha, x - 1, base - size, 2, size)
+      for tier = 0, 2 do
+        local top = base - size * 5 + tier * size
+        for dy = 0, size * 2 do
+          local half = math.floor(dy * 0.55 + tier * size * 0.2)
+          rect(tone, alpha, x - half, top + dy, half * 2 + 1, 1)
+        end
+      end
+    end
+    local function stars(count, bottom, tone)
+      for i = 1, count do
+        local x, y = hash(i, 4) % math.max(1, w), hash(i, 8) % math.max(1, bottom)
+        local alpha = 0.28 + 0.4 * (wave(2 + i % 3, i * 0.137) + 1) / 2
+        rect(tone, alpha, x, y, 1, 1)
+        if i % 13 == 0 then
+          rect(tone, alpha * 0.4, x - 1, y, 3, 1)
+          rect(tone, alpha * 0.4, x, y - 1, 1, 3)
+        end
+      end
+    end
+    local function ripples(top, bottom, tone, alpha, count)
+      for i = 0, count do
+        local y = top + hash(i, 3) % math.max(1, bottom - top)
+        local length = 3 + hash(i, 9) % 14
+        local x = (hash(i, 2) + phase * (w + 40) * (1 + i % 2)) % (w + 40) - 20
+        rect(tone, alpha * (0.55 + 0.45 * wave(2, i * 0.19)^2), x, y, length, 1)
+      end
+    end
+    rect(1, 1, 0, 0, w, h)
 
     if pattern == "SEA" then
-      -- UNDER the water, not the surface of it. 1.9.3 drew bands of waves
-      -- and 1.10.0's first attempt made those bands chunky, which fixed
-      -- the hairlines and left the screen reading as knitting. What a box
-      -- called SEA wants is the thing you look INTO: light on the surface
-      -- overhead, weed on the floor, and something swimming between them.
-      --
-      -- Nothing here is copied from anywhere. A fish at this size is a
-      -- body and a tail, and that shape belongs to nobody.
-
-      -- the surface, rolling, along the top only
-      for i = 0, 2 do
-        local y = i * 6
-        for x = -8, w + 8, 8 do
-          local phase = math.sin((x + t * 0.6 + i * 13) / 15)
-          local wy = y + math.floor(phase * 2) * 2
-          shade(paper, 2, 0.5 - i * 0.12)
-          love.graphics.rectangle("fill", x, wy, 8, 3)
-        end
+      -- A reef frames the open water; distant fish stay small and low contrast.
+      haze(3, h, 0.09, 0.64)
+      for i = 0, math.ceil(w / 54) do
+        local x = i * 54 - 22 + wave(1, i * 0.12) * 5
+        shade(paper, 1, 0.13)
+        poly("fill", x, 0, x + 7, 0, x + 42, h, x + 19, h)
       end
-      -- shafts of light coming down through it
-      shade(paper, 1, 0.5)
-      for i = 0, 3 do
-        local x = (i * 47 + math.floor(t * 0.12)) % (w + 40) - 20
-        poly("fill", x, 8, x + 10, 8, x + 22, h, x + 6, h)
-      end
-
-      -- the floor: weed that sways, and anemones sitting in it
-      for i = 0, math.ceil(w / 11) do
-        local x = i * 11 + 3
-        local tall = 16 + ((i * 13) % 20)
-        shade(paper, 3, 0.75)
-        for seg = 0, tall, 4 do
-          local bend = math.floor(2 * math.sin((t + i * 30 + seg * 9) / 38))
-          love.graphics.rectangle("fill", x + bend, h - seg - 4, 3, 4)
-        end
-      end
-      for i = 0, 3 do
-        local x = 14 + i * 41
-        local pulse = math.floor(1.5 + 1.5 * math.sin((t + i * 50) / 30))
-        shade(paper, 4, 0.55)
-        for arm = -4, 4 do
-          love.graphics.rectangle("fill", x + arm * 3, h - 12 - pulse - math.abs(arm),
-            2, 8 + pulse - math.abs(arm))
-        end
-        shade(paper, 4, 0.75)
-        disc(x, h - 7, 6)
-      end
-
-      -- a fish: body, tail, eye. Two shoals crossing at different depths,
-      -- so something is always moving under something else.
-      local function fish(fx, fy, dir, tone, alpha, size)
-        shade(paper, tone, alpha)
-        disc(fx, fy, 2 * size)
-        love.graphics.rectangle("fill", fx - 3 * size, fy - size, 6 * size, 2 * size)
-        -- tail, behind the direction of travel
-        poly("fill",
-          fx - dir * 3 * size, fy,
-          fx - dir * 6 * size, fy - 2 * size,
-          fx - dir * 6 * size, fy + 2 * size)
-        shade(paper, 1, 0.9)
-        love.graphics.rectangle("fill", fx + dir * size, fy - size, size, size)
-      end
-      for i = 0, 4 do
-        local y = 34 + i * 17
-        local x = ((t * 0.5 + i * 43) % (w + 40)) - 20
-        fish(x, y, 1, 3, 0.65, 1)
-      end
-      for i = 0, 2 do
-        local y = 46 + i * 26
-        local x = w - (((t * 0.75 + i * 61) % (w + 50)) - 25)
-        fish(x, y, -1, 2, 0.9, 2)
-      end
-
-      -- a jellyfish drifting up through the lot
-      for i = 0, 1 do
-        local x = 30 + i * 74
-        local y = h - ((t * 0.3 + i * 90) % (h + 40))
-        shade(paper, 2, 0.55)
-        disc(x, y, 6)
-        love.graphics.rectangle("fill", x - 6, y, 12, 3)
-        for k = -2, 2 do
-          local wob = math.floor(2 * math.sin((t + k * 20 + i * 40) / 25))
-          love.graphics.rectangle("fill", x + k * 3 + wob, y + 3, 1, 8)
-        end
-      end
-
-      -- bubbles, still rising
-      shade(paper, 1, 0.8)
-      for i = 0, 11 do
-        local bx = (i * 37) % w
-        local by = h - ((t * 0.35 + i * 23) % (h + 12))
-        love.graphics.rectangle("fill", bx, by, 2, 2)
-      end
-    elseif pattern == "FOREST" then
-      -- TREES, drawn the way a Game Boy draws a tree: a stack of
-      -- rectangles on the 8-pixel grid, widest at the bottom, with a trunk
-      -- under it. 1.9.3 drew filled CIRCLES here, and a filled circle at
-      -- this size on a four-tone surface is a dot -- the screen came out a
-      -- field of green polka dots rather than a wood.
-      --
-      -- Two depths: a darker row behind, offset half a tree along and
-      -- sitting higher, so the canopy reads as having something behind it
-      -- rather than as one row of shapes. The sway moves whole PIXELS, not
-      -- fractions -- a sub-pixel sway on a lattice this coarse just makes
-      -- the edges shimmer.
-      local function tree(cx, cy, scale, tone, alpha)
-        shade(paper, tone, alpha)
-        -- canopy: three tiers, each wider and shorter than the one above
-        love.graphics.rectangle("fill", cx - 3 * scale, cy, 6 * scale, 3 * scale)
-        love.graphics.rectangle("fill", cx - 5 * scale, cy + 3 * scale,
-          10 * scale, 3 * scale)
-        love.graphics.rectangle("fill", cx - 7 * scale, cy + 6 * scale,
-          14 * scale, 3 * scale)
-        -- trunk
-        love.graphics.rectangle("fill", cx - scale, cy + 9 * scale,
-          2 * scale, 3 * scale)
-      end
-
-      local STEP_X, STEP_Y = 24, 26
-      for row = -1, math.ceil(h / STEP_Y) + 1 do
-        -- the row behind, higher and darker
-        for col = -1, math.ceil(w / STEP_X) + 1 do
-          local sway = math.floor(2 * math.sin((t + row * 37 + col * 19) / 45))
-          tree(col * STEP_X + 12 + sway, row * STEP_Y - 6, 1, 3, 0.5)
-        end
-        -- and the row in front, offset half a tree along
-        for col = -1, math.ceil(w / STEP_X) + 1 do
-          local sway = math.floor(2 * math.sin((t + row * 23 + col * 31) / 40))
-          -- every third tree is a sapling: a lattice of identical trees is
-          -- a wallpaper pattern, and a wood is not
-          local small = ((row * 7 + col * 3) % 3 == 0)
-          local x = col * STEP_X + sway
-          if small then
-            shade(paper, 2, 0.85)
-            love.graphics.rectangle("fill", x - 3, row * STEP_Y + 12, 6, 3)
-            love.graphics.rectangle("fill", x - 5, row * STEP_Y + 15, 10, 3)
-            love.graphics.rectangle("fill", x - 1, row * STEP_Y + 18, 2, 3)
-          else
-            tree(x, row * STEP_Y + 6, 1, 2, 0.85)
-          end
-        end
-      end
-    elseif pattern == "SKY" then
-      -- Clouds drifting right, two layers at different speeds so the sky
-      -- has depth rather than a single sliding sheet.
-      -- A cloud built from RECTANGLES: three overlapping circles came out
-      -- as one soft lump, and three of them left most of the sky empty.
-      -- This is the shape a Game Boy draws -- a wide flat base with two
-      -- steps stacked on it -- and there are enough of them to be weather
-      -- rather than decoration.
-      local function cloud(cx, cy, u, tone, alpha)
-        shade(paper, tone, alpha)
-        love.graphics.rectangle("fill", cx, cy + 2 * u, 10 * u, 2 * u)
-        love.graphics.rectangle("fill", cx + u, cy + u, 7 * u, u)
-        love.graphics.rectangle("fill", cx + 3 * u, cy, 4 * u, u)
-        -- the lit top edge, one row, which is what sells it as volume
-        shade(paper, 1, 0.8)
-        love.graphics.rectangle("fill", cx + 3 * u, cy, 4 * u, 1)
-      end
-      -- a sun, high and to one side, because an empty sky is not weather.
-      -- Solid, with a ring of its own colour around it rather than a paler
-      -- middle -- a lighter core turned it into a doughnut.
-      shade(paper, 3, 0.35)
-      disc(w - 30, 20, 13)
-      shade(paper, 2, 0.9)
-      disc(w - 30, 20, 10)
-
-      -- the far layer: smaller, paler, slower
-      for i = 0, 10 do
-        local y = 4 + i * 14
-        local x = ((t * 0.18 + i * 43) % (w + 80)) - 40
-        cloud(x, y, 2, 3, 0.45)
-      end
-      -- and the near one, big enough to pass in front of the sun
-      for i = 0, 7 do
-        local y = 10 + i * 19
-        local x = ((t * 0.34 + i * 57) % (w + 110)) - 55
-        cloud(x, y, 3, 2, 0.8)
-      end
-    elseif pattern == "CAVE" then
-      -- Third attempt, and the first two failed for the same reason in
-      -- opposite directions: one was a flat beige wall with teeth on it,
-      -- the other was a full scene -- arch, pool, dither, the lot -- which
-      -- on a 160x144 field behind twenty Pokemon is just noise the sprites
-      -- have to fight.
-      --
-      -- A wallpaper is not a painting. What it needs is a surface with a
-      -- top, a bottom and enough going on between them to be a place:
-      -- rock above, rock below, a seam of crystal that breathes, and the
-      -- steady drip that says the room is alive. Middle contrast
-      -- throughout, so a Pokemon standing on it still reads.
-
-      -- the rock face, a shade under the ground colour
-      shade(paper, 2, 0.4)
-      love.graphics.rectangle("fill", 0, 0, w, h)
-
-      -- texture: short horizontal strata, scattered rather than tiled, so
-      -- the wall has grain without turning into a chessboard
-      shade(paper, 3, 0.18)
-      for i = 0, 45 do
-        local hx = (i * 2654435761) % 4294967296
-        local x = math.floor(hx / 65536) % w
-        local y = math.floor(hx / 23) % h
-        love.graphics.rectangle("fill", x, y, 5 + (i % 4) * 3, 2)
-      end
-
-      -- the ceiling: one unbroken dark band, its underside ragged
-      shade(paper, 4, 0.75)
       for x = 0, w, 4 do
-        local d = 10 + math.floor(6 * math.sin(x / 17) + 4 * math.sin(x / 7))
-        love.graphics.rectangle("fill", x, 0, 4, d)
+        local y = 5 + math.floor(math.sin(x / 17 + phase * tau * 2) * 2)
+        rect(1, 0.72, x, y, 4, 2)
+        rect(2, 0.65, x, y + 4, 4, 2)
       end
-      -- stalactites hanging from it
-      for i = 0, 8 do
-        local x = 4 + i * 19
-        local len = 10 + ((i * 13) % 22)
-        for k = 0, len do
-          local half = math.max(1, math.floor(4 * (1 - k / len)))
-          love.graphics.rectangle("fill", x - half, 12 + k, half * 2, 1)
-        end
-      end
-
-      -- and the floor, the same band the other way up
-      for x = 0, w, 4 do
-        local u = 8 + math.floor(5 * math.cos(x / 15) + 3 * math.sin(x / 9))
-        love.graphics.rectangle("fill", x, h - u, 4, u)
-      end
-      for i = 0, 6 do
-        local x = 12 + i * 25
-        local len = 8 + ((i * 17) % 16)
-        for k = 0, len do
-          local half = math.max(1, math.floor(4 * (1 - k / len)))
-          love.graphics.rectangle("fill", x - half, h - 8 - k, half * 2, 1)
-        end
-      end
-
-      -- mid-depth pillars: floor to ceiling, a shade lighter than the
-      -- near rock, which is what stops the middle of the screen being a
-      -- beige field with things at the edges of it
-      shade(paper, 3, 0.26)
-      for i = 0, 1 do
-        local x = 26 + i * 82
-        local width = 9 + (i % 2) * 4
-        for y = 14, h - 12 do
-          local waist = math.floor(3 * math.sin((y + i * 40) / 26))
-          love.graphics.rectangle("fill", x + waist, y, width, 1)
-        end
-      end
-
-      -- crystals GROWING OUT OF THE FLOOR, in clusters, glowing in and
-      -- out. Floating them in mid-air made them read as little mountains
-      -- hanging in the dark.
-      local pulse = 0.35 + 0.3 * math.sin(t / 34)
-      for i = 0, 4 do
-        local x = 10 + i * 33
-        local base = h - 10 - ((i * 7) % 5)
-        for k = -1, 1 do
-          local tall = 9 + ((i * 13 + k * 5) % 9) - math.abs(k) * 3
-          local cx = x + k * 5
-          shade(paper, 1, pulse + 0.2 - math.abs(k) * 0.08)
-          poly("fill", cx - 2, base, cx, base - tall, cx + 2, base)
-        end
-        -- the light they throw on the floor around them
-        shade(paper, 1, pulse * 0.35)
-        love.graphics.rectangle("fill", x - 9, base, 20, 2)
-      end
-
-      -- drips, from a stalactite to the floor, one ring where they land
-      for i = 0, 3 do
-        local x = 4 + i * 19 * 2
-        local period = h - 20
-        local fall = (t * 1.2 + i * 41) % period
-        shade(paper, 1, 0.7)
-        love.graphics.rectangle("fill", x, 20 + fall, 1, 4)
-        if fall > period - 8 then
-          local age = fall - (period - 8)
-          shade(paper, 1, 0.55 - age * 0.06)
-          love.graphics.rectangle("fill", x - 2 - age, h - 14, 5 + age * 2, 1)
-        end
-      end
-    elseif pattern == "CITY" then
-      -- A skyline with lit windows, and the lights come on and go off.
-      -- The skyline worked; the sky above it did not exist. A moon, a few
-      -- stars and a second row of towers behind the first give the top
-      -- two thirds of the screen something to be.
-      local base = h
-      -- a crescent: a disc with a bite taken out of it by the ground colour
-      -- a crescent: the disc, then the SAME disc again in the sky's own
-      -- colour, offset -- which is how the shape is cut on hardware
-      shade(paper, 4, 0.7)
-      disc(w - 30, 18, 11)
-      shade(paper, 1, 1)
-      disc(w - 25, 15, 11)
-      shade(paper, 4, 0.6)
-      for i = 0, 23 do
-        local hx = (i * 2654435761) % 4294967296
-        local x = math.floor(hx / 65536) % w
-        local y = 3 + math.floor(hx / 11) % 52
-        love.graphics.rectangle("fill", x, y, 1, 1)
-      end
-      -- the far towers: taller, darker, no windows, so the near row reads
-      -- as being in front of something rather than against blank sky
-      shade(paper, 3, 0.6)
-      for i = 0, math.ceil(w / 22) do
-        local x = i * 22 + 8
-        local bh = 48 + ((i * 17) % 34)
-        love.graphics.rectangle("fill", x, base - bh, 18, bh)
-      end
-      shade(paper, 2, 0.65)
-      for i = 0, math.ceil(w / 16) do
-        local x = i * 16
-        local bh = 26 + ((i * 13) % 34)
-        love.graphics.rectangle("fill", x, base - bh, 14, bh)
-      end
-      for i = 0, math.ceil(w / 16) do
-        local x = i * 16
-        local bh = 26 + ((i * 13) % 34)
-        for wy = base - bh + 5, base - 6, 8 do
-          for wx = x + 3, x + 10, 5 do
-            local lit = math.sin((t + wx * 13 + wy * 7) / 55) > 0.2
-            shade(paper, lit and 1 or 4, lit and 0.85 or 0.5)
-            love.graphics.rectangle("fill", wx, wy, 3, 4)
-          end
-        end
-      end
-    elseif pattern == "SNOW" then
-      -- Rooftops under falling snow, which is what a snow scene actually
-      -- looks like: a town seen from above the eaves, chimneys smoking,
-      -- and the fall thick enough to be weather. The palette is four
-      -- colours, but in CLASSIC nothing remaps the canvas -- so the tones
-      -- in between are the mod's own blending, and the scene can carry
-      -- more depth than a four-shade sprite would.
-      --
-      -- Three ranks of roofs, each darker and lower than the one behind,
-      -- so the town has distance in it.
-      local horizon = math.floor(h * 0.52)
-
-      -- HOUSES, not a fence of identical triangles. Each one gets its own
-      -- width, its own height and its own roof pitch out of the same
-      -- hash, so the row reads as a street rather than as a pattern; the
-      -- two roof slopes take different tones, because a lit side and a
-      -- shaded side is what makes a roof look like a roof; and the snow
-      -- sits on the ridge as a thin cap with a lip, not as a white
-      -- triangle laid over the whole thing.
-      local function house(x, y, bw, bh, tone, alpha, snowAlpha)
-        local half = math.floor(bw / 2)
-        local peak = y - math.floor(bw * 0.42)
-        -- wall
-        shade(paper, tone, alpha)
-        love.graphics.rectangle("fill", x, y, bw, bh)
-        -- the two slopes: the left one catches the light
-        shade(paper, tone, alpha * 0.8)
-        poly("fill", x, y, x + half, peak, x + half, y)
-        shade(paper, 4, math.min(1, alpha * 1.15))
-        poly("fill", x + half, peak, x + bw, y, x + half, y)
-        -- snow along both slopes, a couple of pixels thick, with the lip
-        shade(paper, 1, snowAlpha)
-        poly("fill", x - 1, y, x + half, peak - 2,
-          x + half, peak + 1, x + 3, y + 1)
-        poly("fill", x + bw + 1, y, x + half, peak - 2,
-          x + half, peak + 1, x + bw - 3, y + 1)
-        return peak
-      end
-
-      -- the far rank: small, pale, no detail
-      for i = 0, 9 do
-        local hx = (i * 2654435761) % 4294967296
-        local bw = 14 + math.floor(hx / 65536) % 10
-        local x = i * 18 - 6
-        house(x, horizon, bw, h - horizon, 3, 0.4, 0.55)
-      end
-
-      -- the middle rank, with windows
-      for i = 0, 6 do
-        local hx = (i * 2246822519) % 4294967296
-        local bw = 20 + math.floor(hx / 65536) % 12
-        local x = i * 26 - 10
-        local peak = house(x, horizon + 14, bw, h - horizon - 14, 3, 0.7, 0.8)
-        local lit = math.sin((t + i * 61) / 80) > -0.2
-        shade(paper, lit and 1 or 4, lit and 0.9 or 0.5)
-        love.graphics.rectangle("fill", x + math.floor(bw / 2) - 2,
-          horizon + 20, 4, 4)
-        -- a chimney on some of them, smoking
-        if i % 2 == 0 then
-          shade(paper, 4, 0.85)
-          love.graphics.rectangle("fill", x + bw - 7, peak + 2, 4, 10)
-          for k = 0, 4 do
-            local rise = (t * 0.45 + k * 11 + i * 17) % 40
-            local drift = math.floor(math.sin((t + k * 26 + i * 20) / 24) * (1 + k))
-            shade(paper, 2, 0.45 - k * 0.08)
-            love.graphics.rectangle("fill", x + bw - 7 + drift, peak + 2 - rise,
-              2 + math.floor(k / 2), 2 + math.floor(k / 2))
-          end
-        end
-      end
-
-      -- the near rank: big, dark, two rows of windows
-      for i = 0, 4 do
-        local hx = (i * 3266489917) % 4294967296
-        local bw = 28 + math.floor(hx / 65536) % 14
-        local x = i * 36 - 12
-        house(x, horizon + 34, bw, h - horizon - 34, 4, 0.8, 0.95)
-        for row = 0, 1 do
-          for col = 0, 1 do
-            local lit = math.sin((t + i * 43 + row * 31 + col * 17) / 70) > -0.1
-            shade(paper, lit and 1 or 4, lit and 0.95 or 0.55)
-            love.graphics.rectangle("fill", x + 6 + col * 12,
-              horizon + 42 + row * 11, 5, 6)
-          end
-        end
-      end
-
-      -- and the fall itself: three depths, the near flakes bigger and
-      -- quicker, so the snow has volume rather than being one sheet
-      for depth = 1, 3 do
-        local count = 16 + depth * 8
-        local speed = 0.18 + depth * 0.16
-        local size = depth
-        shade(paper, depth == 3 and 1 or 2, 0.35 + depth * 0.2)
-        for i = 0, count do
-          local hx = (i * 2654435761 + depth * 7919) % 4294967296
-          local x = math.floor((math.floor(hx / 65536) % w)
-            + 5 * math.sin((t + i * 37) / (30 + depth * 10)))
-          local y = math.floor((t * speed + i * 23 + depth * 11) % (h + 10))
-          love.graphics.rectangle("fill", x % w, y, size, size)
-        end
-      end
-    elseif pattern == "NIGHT" then
-      -- Stars, a few of them twinkling out of phase with each other.
-      -- `(i * 53) % w` with `(i * 37) % h` is a lattice, not a sky: the
-      -- stars marched in diagonal columns. Hashing the index scatters
-      -- them, and a moon gives the eye somewhere to land.
-      -- the same crescent the city sky gets: a disc, then the night's own
-      -- colour cutting it. Built from rectangles it came out a domino.
-      shade(paper, 4, 0.9)
-      disc(30, 24, 12)
-      shade(paper, 1, 1)
-      disc(36, 20, 12)
-      for i = 1, 59 do
-        local hx = (i * 2654435761) % 4294967296
-        local x = math.floor(hx / 65536) % w
-        local y = math.floor(hx / 7) % h
-        -- clamped: an alpha below zero is not a fainter star, it is an
-        -- undefined colour the renderer is entitled to do anything with
-        local tw = math.max(0.05, 0.35 + 0.5 * math.sin((t + i * 61) / 30))
-        shade(paper, 4, tw)
-        if i % 9 == 0 then
-          -- the bright ones get a cross, the way a twinkle is drawn
-          love.graphics.rectangle("fill", x - 1, y, 3, 1)
-          love.graphics.rectangle("fill", x, y - 1, 1, 3)
-        else
-          love.graphics.rectangle("fill", x, y, 1, 1)
-        end
-      end
-    elseif pattern == "90S" then
-      -- Two layers of shapes going opposite ways: the big ones behind,
-      -- slowly, right to left; the small ones in front, quickly, left to
-      -- right. That crossing IS the pattern -- one sheet of confetti
-      -- sliding is a screensaver, two passing each other has depth.
-      local function shape(kind, x, y, size, tone, alpha)
-        shade(paper, tone, alpha)
-        if kind == 0 then
-          -- triangle
-          poly("fill", x, y + size, x + size, y - size,
-            x + size * 2, y + size)
-        elseif kind == 1 then
-          -- circle
-          disc(x + size, y, size)
-        elseif kind == 2 then
-          -- zigzag, the lightning bolt off every 1994 pencil case
-          for k = 0, 3 do
-            love.graphics.rectangle("fill", x + k * size, y - size + k * size,
-              size, size)
-            love.graphics.rectangle("fill", x + k * size, y + k * size, size, size)
-          end
-        elseif kind == 3 then
-          -- squiggle: three steps of a wave
-          for k = 0, 5 do
-            local dy = math.floor(math.sin(k * 1.1) * size)
-            love.graphics.rectangle("fill", x + k * size, y + dy, size, size)
-          end
-        else
-          -- cross / star
-          love.graphics.rectangle("fill", x, y - size, size * 3, size)
-          love.graphics.rectangle("fill", x + size, y - size * 2, size, size * 3)
-        end
-      end
-
-      -- a band of colour across the middle, because everything in 1994 had
-      -- one: it sits still while both layers cross it
-      shade(paper, 3, 0.35)
-      for x = 0, w, 8 do
-        local dy = math.floor(math.sin((x + 20) / 18) * 5)
-        love.graphics.rectangle("fill", x, h / 2 + dy - 8, 8, 16)
-      end
-
-      -- behind: BIG, slow, right to left
-      for i = 0, 11 do
-        local y = 14 + ((i * 41) % (h - 28))
-        local x = w - (((t * 0.22 + i * 47) % (w + 90)) - 45)
-        shape(i % 5, x, y, 6, 3, 0.75)
-      end
-      -- in front: smaller, quicker, left to right, in the loud colour
-      for i = 0, 17 do
-        local y = 8 + ((i * 31) % (h - 16))
-        local x = ((t * 0.55 + i * 37) % (w + 60)) - 30
-        shape((i + 2) % 5, x, y, 4, 2, 1)
-      end
-      -- and a few dots that stay put, so the eye has something still to
-      -- measure the movement against
-      shade(paper, 4, 0.35)
-      for i = 0, 23 do
-        local hx = (i * 2654435761) % 4294967296
-        love.graphics.rectangle("fill", math.floor(hx / 65536) % w,
-          math.floor(hx / 19) % h, 2, 2)
-      end
-
-    elseif pattern == "DESERT" then
-      -- Late afternoon rather than noon: the sun low and huge, the dunes
-      -- reading as bands of light and shade, and the air over the sand
-      -- moving. A desert at midday is a flat orange rectangle, which is a
-      -- colour and not a place.
-      local horizon = math.floor(h * 0.46)
-
-      -- the sun, sitting ON the horizon and cut by it
-      shade(paper, 2, 0.85)
-      disc(math.floor(w * 0.68), horizon - 6, 18)
-      -- three bars across it, the way a low sun reads through haze
-      for i = 0, 2 do
-        shade(paper, 1, 0.5)
-        love.graphics.rectangle("fill", math.floor(w * 0.68) - 20,
-          horizon - 14 + i * 6, 40, 2)
-      end
-
-      -- dunes: four ranks of smooth crest, each one lower, darker and
-      -- rougher than the one behind it, so the sand has distance in it
-      for rank = 0, 3 do
-        local base = horizon + 6 + rank * math.floor((h - horizon) / 5)
-        shade(paper, 2 + math.min(2, rank), 0.55 + rank * 0.15)
-        ridge(w, h, base, 4 + rank * 2, rank * 31 + 5, 2)
-        -- the lit crest: a pale line following the same profile, one
-        -- pixel up, which is what makes a dune a shape and not a blob
-        shade(paper, 1, 0.35 - rank * 0.07)
-        for x = 0, w, 2 do
-          local hx = ((x + rank * 31 + 5) * 2654435761) % 4294967296
-          local jitter = (math.floor(hx / 65536) % 5) - 2
-          local y = base
-            - math.floor((4 + rank * 2) * math.sin((x + (rank * 31 + 5) * 7) / 37))
-            - math.floor((4 + rank * 2) * 0.45 * math.sin((x + (rank * 31 + 5) * 13) / 11))
-            + jitter
-          love.graphics.rectangle("fill", x, y, 2, 1)
-        end
-      end
-
-      -- cacti, on the second rank so they have sand in front of them
-      for i = 0, 3 do
-        local hx = (i * 2246822519) % 4294967296
-        local x = (math.floor(hx / 65536) % (w - 20)) + 6
-        local y = horizon + 14 + (i % 2) * 8
-        local tall = 10 + i * 3
-        shade(paper, 4, 0.8)
-        love.graphics.rectangle("fill", x, y - tall, 3, tall)
-        love.graphics.rectangle("fill", x - 4, y - tall + 4, 4, 2)
-        love.graphics.rectangle("fill", x - 4, y - tall + 4, 2, 5)
-        love.graphics.rectangle("fill", x + 3, y - tall + 7, 4, 2)
-        love.graphics.rectangle("fill", x + 5, y - tall + 3, 2, 6)
-      end
-
-      -- the air over the sand: short pale lines that slide and fade, which
-      -- is the whole reason this scene is not still
-      for i = 0, 13 do
-        local y = horizon + 4 + ((i * 13) % (h - horizon - 8))
-        local phase = math.sin((t + i * 29) / 26)
-        local x = ((t * 0.3 + i * 41) % (w + 30)) - 15
-        shade(paper, 1, 0.18 + 0.12 * phase)
-        love.graphics.rectangle("fill", x, y, 10 + i % 7, 1)
-      end
-
-    elseif pattern == "VOLCANO" then
-      -- The palette runs dark-first like NIGHT, so shade 1 is the rock and
-      -- shade 4 is the fire. What makes it a volcano rather than a dark
-      -- cave is that the light comes from BELOW: the glow is on the
-      -- underside of everything.
-      local floor = math.floor(h * 0.72)
-
-      -- the sky, banded, lighter towards the crater
-      for i = 0, 5 do
-        shade(paper, 2, 0.25 + i * 0.09)
-        love.graphics.rectangle("fill", 0, floor - (i + 1) * 8, w, 8)
-      end
-
-      -- two ridges, the far one paler, both drawn as a profile rather
-      -- than as a row of triangles
       for rank = 0, 1 do
-        local base = floor - 18 + rank * 10
-        shade(paper, rank == 0 and 2 or 1, rank == 0 and 0.8 or 1)
-        ridge(w, h, base, 9 + rank * 5, rank * 47 + 11, 2)
-      end
-
-      -- the lava: orange, not cream. The pale tone is the LIGHT on it --
-      -- a bright line where it meets the rock and a shimmer that moves --
-      -- and using it for the whole pool made a beach.
-      shade(paper, 3, 1)
-      love.graphics.rectangle("fill", 0, floor, w, h - floor)
-      for i = 0, 5 do
-        local y = floor + 3 + i * 4
-        local x = ((t * (0.5 + i * 0.15) + i * 37) % (w + 60)) - 30
-        shade(paper, 4, 0.55 - i * 0.07)
-        love.graphics.rectangle("fill", x, y, 26 + i * 6, 2)
-      end
-      shade(paper, 4, 0.9)
-      love.graphics.rectangle("fill", 0, floor, w, 2)
-      for i = 0, 9 do
-        local hx = (i * 2246822519) % 4294967296
-        local x = ((t * 0.12 + math.floor(hx / 65536)) % (w + 40)) - 20
-        local y = floor + 4 + (math.floor(hx / 37) % math.max(1, h - floor - 6))
-        shade(paper, 1, 0.85)
-        love.graphics.rectangle("fill", x, y, 12 + i % 9, 3)
-      end
-
-      -- embers, rising and drifting, brightest near the lava
-      for i = 0, 21 do
-        local hx = (i * 2654435761) % 4294967296
-        local span = floor + 10
-        local rise = (t * (0.25 + (i % 4) * 0.08) + i * 23) % span
-        local y = floor + 6 - rise
-        local x = (math.floor(hx / 65536) % w)
-          + math.floor(math.sin((t + i * 31) / 22) * 6)
-        local life = 1 - (rise / span)
-        shade(paper, 4, 0.15 + 0.75 * life)
-        love.graphics.rectangle("fill", x % w, y, 1 + (i % 3 == 0 and 1 or 0),
-          1 + (i % 3 == 0 and 1 or 0))
-      end
-
-    elseif pattern == "SPACE" then
-      -- Dark-first palette again. Stars in three depths so the field has
-      -- some distance in it, one planet with a lit limb, and a nebula that
-      -- drifts across rather than sitting there being a gradient.
-      for depth = 1, 3 do
-        local count = 18 + depth * 12
-        for i = 0, count do
-          local hx = (i * 2654435761 + depth * 7919) % 4294967296
-          local x = (math.floor(hx / 65536) + math.floor(t * 0.04 * depth)) % w
-          local y = math.floor(hx / 11) % h
-          local tw = 0.35 + 0.45 * math.sin((t + i * 47) / (18 + depth * 9))
-          shade(paper, depth == 3 and 4 or 3, math.max(0.08, tw * depth / 3))
-          love.graphics.rectangle("fill", x, y, depth == 3 and 2 or 1,
-            depth == 3 and 2 or 1)
+        for x = 0, w, 2 do
+          local y = h - 18 + rank * 9 + math.sin(x / 21 + rank * 2) * 5
+          rect(rank == 0 and 3 or 4, rank == 0 and 0.65 or 0.8, x, y, 2, h - y)
         end
       end
-
-      -- the nebula: three soft bands crossing slowly, in the mid tones so
-      -- the stars stay on top of it
-      for i = 0, 2 do
-        local y = 16 + i * math.floor(h / 4)
-        local x = ((t * (0.06 + i * 0.03) + i * 53) % (w + 120)) - 60
-        shade(paper, 2, 0.5 - i * 0.1)
-        for k = 0, 5 do
-          local band = 10 + k * 3
-          love.graphics.rectangle("fill", x - band * 2, y + k * 3,
-            band * 6, 3)
+      for i = 0, math.ceil(w / 23) do
+        local x, base = i * 23 + 5, h - 8 - i % 3
+        for branch = -1, 1 do
+          local tall = 15 + hash(i + branch, 2) % 16
+          for dy = 0, tall, 3 do
+            local bend = wave(3, i * 0.17 + dy / 100) * dy / 12
+            rect(3, 0.85, x + branch * 3 + bend, base - dy, 2, 4)
+            if dy % 9 == 0 then rect(2, 0.7, x + branch * 3 + bend - 2, base - dy, 3, 1) end
+          end
+        end
+        if i % 2 == 0 then
+          ball(2, 1, x + 10, base, 5)
+          for arm = -2, 2 do
+            stroke(2, 0.95, x + 10, base, x + 10 + arm * 3, base - 10 + math.abs(arm) * 2, 2)
+          end
+          rect(1, 0.8, x + 8, base - 3, 3, 1)
         end
       end
-
-      -- a planet, low and to one side, with its lit edge towards the light
-      local px, py, pr = math.floor(w * 0.24), math.floor(h * 0.68), 22
-      shade(paper, 2, 1)
-      disc(px, py, pr)
-      shade(paper, 3, 0.9)
-      disc(px + 5, py - 4, pr - 5)
-      shade(paper, 1, 1)
-      disc(px + 12, py - 9, pr - 4)
-      -- a ring, flattened: two bars either side rather than an ellipse
-      shade(paper, 4, 0.55)
-      love.graphics.rectangle("fill", px - pr - 8, py + 3, pr + 4, 2)
-      love.graphics.rectangle("fill", px + 6, py + 3, pr + 4, 2)
-
-    elseif pattern == "SAKURA" then
-      -- A cherry tree from underneath, which is how anyone actually looks
-      -- at one: the branch across the top of the frame, the blossom
-      -- hanging off it, and the petals coming down the whole screen. The
-      -- ground is water, because a still surface doubles the tree for
-      -- free and gives the bottom of the screen something to do.
-      local waterY = math.floor(h * 0.74)
-
-      -- the water: a real step down in tone from the sky, or the two
-      -- halves of the screen read as one pink field with a line in it
-      shade(paper, 3, 0.75)
-      love.graphics.rectangle("fill", 0, waterY, w, h - waterY)
-      shade(paper, 4, 0.5)
-      love.graphics.rectangle("fill", 0, waterY, w, 2)
-      -- the tree, upside down, in the water
-      for i = 0, 9 do
-        local hx = (i * 2654435761) % 4294967296
-        local cx = math.floor(hx / 65536) % w
-        shade(paper, 2, 0.35)
-        disc(cx, waterY + 6 + (i % 3) * 4, 3 + (i % 2))
+      for i = 0, 10 do
+        local x = (phase * (w + 32) * (1 + i % 2) + i * 47) % (w + 32) - 16
+        local y = h * (0.26 + (i % 4) * 0.12) + wave(3, i / 7) * 2
+        local s = i % 4 == 0 and 2 or 1
+        rect(3, 0.85, x, y, 5 * s, 2 * s)
+        rect(3, 0.85, x + s, y - s, 3 * s, 4 * s)
+        stroke(3, 0.85, x, y + s, x - 2 * s, y - s, s)
+        stroke(3, 0.85, x, y + s, x - 2 * s, y + 3 * s, s)
+        rect(1, 0.9, x + 4 * s, y, 1, 1)
       end
-      -- ripples: short pale dashes that slide, so the water reads as wet
+      local jx, jy = w * 0.77 + wave(1) * 4, h * 0.40 + wave(2) * 7
+      for dy = -6, 0 do
+        local half = math.floor(math.sqrt(36 - dy * dy))
+        rect(1, 0.5, jx - half, jy + dy, half * 2, 1)
+      end
+      rect(1, 0.8, jx - 6, jy, 12, 1)
+      for k = -2, 2 do
+        for dy = 1, 10 do
+          rect(2, 0.75, jx + k * 2 + wave(4, k / 7 + dy / 25), jy + dy, 1, 1)
+        end
+      end
       for i = 0, 11 do
-        local y = waterY + 5 + (i * 5) % math.max(1, h - waterY - 6)
-        local x = ((t * 0.22 + i * 43) % (w + 40)) - 20
-        shade(paper, 1, 0.5 - (i % 4) * 0.08)
-        love.graphics.rectangle("fill", x, y, 12 + (i % 5) * 4, 1)
+        local y = h + 4 - (phase * (h + 12) * (2 + i % 2) + i * 29) % (h + 12)
+        rect(1, 0.65, hash(i, 1) % w + wave(2, i / 5) * 2, y, 1, 2)
       end
 
-      -- the branch: one thick limb across the top with a few boughs off it
-      shade(paper, 4, 0.9)
-      love.graphics.rectangle("fill", 0, 10, w, 5)
-      for i = 0, 4 do
-        local bx = 14 + i * math.floor(w / 5)
-        local drop = 8 + (i % 3) * 7
-        love.graphics.rectangle("fill", bx, 14, 3, drop)
-        love.graphics.rectangle("fill", bx - 6 + (i % 2) * 10, 14 + drop, 8, 2)
+    elseif pattern == "FOREST" then
+      local floorY = math.floor(h * 0.66)
+      rect(2, 0.25, 0, 0, w, h)
+      ball(1, 0.75, w * 0.66, h * 0.25, 23)
+      for i = 0, math.ceil(w / 14) do
+        local x = i * 14 + hash(i, 1) % 6
+        rect(3, 0.22, x, 12, 3, floorY)
+        pine(x + 2, floorY + 8, 8 + i % 3, 3, 0.2)
       end
-
-      -- blossom: clusters of small discs hanging off the branch, the
-      -- whole canopy swaying together rather than each clump on its own
-      local sway = math.sin(t / 70) * 3
-      for i = 0, 23 do
-        local hx = (i * 2654435761) % 4294967296
-        local cx = (math.floor(hx / 65536) % w)
-        local cy = 12 + math.floor(hx / 4096) % 34
-        local r = 3 + (i % 3)
-        -- an edge in the deep tone, the body in the mid one and a
-        -- highlight in the pale one: three tones is what stops a cluster
-        -- of blossom being a pink smudge on a pink sky
-        shade(paper, 3, 0.8)
-        disc(cx + math.floor(sway), cy, r + 1)
-        shade(paper, 2, 1)
-        disc(cx + math.floor(sway), cy, r)
-        shade(paper, 1, 0.95)
-        disc(cx + math.floor(sway) - 1, cy - 1, math.max(1, r - 2))
+      for x = 0, w, 2 do
+        local y = floorY + math.sin(x / 28) * 5
+        rect(3, 0.42, x, y, 2, h - y)
       end
-
-      -- petals, falling and drifting sideways, three sizes
-      for i = 0, 25 do
-        local hx = (i * 2246822519) % 4294967296
-        local speed = 0.18 + (i % 4) * 0.09
-        local y = ((t * speed + i * 19) % (h + 12)) - 6
-        local x = (math.floor(hx / 65536) % w)
-          + math.floor(math.sin((t + i * 27) / 30) * (5 + i % 6))
-        shade(paper, 2, 0.9)
-        love.graphics.rectangle("fill", x % w, y, 2, 1 + (i % 2))
-        if i % 5 == 0 then
-          shade(paper, 3, 0.6)
-          love.graphics.rectangle("fill", x % w, y + 1, 1, 1)
+      -- The winding stream gives the clearing a quiet centre.
+      for y = floorY, h do
+        local depth = (y - floorY) / math.max(1, h - floorY)
+        local cx = w * 0.55 + math.sin(depth * 4) * w * 0.12
+        local width = 3 + depth * depth * w * 0.42
+        rect(2, 0.95, cx - width / 2 - 2, y, width + 4, 1)
+        rect(1, 0.75, cx - width / 2, y, width, 1)
+        if y % 7 == 0 then rect(3, 0.35, cx - width / 3 + wave(2, y / 20) * 2, y, width / 2, 1) end
+      end
+      for side = 0, 1 do
+        local x = side == 0 and w * 0.08 or w * 0.92
+        rect(4, 0.9, x, 0, 7, h * 0.88)
+        rect(3, 0.8, x + 2, 10, 2, h * 0.72)
+        stroke(4, 0.9, x + 2, h * 0.35, x + (side == 0 and 22 or -24), h * 0.18, 3)
+        stroke(4, 0.9, x + 3, h * 0.83, x - 8, h * 0.91, 3)
+        for i = 0, 7 do
+          local cx = x - 27 + i * 8 + math.floor(wave(1, i / 15))
+          local cy = 5 + hash(i, side + 7) % 25
+          ball(3, 1, cx, cy, 12 + i % 4)
+          ball(2, 0.85, cx - 2, cy - 4, 9 + i % 3)
+          rect(1, 0.6, cx - 5, cy - 8, 5, 1)
         end
       end
-
-    elseif pattern == "AURORA" then
-      -- Dark-first palette: the sky is shade 1 and the light is shade 4.
-      -- The aurora is not a band of colour, it is CURTAINS -- vertical
-      -- ribs of different heights whose tops move independently -- and
-      -- that is the only thing that makes it read as an aurora rather
-      -- than as a gradient.
-      local snowY = math.floor(h * 0.80)
-
-      -- stars first, so the curtains hang in front of them
-      for i = 0, 39 do
-        local hx = (i * 2654435761) % 4294967296
-        local x = math.floor(hx / 65536) % w
-        local y = math.floor(hx / 13) % snowY
-        shade(paper, 4, 0.25 + 0.35 * math.sin((t + i * 51) / 160))
-        love.graphics.rectangle("fill", x, y, 1, 1)
+      for i = 0, math.ceil(w / 9) do
+        local x = i * 9 + hash(i, 4) % 4
+        local y = h - 6 - hash(i, 3) % 13
+        if x < w * 0.32 or x > w * 0.74 then
+          stroke(4, 0.6, x, y + 4, x - 2, y, 1)
+          stroke(4, 0.6, x, y + 4, x + 3, y - 2, 1)
+          if i % 3 == 0 then
+            rect(2, 1, x + 1, y - 1, 4, 2)
+            rect(1, 1, x + 2, y - 2, 2, 1)
+          end
+        end
+      end
+      for i = 0, 7 do
+        local x, y = hash(i, 6) % w + wave(1, i / 5) * 3, h * 0.35 + hash(i, 8) % math.max(1, h * 0.45)
+        ball(1, 0.08 + 0.08 * wave(3, i / 7), x, y, 3)
+        rect(1, 0.5 + 0.4 * wave(3, i / 7), x, y, 1, 1)
       end
 
-      -- three curtains, each drifting at its own speed. A QUARTER of what
-      -- they first ran at: an aurora that crosses the frame in a few
-      -- seconds is a screensaver, and the real thing is something you
-      -- notice has changed rather than something you watch move.
-      for band = 0, 2 do
-        local speed = 0.025 + band * 0.0125
-        local baseY = 26 + band * 16
-        for x = 0, w, 3 do
-          local phase = (x + t * speed * 10) / 26
-          local tall = 22 + band * 10
-            + math.floor(math.sin(phase) * 12)
-            + math.floor(math.sin(phase * 0.37 + band) * 7)
-          local top = baseY - math.floor(tall / 2)
-          -- the ribbon is brightest at its foot and fades upward, which
-          -- is the way the real thing goes
-          for k = 0, tall do
-            local y = top + k
-            if y > 0 and y < snowY then
-              local fade = k / tall
-              shade(paper, fade > 0.55 and 3 or 4,
-                (0.10 + 0.55 * fade) * (0.7 + 0.3 * math.sin(phase * 2)))
-              love.graphics.rectangle("fill", x, y, 3, 1)
+    elseif pattern == "SKY" then
+      haze(3, h, 0.38, 0.02)
+      ball(1, 0.25, w * 0.73, h * 0.23, 23)
+      ball(1, 1, w * 0.73, h * 0.23, 13)
+      for rank = 0, 2 do
+        local span, size = w + 110, 3 + rank * 2
+        for i = 0, math.ceil(w / 90) + 1 do
+          local x = (i * span / (math.ceil(w / 90) + 2) + phase * span * (rank + 1)) % span - 80
+          local y = h * (0.48 + rank * 0.2) + i % 2 * 8
+          cloud(x, y + 3, size, 3, 0.22 + rank * 0.09)
+          cloud(x - 2, y, size, 1, 0.95)
+          rect(2, 0.55, x + size * 2, y + size, size * 6, 2)
+          rect(2, 0.35, x + size * 4, y + size * 2 - 1, size * 5, 1)
+        end
+      end
+      for i = 0, 4 do
+        local x = (phase * (w + 20) + i * 19) % (w + 20) - 10
+        local y = h * 0.36 + (i % 3) * 4
+        local wing = wave(12, i / 5) > 0 and -2 or 1
+        stroke(4, 0.6, x - 2, y + wing, x, y, 1)
+        stroke(4, 0.6, x, y, x + 2, y + wing, 1)
+      end
+
+    elseif pattern == "CAVE" then
+      rect(4, 0.88, 0, 0, w, h)
+      local lake = math.floor(h * 0.74)
+      -- Receding vaults frame the pale opening and its reflection.
+      for rank = 0, 2 do
+        local cx, top = w * 0.59, 16 + rank * 9
+        local radius = math.max(8, w * (0.43 - rank * 0.10))
+        for x = math.max(0, cx - radius), math.min(w, cx + radius), 2 do
+          local dx = (x - cx) / radius
+          local y = top + (1 - math.sqrt(math.max(0, 1 - dx * dx))) * h * 0.48
+            + math.floor(math.sin(x / 7 + rank) * 2)
+          rect(rank == 0 and 3 or 2, 0.38 + rank * 0.13, x, y, 2, lake - y + 8)
+          rect(2, 0.28, x, y, 2, 2)
+        end
+      end
+      for i = 0, 19 do
+        local x = hash(i, 6) % w
+        local y = 20 + hash(i, 8) % math.max(1, lake - 25)
+        if x < w * 0.45 or x > w * 0.72 then
+          rect(3, 0.18, x, y, 6 + i % 7, 1)
+          rect(1, 0.07, x + 2, y - 1, 4 + i % 5, 1)
+        end
+      end
+      local fallsX, fallsTop = math.floor(w * 0.60), math.floor(h * 0.28)
+      rect(1, 0.13, fallsX - 6, fallsTop, 13, lake - fallsTop)
+      rect(1, 0.3, fallsX - 2, fallsTop, 5, lake - fallsTop)
+      for i = 0, 8 do
+        local y = fallsTop + (phase * 8 + i / 9) % 1 * math.max(1, lake - fallsTop - 4)
+        rect(1, 0.35, fallsX - 3 + i % 3 * 3, y, 1, 4)
+      end
+      rect(3, 0.9, 0, lake, w, h - lake)
+      for i = 0, 3 do
+        local age = (phase * 4 + i / 4) % 1
+        rect(1, (1 - age) * 0.2, fallsX - age * 16, lake + age * 5, age * 32 + 2, 1)
+      end
+      for y = lake + 2, h, 3 do
+        local width = (h - y) / math.max(1, h - lake) * w * 0.43
+        rect(1, 0.25, w * 0.59 - width / 2 + wave(3, y / 19) * 3, y, width, 1)
+      end
+      for side = 0, 1 do
+        local x = side == 0 and 0 or w - 18
+        rect(4, 0.82, x, 0, 18, h)
+        for i = 0, 8 do
+          local y, width = i * h / 9, 14 + hash(i, side) % 12
+          rect(3, 0.3, side == 0 and 0 or w - width, y, width, 3)
+        end
+      end
+      for i = 0, math.ceil(w / 23) do
+        local x, len = i * 23 + 3, 10 + hash(i, 2) % 20
+        for dy = 0, len do rect(4, 0.9, x - (len - dy) / 5, dy, (len - dy) * 0.4 + 1, 1) end
+      end
+      for cluster = 0, 2 do
+        local x = (cluster == 1 and w * 0.85 or w * (0.12 + cluster * 0.15))
+        local base = h - 5 - cluster % 2 * 8
+        ball(1, 0.04 + 0.03 * wave(2, cluster / 3), x, base - 9, 19)
+        for k = -1, 1 do
+          local tall, cx = 11 + (k + cluster * 2) % 3 * 6, x + k * 6
+          shade(paper, 2, 0.95)
+          poly("fill", cx - 3, base, cx - 3, base - tall + 5, cx, base - tall, cx + 3, base - tall + 5, cx + 3, base)
+          stroke(1, 0.6 + wave(2, cluster / 3) * 0.2, cx, base - tall + 2, cx, base - 1, 1)
+          stroke(3, 0.7, cx + 2, base - tall + 5, cx + 2, base, 1)
+        end
+      end
+      for i = 0, 2 do
+        local x, age = w * (0.3 + i * 0.19), (phase * 8 + i / 3) % 1
+        if age < 0.8 then
+          rect(1, 0.5, x, 24 + age / 0.8 * math.max(1, lake - 26), 1, 3)
+        else
+          local r = (age - 0.8) * 30
+          rect(1, 0.5 * (1 - (age - 0.8) * 5), x - r, lake + 2, r * 2 + 1, 1)
+        end
+      end
+      ripples(lake + 3, h, 1, 0.2, 12)
+
+    elseif pattern == "CITY" then
+      local bank = math.floor(h * 0.75)
+      rect(4, 1, 0, 0, w, h)
+      haze(3, bank, 0.12, 0.85)
+      ball(1, 0.95, w * 0.77, h * 0.18, 10)
+      ball(2, 0.6, w * 0.79, h * 0.16, 3)
+      stars(math.floor(w / 7), bank * 0.55, 1)
+      -- Each building owns a slot wider than its facade; no per-building wrapping.
+      for rank = 0, 1 do
+        local pitch = rank == 0 and 30 or 40
+        local base = bank - (rank == 0 and 6 or 0)
+        for i = -1, math.ceil(w / pitch) do
+          local x = i * pitch + (rank == 0 and 13 or 2)
+          local bw = pitch - 10 - hash(i, rank + 1) % 5
+          local bh = (rank == 0 and 25 or 19) + hash(i, rank + 5) % (rank == 0 and 32 or 33)
+          local tone = rank == 0 and 3 or 4
+          rect(tone, rank == 0 and 0.5 or 0.86, x, base - bh, bw, bh)
+          rect(2, rank == 0 and 0.35 or 0.65, x + 1, base - bh + 1, 2, bh - 1)
+          rect(tone, 0.75, x + 4, base - bh - 3, bw - 8, 3)
+          if i % 3 == 0 then stroke(tone, 0.8, x + bw / 2, base - bh - 10, x + bw / 2, base - bh - 3, 1) end
+          for row = 0, math.floor((bh - 9) / 8) do
+            for col = 0, math.floor((bw - 7) / 6) do
+              local on = hash(i * 17 + row * 3 + col, rank + 3) % 5 > 0
+              local alpha = on and (0.45 + 0.18 * wave(1, i * 0.13 + row / 7)) or 0.12
+              rect(1, alpha, x + 4 + col * 6, base - bh + 6 + row * 8, 2, 3)
             end
           end
         end
       end
-
-      -- the snow field under it, and the light lying on it
-      shade(paper, 2, 1)
-      love.graphics.rectangle("fill", 0, snowY, w, h - snowY)
-      shade(paper, 3, 0.35)
-      love.graphics.rectangle("fill", 0, snowY, w, 2)
-      for i = 0, 7 do
-        local x = ((t * 0.1 + i * 37) % (w + 30)) - 15
-        shade(paper, 3, 0.18)
-        love.graphics.rectangle("fill", x, snowY + 3 + (i % 3) * 4, 24, 1)
+      rect(4, 1, 0, bank, w, 7)
+      rect(2, 0.8, 0, bank, w, 1)
+      for i = 0, math.ceil(w / 49) do
+        local x = 14 + i * 49
+        rect(4, 1, x, bank - 12, 1, 12)
+        rect(4, 1, x - 2, bank - 12, 5, 1)
+        ball(1, 0.12, x, bank - 10, 5)
+        rect(1, 0.95, x - 1, bank - 11, 3, 2)
       end
+      rect(3, 0.75, 0, bank + 7, w, h - bank - 7)
+      for i = 0, math.ceil(w / 20) do
+        for row = 0, 5 do
+          local length = 3 + hash(i + row, 3) % 10
+          rect(1, 0.32 - row * 0.035, i * 20 + wave(3, row / 8) * 3, bank + 10 + row * 4, length, 1)
+        end
+      end
+      ripples(bank + 8, h, 2, 0.45, 14)
+
+    elseif pattern == "SNOW" then
+      local horizon = math.floor(h * 0.59)
+      rect(2, 0.65, 0, 0, w, h)
+      ball(1, 0.8, w * 0.72, h * 0.22, 12)
+      for rank = 0, 1 do
+        for x = 0, w, 2 do
+          local y = horizon - 13 + rank * 14 + math.sin(x / 34 + rank * 2) * 8
+          rect(rank == 0 and 3 or 1, rank == 0 and 0.32 or 0.95, x, y, 2, h - y)
+        end
+      end
+      for i = 0, math.ceil(w / 17) do
+        pine(i * 17 + 4, horizon + 5 + i % 3 * 3, 3 + i % 2, 3, 0.5)
+        pine(i * 17 + 3, horizon + 2 + i % 3 * 3, 2 + i % 2, 1, 0.9)
+      end
+      -- Finite walls and generous slots leave snow between every cottage.
+      for rank = 0, 1 do
+        local pitch = rank == 0 and 58 or 82
+        local bw = rank == 0 and 22 or 32
+        local bh = rank == 0 and 14 or 21
+        local base = math.floor(h * (rank == 0 and 0.70 or 0.88))
+        for i = -1, math.ceil(w / pitch) do
+          local x = i * pitch + (rank == 0 and 9 or 37)
+          local eave, peak = base - bh, base - bh - math.floor(bw * 0.42)
+          rect(3, 0.22, x - 4, base + 1, bw + 13, 3)
+          rect(3, 0.92, x, eave, bw, bh)
+          rect(4, 0.55, x + bw - 6, eave, 6, bh)
+          shade(paper, 4, 0.9)
+          poly("fill", x - 3, eave, x + bw / 2, peak, x + bw + 3, eave)
+          stroke(1, 1, x - 3, eave - 1, x + bw / 2, peak - 2, 3)
+          stroke(1, 1, x + bw / 2, peak - 2, x + bw + 2, eave - 1, 3)
+          rect(1, 1, x - 2, eave, bw + 4, 2)
+          rect(4, 0.8, x + bw - 9, peak + 2, 4, 7)
+          rect(1, 1, x + bw - 10, peak + 1, 6, 2)
+          for col = 0, 1 do
+            local wx = x + 4 + col * (bw - 11)
+            rect(4, 0.8, wx - 1, eave + 5, 5, 6)
+            rect(1, 0.82 + 0.12 * wave(2, i / 7), wx, eave + 6, 3, 4)
+          end
+          rect(4, 0.8, x + bw / 2 - 2, base - 8, 4, 8)
+          rect(1, 1, x - 2, base - 1, bw + 4, 2)
+          for k = 0, 3 do
+            local age = (phase * 8 + k / 4 + i * 0.13) % 1
+            ball(1, (1 - age) * 0.38, x + bw - 7 + age * 9, peak - age * 19, 1 + age * 3)
+          end
+        end
+      end
+      for i = 0, math.ceil(w / 67) do
+        pine(i * 67 + 8, h - 2, 5, 4, 0.7)
+        pine(i * 67 + 7, h - 5, 4, 1, 0.94)
+      end
+      for depth = 1, 2 do
+        for i = 0, math.floor(w * h / 850) do
+          local y = (phase * (h + 10) * (depth + 2) + hash(i, depth)) % (h + 10) - 5
+          local x = (hash(i, depth + 5) + wave(2, i / 7) * 4) % w
+          rect(1, depth == 1 and 0.45 or 0.9, x, y, depth, depth)
+        end
+      end
+
+    elseif pattern == "NIGHT" then
+      local water = math.floor(h * 0.69)
+      haze(2, water, 0, 0.3)
+      stars(math.floor(w * water / 230), water - 12, 4)
+      local mx, my = w * 0.28, h * 0.22
+      ball(4, 0.045, mx, my, 23)
+      ball(4, 0.06, mx, my, 18)
+      ball(4, 0.95, mx, my, 11)
+      ball(2, 0.25, mx - 3, my + 3, 3)
+      ball(2, 0.2, mx + 4, my - 4, 2)
+      for rank = 0, 1 do
+        for x = 0, w, 2 do
+          local y = water - 9 + rank * 9 - math.abs(math.sin(x / 38 + rank * 1.8)) * (19 - rank * 4)
+          rect(rank == 0 and 2 or 1, 1, x, y, 2, water - y)
+        end
+      end
+      rect(2, 0.5, 0, water, w, h - water)
+      for y = water + 3, h - 5, 3 do
+        local depth = (y - water) / math.max(1, h - water)
+        local width = 4 + depth * 24
+        rect(4, 0.35 * (1 - depth * 0.6), mx - width / 2 + wave(3, y / 17) * 3, y, width, 1)
+      end
+      ripples(water + 2, h, 3, 0.28, 20)
+      for i = 0, math.ceil(w / 19) do
+        if i % 7 < 2 or i * 19 > w * 0.83 then pine(i * 19, h - 2, 5 + i % 3, 1, 1) end
+      end
+      local shooting = (phase * 2 + 0.18) % 1
+      if shooting < 0.075 then
+        local x, y = w * 0.60 + shooting * 230, h * 0.10 + shooting * 120
+        stroke(4, 0.45, x - 7, y - 4, x, y, 1)
+        rect(4, 0.9, x, y, 1, 1)
+      end
+
+    elseif pattern == "90S" or pattern == "90S_PRISM" then
+      -- Keep the public four-colour ramp; print accents belong only to these scenes.
+      local c = paper.palette
+      local mono = true
+      for i = 1, 4 do
+        if math.max(c[i][1], c[i][2], c[i][3]) - math.min(c[i][1], c[i][2], c[i][3]) > 4 then mono = false end
+      end
+      paper = { palette = { c[1], c[2], c[3], c[4],
+        mono and { 244, 244, 244 } or { 255, 248, 224 },
+        mono and { 186, 186, 186 } or { 255, 216, 87 },
+        mono and { 26, 26, 26 } or { 25, 21, 38 } } }
+      local function polygon(tone, alpha, ...)
+        local points = { ... }
+        for i = 1, #points do points[i] = math.floor(points[i]) end
+        shade(paper, tone, alpha)
+        poly("fill", unpack(points))
+      end
+      local function point(x, y, angle, u, v)
+        return math.floor(x + math.cos(angle) * u - math.sin(angle) * v),
+          math.floor(y + math.sin(angle) * u + math.cos(angle) * v)
+      end
+      local function arc(x, y, radius, angle, sweep, tone, width)
+        local reach = radius + width + 1
+        if x + reach < 0 or x - reach > w or y + reach < 0 or y - reach > h then return end
+        local count = math.ceil(radius * math.abs(sweep))
+        for i = 0, count - 1 do
+          local a, b = angle + sweep * i / count, angle + sweep * (i + 1) / count
+          stroke(tone, 1, x + math.cos(a) * radius, y + math.sin(a) * radius,
+            x + math.cos(b) * radius, y + math.sin(b) * radius, width)
+        end
+      end
+      local function triangle(x, y, size, angle, tone, texture)
+        local ax, ay = point(x, y, angle, -size * 0.55, -size * 0.45)
+        local bx, by = point(x, y, angle, size * 0.65, -size * 0.15)
+        local cx, cy = point(x, y, angle, -size * 0.15, size * 0.65)
+        -- Include the offset shadow, outline and small printed curls in the bounds.
+        if math.max(ax, bx, cx) < -6 or math.min(ax, bx, cx) > w + 6
+          or math.max(ay, by, cy) < -6 or math.min(ay, by, cy) > h + 6 then return end
+        polygon(7, 1, ax + 3, ay + 4, bx + 3, by + 4, cx + 3, cy + 4)
+        polygon(tone, 1, ax, ay, bx, by, cx, cy)
+        stroke(7, 1, ax, ay, bx, by, 1)
+        stroke(7, 1, bx, by, cx, cy, 1)
+        stroke(7, 1, cx, cy, ax, ay, 1)
+        if texture then
+          for u = 0.15, 0.8, 0.2 do
+            for v = 0.15, 0.8 - u, 0.2 do
+              local px, py = ax + (bx - ax) * u + (cx - ax) * v,
+                ay + (by - ay) * u + (cy - ay) * v
+              arc(px, py, 2, (u + v) * 14, math.pi, 7, 1)
+            end
+          end
+        end
+      end
+      local function bar(x, y, length, angle, tone, stripes)
+        local ax, ay = point(x, y, angle, -length / 2, -3)
+        local bx, by = point(x, y, angle, length / 2, -3)
+        local cx, cy = point(x, y, angle, length / 2, 3)
+        local dx, dy = point(x, y, angle, -length / 2, 3)
+        if math.max(ax, bx, cx, dx) < -6 or math.min(ax, bx, cx, dx) > w + 6
+          or math.max(ay, by, cy, dy) < -6 or math.min(ay, by, cy, dy) > h + 6 then return end
+        polygon(7, 1, ax + 3, ay + 3, bx + 3, by + 3, cx + 3, cy + 3, dx + 3, dy + 3)
+        polygon(tone, 1, ax, ay, bx, by, cx, cy, dx, dy)
+        stroke(7, 1, ax, ay, bx, by, 1)
+        stroke(7, 1, dx, dy, cx, cy, 1)
+        if stripes then
+          for u = -length / 2 + 3, length / 2 - 3, 5 do
+            local sx, sy = point(x, y, angle, u, -2)
+            local ex, ey = point(x, y, angle, u - 2, 2)
+            stroke(7, 1, sx, sy, ex, ey, 2)
+          end
+        end
+      end
+      local function zigzag(x, y, tone, size)
+        if x + size * 5 + 5 < 0 or x > w or y + size + 5 < 0 or y > h then return end
+        for i = 0, 4 do
+          stroke(7, 1, x + i * size + 2, y + i % 2 * size + 2,
+            x + (i + 1) * size + 2, y + (i + 1) % 2 * size + 2, 3)
+        end
+        for i = 0, 4 do
+          stroke(tone, 1, x + i * size, y + i % 2 * size,
+            x + (i + 1) * size, y + (i + 1) % 2 * size, 2)
+        end
+      end
+      -- An asymmetric print repeat, not a lattice of identical icon cells.
+      for row = -1, math.ceil(h / 160) do
+        for col = -1, math.ceil(w / 176) do
+          local ox, oy = col * 176 + row % 2 * 88, row * 160
+          local bob = math.floor(wave(1, col * 0.13 + row * 0.19) * 2)
+          local drift = math.floor(wave(2, col * 0.21 + row * 0.11) * 2)
+          if pattern == "90S" then
+            triangle(ox + 24 + bob, oy + 28, 39, -0.25, 5, true)
+            triangle(ox + 141, oy + 5 + drift, 28, 0.68, 3, false)
+            triangle(ox + 47, oy + 127 + bob, 28, -1.1, 3, false)
+            arc(ox + 87, oy + 18, 14, -0.3 + wave(1) * 0.08, math.pi * 1.35, 7, 5)
+            arc(ox + 87, oy + 18, 14, -0.3 + wave(1) * 0.08, math.pi * 1.35, 6, 3)
+            arc(ox + 8, oy + 91, 13, 0.4, math.pi * 1.1, 7, 5)
+            arc(ox + 8, oy + 91, 13, 0.4, math.pi * 1.1, 6, 3)
+            bar(ox + 86 + drift, oy + 79, 30, -0.65, 2, false)
+            bar(ox + 152, oy + 66 + bob, 32, 0.93, 5, true)
+            triangle(ox + 120 + bob, oy + 129, 36, 1.48, 5, true)
+            zigzag(ox + 111, oy + 43 + drift, 2, 4)
+            for i = 0, 13 do
+              local x = ox + 23 + i * 2
+              local y = oy + 67 + math.floor(math.sin(i * 0.72) * 3)
+              rect(7, 1, x, y, 2, 2)
+            end
+            arc(ox + 156, oy + 124, 9, -1.3, math.pi * 1.2, 7, 2)
+            ball(7, 1, ox + 60, oy + 43, 2)
+            ball(7, 1, ox + 107, oy + 98, 2)
+            ball(7, 1, ox + 24, oy + 148, 2)
+            rect(6, 1, ox + 69, oy + 105, 2, 4)
+          else
+            -- PRISM trades scattered motifs for angular folds and overlapping rings.
+            polygon(3, 0.18, ox - 10, oy + 14, ox + 63, oy - 14,
+              ox + 75, oy + 10, ox + 2, oy + 38)
+            polygon(2, 0.16, ox + 95, oy + 149, ox + 178, oy + 108,
+              ox + 188, oy + 127, ox + 105, oy + 168)
+            triangle(ox + 21, oy + 18 + bob, 48, 2.5, 3, false)
+            triangle(ox + 25, oy + 28 + bob, 27, 2.5, 2, false)
+            arc(ox + 128 + drift, oy + 26, 22, 0, tau, 7, 6)
+            arc(ox + 128 + drift, oy + 26, 22, 0, tau, 6, 4)
+            bar(ox + 130, oy + 42 + bob, 44, -0.55, 5, true)
+            triangle(ox + 77 + bob, oy + 114, 49, -0.77, 2, false)
+            triangle(ox + 72 + bob, oy + 102, 30, -0.77, 3, false)
+            bar(ox + 24, oy + 89 + drift, 31, -1.08, 5, true)
+            zigzag(ox + 119, oy + 102 + drift, 6, 5)
+            arc(ox + 169, oy + 80, 16, 1.4, math.pi * 1.4, 7, 5)
+            arc(ox + 169, oy + 80, 16, 1.4, math.pi * 1.4, 3, 3)
+            for i = 0, 2 do
+              stroke(5, 1, ox + 69 + i * 4, oy + 24, ox + 63 + i * 4, oy + 36, 1)
+            end
+            ball(5, 1, ox + 104, oy + 69, 2)
+            ball(7, 1, ox + 47, oy + 66, 2)
+            rect(2, 1, ox + 144, oy + 143, 3, 4)
+            rect(6, 1, ox + 13, oy + 143, 4, 2)
+          end
+        end
+      end
+
+    elseif pattern == "DESERT" then
+      local horizon = math.floor(h * 0.46)
+      haze(2, horizon, 0.1, 0.3)
+      ball(2, 0.3, w * 0.72, horizon - 15, 24)
+      ball(1, 1, w * 0.72, horizon - 15, 16)
+      for rank = 0, 3 do
+        local base = horizon + rank * (h - horizon) / 4
+        for x = 0, w, 2 do
+          local y = base + math.sin(x / (43 - rank * 5) + rank * 2) * (7 + rank * 3)
+          rect(rank < 2 and 2 or 3, 0.7 + rank * 0.08, x, y, 2, h - y)
+          rect(1, 0.6 - rank * 0.09, x, y, 2, 1)
+          if rank > 1 and x % 8 == 0 then rect(4, 0.14, x, y + 6, 5, 1) end
+        end
+      end
+      for i = 0, math.ceil(w / 78) do
+        local x, y = i * 78 + 17, h * 0.76 + (i % 2) * 8
+        rect(4, 0.9, x, y - 21, 4, 21)
+        rect(3, 0.95, x + 1, y - 20, 1, 19)
+        stroke(4, 0.9, x - 5, y - 16, x - 5, y - 9, 3)
+        stroke(4, 0.9, x - 5, y - 9, x, y - 9, 3)
+        stroke(4, 0.9, x + 8, y - 19, x + 8, y - 12, 3)
+        stroke(4, 0.9, x + 3, y - 12, x + 8, y - 12, 3)
+        rect(4, 0.25, x - 1, y, 18, 2)
+      end
+      for i = 0, 22 do
+        local x = (hash(i, 2) + phase * (w + 30) * 2) % (w + 30) - 15
+        local y = horizon + hash(i, 3) % math.max(1, h - horizon)
+        rect(1, 0.18 + 0.12 * wave(2, i / 7), x, y, 3 + i % 6, 1)
+      end
+      for i = 0, math.ceil(w / 37) do
+        local x, y = i * 37 + 9, h - 6 - i % 3 * 5
+        rect(4, 0.4, x, y, 5, 2)
+        rect(2, 1, x, y - 1, 3, 1)
+      end
+
+    elseif pattern == "VOLCANO" then
+      local floorY = math.floor(h * 0.78)
+      haze(2, floorY, 0.06, 0.64)
+      local vx, crater = w * 0.62, h * 0.36
+      for i = 0, 6 do
+        local age = (phase * 2 + i / 7) % 1
+        local x, y = vx + age * 20 + wave(1, i / 9) * 2, crater - age * h * 0.4
+        ball(2, (1 - age) * 0.32, x, y, 6 + age * 12)
+      end
+      for x = 0, w, 2 do
+        local distance = math.abs(x - vx)
+        local y = crater + math.max(0, distance - 9) * 0.62 + math.sin(x / 8) * 2
+        rect(1, 1, x, y, 2, floorY - y + 10)
+        if distance < 11 then rect(3, 0.95, x, y, 2, 3) end
+      end
+      -- A branching lava flow joins the crater to the foreground pool.
+      for y = math.floor(crater) + 3, floorY do
+        local depth = (y - crater) / math.max(1, floorY - crater)
+        local x = vx - depth * 21 + math.sin(depth * 9) * 4
+        rect(2, 1, x - 3, y, 8 + depth * 7, 1)
+        rect(3, 0.95, x - 1, y, 4 + depth * 4, 1)
+        rect(4, 0.5 + 0.2 * wave(3, depth), x, y, 1 + depth * 2, 1)
+      end
+      rect(3, 1, 0, floorY, w, h - floorY)
+      ripples(floorY, h, 4, 0.65, 30)
+      for x = 0, w, 2 do
+        local y = h - 6 - (math.sin(x / 17) + 1) * 4
+        rect(1, 1, x, y, 2, h - y)
+        rect(2, 1, x, y, 2, 2)
+      end
+      for i = 0, 24 do
+        local age = (phase * (2 + i % 3) + i * 0.173) % 1
+        local x = (hash(i, 5) + age * 15) % w
+        local y = floorY - age * (floorY + 5)
+        rect(4, (1 - age) * 0.85, x, y, 1, i % 4 == 0 and 2 or 1)
+      end
+
+    elseif pattern == "SPACE" then
+      -- A broad, dim nebula and a shaded ringed planet; the centre stays quiet.
+      for x = 0, w, 3 do
+        local cy = h * 0.42 + math.sin(x / 43) * 13
+        for band = -3, 3 do
+          rect(2, 0.06 + (3 - math.abs(band)) * 0.07, x, cy + band * 7, 3, 8)
+        end
+      end
+      stars(math.floor(w * h / 230), h, 4)
+      local px, py, radius = w * 0.68, h * 0.56, math.max(9, math.min(25, h * 0.2))
+      local function ring(front)
+        for x = -radius * 1.8, radius * 1.8 do
+          local u = x / (radius * 1.8)
+          local y = -x * 0.25 + (front and 1 or -1) * math.sqrt(math.max(0, 1 - u * u)) * radius * 0.32
+          rect(3, 0.8, px + x, py + y, 1, 2)
+          rect(4, 0.6, px + x, py + y - 1, 1, 1)
+        end
+      end
+      ring(false)
+      ball(3, 1, px, py, radius)
+      for dy = -radius, radius do
+        local half = math.floor(math.sqrt(math.max(0, radius * radius - dy * dy)))
+        if half > 0 then
+          local band = math.sin(dy / 4 + wave(1) * 0.15)
+          rect(4, 0.12 + (band + 1) * 0.10, px - half, py + dy, half * 2, 1)
+          local shadow = half * (0.50 + dy / radius * 0.2)
+          rect(2, 0.8, px + half - shadow, py + dy, shadow, 1)
+          rect(1, 0.55, px + half - shadow / 2, py + dy, shadow / 2, 1)
+        end
+      end
+      ring(true)
+      ball(2, 1, w * 0.18, h * 0.22, 7)
+      ball(3, 0.8, w * 0.18 - 2, h * 0.22 - 2, 4)
+      local comet = (phase + 0.2) % 1
+      if comet < 0.15 then
+        local x, y = w * 0.1 + comet * w * 4, h * 0.08 + comet * h
+        for k = 0, 9 do rect(4, (1 - k / 10) * 0.65, x - k * 2, y - k, 2, 1) end
+      end
+
+    elseif pattern == "SAKURA" then
+      local water = math.floor(h * 0.65)
+      rect(2, 0.25, 0, 0, w, water)
+      ball(1, 0.9, w * 0.69, h * 0.30, 16)
+      for x = 0, w, 2 do
+        local y = water - 7 - math.sin(x / 32) * 5
+        rect(3, 0.28, x, y, 2, water - y)
+      end
+      rect(3, 0.5, 0, water, w, h - water)
+      for y = water + 3, h, 4 do
+        local width = 15 + (y - water) * 0.3
+        rect(1, 0.45, w * 0.69 - width / 2 + wave(3, y / 22) * 3, y, width, 1)
+      end
+      ripples(water + 2, h, 1, 0.35, 22)
+      -- A sloping trunk and branching canopy replace the straight ceiling bar.
+      stroke(4, 0.95, 0, h * 0.8, w * 0.11, h * 0.3, 8)
+      stroke(4, 0.95, w * 0.11, h * 0.3, w * 0.43, 12, 5)
+      stroke(4, 0.9, w * 0.19, h * 0.24, w * 0.10, 4, 3)
+      stroke(4, 0.9, w * 0.30, h * 0.17, w * 0.59, 24, 3)
+      stroke(3, 0.8, 3, h * 0.75, w * 0.12, h * 0.32, 2)
+      for i = 0, math.ceil(w / 4) do
+        local x = hash(i, 2) % math.max(1, w * 0.66)
+        local branch = i % 2 == 0 and (h * 0.27 - x * 0.28) or (9 + x * 0.1)
+        local y = branch + hash(i, 3) % 17 - 8
+        local sway = math.floor(wave(1, x / 600) * 1.5)
+        local radius = 6 + i % 3
+        ball(3, 0.9, x + sway, y + 2, radius)
+        ball(2, 1, x + sway - 1, y - 1, radius)
+        for petal = 0, 4 do
+          local px, py = x - 5 + petal * 2 + sway, y - 3 + (petal * 3) % 7
+          rect(1, 0.9, px - 1, py, 3, 1)
+          rect(1, 0.9, px, py - 1, 1, 3)
+          rect(3, 0.35, px, py, 1, 1)
+        end
+      end
+      for x = 0, w, 2 do
+        local y = h - 7 + math.sin(x / 24) * 3
+        rect(4, 0.65, x, y, 2, h - y)
+        rect(2, 0.8, x, y, 2, 2)
+      end
+      for i = 0, 19 do
+        local age = (phase * (2 + i % 2) + i * 0.173) % 1
+        local y = age * (h + 12) - 6
+        local x = (hash(i, 7) + age * 28 + wave(3, i / 7) * 4) % w
+        rect(2, 0.95, x, y, 2, 1 + i % 2)
+        rect(1, 0.65, x, y, 1, 1)
+      end
+
+    elseif pattern == "AURORA" then
+      local snow = math.floor(h * 0.8)
+      stars(math.floor(w * snow / 270), snow, 4)
+      for band = 0, 2 do
+        for x = 0, w, 2 do
+          local bend = math.sin(x / 39 + phase * tau + band * 1.5)
+          local bottom = h * (0.25 + band * 0.11) + bend * 13
+          local height = 17 + 9 * math.sin(x / 23 + phase * tau * 2 + band)^2
+          for dy = 0, height, 2 do
+            local fade = (1 - dy / height)^2
+            rect(3 + (band % 2), fade * (0.22 + 0.12 * math.sin(x / 9 + band)^2), x, bottom - dy, 2, 2)
+          end
+          rect(3, 0.3, x, bottom, 2, 1)
+        end
+      end
+      for rank = 0, 1 do
+        for x = 0, w, 2 do
+          local peak = math.abs(math.sin(x / 39 + rank * 2)) * (13 + rank * 6)
+          local y = snow + rank * 10 - peak
+          rect(rank == 0 and 2 or 1, 1, x, y, 2, h - y)
+          if rank == 0 and peak > 10 then rect(4, 0.55, x, y, 2, 2) end
+        end
+      end
+      for x = 0, w, 2 do
+        local y = h - 10 + math.sin(x / 40) * 4
+        rect(2, 1, x, y, 2, h - y)
+        rect(3, 0.25, x, y, 2, 1)
+      end
+      for i = 0, math.ceil(w / 31) do pine(i * 31 + 6, h, 4 + i % 2, 1, 1) end
 
     elseif pattern == "STORM" then
-      -- Everything in here runs at a QUARTER of what it first shipped at.
-      -- Rain drawn at a plausible speed on a 160-pixel screen is not rain,
-      -- it is static: the drops cross the frame before the eye resolves
-      -- them. Slowed down you watch individual drops fall, which is what
-      -- weather looks like through a window.
-      local st = t / 4
-      -- Rain has to be rain and not hatching: three depths, each at its
-      -- own angle and speed, with the near drops longer. The lightning is
-      -- rare and short -- a flash you catch out of the corner of the eye
-      -- rather than a strobe -- because a box screen is somewhere you sit
-      -- for a while.
-      local groundY = math.floor(h * 0.86)
-
-      -- cloud bank across the top, two ranks, drifting
+      local water = math.floor(h * 0.75)
+      rect(3, 0.52, 0, 0, w, h)
       for rank = 0, 1 do
-        local y = 4 + rank * 14
-        for i = 0, 5 do
-          local x = ((st * (0.08 + rank * 0.05) + i * 41) % (w + 70)) - 35
-          shade(paper, 3 - rank, 0.75)
-          disc(x + 14, y + 10, 12 - rank * 2)
-          disc(x + 26, y + 12, 9 - rank)
-          disc(x + 4, y + 12, 8 - rank)
-          love.graphics.rectangle("fill", x, y + 10, 34, 8 - rank * 2)
+        local span = w + 90
+        for i = 0, math.ceil(w / 50) + 1 do
+          local x = (i * span / (math.ceil(w / 50) + 2) - phase * span * (rank + 1)) % span - 60
+          cloud(x, 11 + rank * 18, 5, rank == 0 and 4 or 3, rank == 0 and 0.45 or 0.95)
         end
       end
-
-      -- the flash: a whole-screen lift plus a bolt, on a long cycle
-      local cycle = (st % 240)
-      if cycle < 6 then
-        shade(paper, 1, cycle < 3 and 0.55 or 0.25)
-        love.graphics.rectangle("fill", 0, 0, w, h)
-        shade(paper, 1, 0.95)
-        local bx = 40 + (math.floor(st / 240) * 37) % math.max(1, w - 80)
-        local by = 22
-        for seg = 0, 5 do
-          local nx = bx + ((seg % 2 == 0) and 6 or -5)
-          local ny = by + 9
-          love.graphics.rectangle("fill", math.min(bx, nx), by,
-            math.abs(nx - bx) + 2, 2)
-          love.graphics.rectangle("fill", nx, by, 2, 9)
-          bx, by = nx, ny
+      for x = 0, w, 2 do
+        local y = water - 12 + math.sin(x / 24) * 6
+        rect(3, 0.75, x, y, 2, water - y)
+      end
+      rect(4, 0.5, 0, water, w, h - water)
+      ripples(water, h, 2, 0.4, 35)
+      -- Brief distant lightning, twice per loop; no whole-screen strobe.
+      local flash = (phase * 2 + 0.23) % 1
+      if flash < 0.012 or (flash > 0.018 and flash < 0.023) then
+        local x, y = w * 0.72, h * 0.22
+        stroke(1, 0.95, x, y, x - 7, y + 14, 2)
+        stroke(1, 0.95, x - 7, y + 14, x + 1, y + 13, 2)
+        stroke(1, 0.95, x + 1, y + 13, x - 10, y + 33, 1)
+        rect(1, 0.08, 0, h * 0.3, w, h * 0.4)
+      end
+      for depth = 1, 2 do
+        for i = 0, math.floor(w * h / 650) do
+          local age = (phase * (12 + depth * 6) + i * 0.137) % 1
+          local y = age * (h + 16) - 8
+          local x = (hash(i, depth) - age * 24) % (w + 12) - 6
+          stroke(1, 0.13 + depth * 0.12, x, y, x - 2, y + 3 + depth * 2, 1)
         end
       end
-
-      -- rain, three depths
-      for depth = 1, 3 do
-        local count = 14 + depth * 10
-        local speed = 1.6 + depth * 1.4
-        local slant = 2 + depth
-        local length = 3 + depth * 2
-        shade(paper, depth == 3 and 3 or 2, 0.25 + depth * 0.2)
-        for i = 0, count do
-          local hx = (i * 2654435761 + depth * 7919) % 4294967296
-          local fall = (st * speed + i * 29) % (h + length * 4)
-          local y = fall - length * 2
-          local x = ((math.floor(hx / 65536) % w) - fall * slant / 8) % w
-          love.graphics.rectangle("fill", x, y, 1, length)
+      for i = 0, 13 do
+        local age = (phase * 12 + i * 0.17) % 1
+        if age < 0.35 then
+          local x, y = hash(i, 2) % w, water + hash(i, 3) % math.max(1, h - water)
+          rect(1, (0.35 - age) * 0.9, x - age * 8, y, 1 + age * 16, 1)
         end
       end
-
-      -- the ground, and the drops bouncing off it
-      shade(paper, 4, 0.9)
-      love.graphics.rectangle("fill", 0, groundY, w, h - groundY)
-      for i = 0, 9 do
-        local hx = (i * 2246822519) % 4294967296
-        local phase = (st * 0.6 + i * 13) % 30
-        if phase < 6 then
-          local x = math.floor(hx / 65536) % w
-          shade(paper, 2, 0.6 - phase * 0.08)
-          love.graphics.rectangle("fill", x - math.floor(phase), groundY - 2, 1, 1)
-          love.graphics.rectangle("fill", x + math.floor(phase), groundY - 2, 1, 1)
-        end
+      for x = 0, w, 2 do
+        local y = h - 7 + math.sin(x / 17) * 4
+        rect(4, 1, x, y, 2, h - y)
+      end
+      for i = 0, math.ceil(w / 38) do
+        local x = i * 38 + 4
+        stroke(4, 0.9, x, h, x + 4, h - 16, 1)
+        stroke(4, 0.9, x + 3, h - 7, x + 10, h - 15, 1)
       end
 
     elseif pattern == "CIRCUIT" then
-      -- A board seen close up: traces that turn at right angles, pads
-      -- where they end, and a charge running ALONG a trace rather than a
-      -- glow sitting on top of it. Dark-first palette, so the traces are
-      -- the light end.
-      local pitch = 16
-      local cols = math.ceil(w / pitch) + 1
-      local rowsN = math.ceil(h / pitch) + 1
-
-      -- the board itself, with its own quiet texture
-      shade(paper, 2, 0.25)
-      for y = 0, h, 4 do
-        love.graphics.rectangle("fill", 0, y, w, 1)
-      end
-
-      -- traces: each cell picks a shape from its own hash, so the board
-      -- is fixed rather than random every frame
-      for cy = 0, rowsN do
-        for cx = 0, cols do
-          -- no bitwise XOR here: this file runs on LuaJIT, which is
-          -- 5.1, and `~` is a syntax error there rather than an operator
-          local hx = (cx * 73856093 + cy * 19349663 + cx * cy * 83492791)
-            % 4294967296
-          local kind = math.floor(hx / 4096) % 4
-          local x, y = cx * pitch, cy * pitch
-          shade(paper, 3, 0.55)
-          if kind == 0 then
-            love.graphics.rectangle("fill", x, y + 7, pitch, 2)
-          elseif kind == 1 then
-            love.graphics.rectangle("fill", x + 7, y, 2, pitch)
-          elseif kind == 2 then
-            love.graphics.rectangle("fill", x, y + 7, 9, 2)
-            love.graphics.rectangle("fill", x + 7, y + 7, 2, pitch - 7)
-          else
-            love.graphics.rectangle("fill", x + 7, y, 2, 9)
-            love.graphics.rectangle("fill", x + 7, y + 7, pitch - 7, 2)
+      for y = 0, h, 4 do rect(2, 0.24, 0, y, w, 1) end
+      -- Each charge follows the exact copper path, including both bends.
+      for row = 0, math.ceil(h / 40) do
+        for col = 0, math.ceil(w / 64) do
+          local x, y = col * 64 - 12, row * 40 + 10
+          local bend = 12 + (row + col) % 3 * 6
+          local turn = (row + col) % 2 == 0 and 10 or -10
+          stroke(3, 0.46, x, y, x + bend, y, 1)
+          stroke(3, 0.46, x + bend, y, x + bend, y + turn, 1)
+          stroke(3, 0.46, x + bend, y + turn, x + 51, y + turn, 1)
+          stroke(2, 0.9, x, y + 3, x + bend - 3, y + 3, 1)
+          for _, pad in ipairs({{x, y}, {x + 51, y + turn}}) do
+            rect(3, 0.7, pad[1] - 2, pad[2] - 2, 5, 5)
+            rect(1, 1, pad[1] - 1, pad[2] - 1, 3, 3)
           end
-          -- a pad every so often, which is where a trace stops
-          if kind == 3 and (cx + cy) % 3 == 0 then
-            shade(paper, 3, 0.8)
-            love.graphics.rectangle("fill", x + 4, y + 4, 8, 8)
-            shade(paper, 1, 1)
-            love.graphics.rectangle("fill", x + 6, y + 6, 4, 4)
+          local length = 51 + math.abs(turn)
+          local position = (phase * 4 + (row * 3 + col) * 0.13) % 1 * length
+          local fade = math.min(1, position / 8, (length - position) / 8)
+          for tail = 0, 4 do
+            local d = position - tail * 2
+            if d >= 0 then
+              local px, py
+              if d <= bend then px, py = x + d, y
+              elseif d <= bend + math.abs(turn) then px, py = x + bend, y + (d - bend) * (turn > 0 and 1 or -1)
+              else px, py = x + d - math.abs(turn), y + turn end
+              rect(4, (0.9 - tail * 0.17) * fade, px, py, 1, 1)
+            end
           end
         end
       end
-
-      -- the charge: bright cells travelling along the horizontal traces
-      for i = 0, 5 do
-        local lane = (i * 3 + 1) % rowsN
-        local speed = 0.6 + (i % 3) * 0.35
-        local x = ((t * speed + i * 53) % (w + 40)) - 20
-        local y = lane * pitch + 7
-        for k = 0, 6 do
-          shade(paper, 4, 0.9 - k * 0.13)
-          love.graphics.rectangle("fill", x - k * 3, y, 3, 2)
+      for row = 0, math.ceil(h / 80) do
+        for col = 0, math.ceil(w / 96) do
+          local x, y = col * 96 + 34, row * 80 + 43
+          for pin = 0, 3 do
+            rect(3, 0.8, x - 3, y + 2 + pin * 4, 3, 2)
+            rect(3, 0.8, x + 20, y + 2 + pin * 4, 3, 2)
+          end
+          rect(3, 0.65, x, y, 20, 18)
+          rect(1, 1, x + 1, y + 1, 18, 16)
+          rect(2, 1, x + 3, y + 3, 14, 12)
+          rect(3, 0.45, x + 6, y + 7, 8, 1)
+          rect(3, 0.4, x + 6, y + 10, 5, 1)
+          rect(4, 0.35 + 0.3 * wave(2, row / 5 + col / 7), x + 3, y + 3, 2, 2)
         end
       end
-      -- and a couple going down instead, so it is a board and not a belt
-      for i = 0, 2 do
-        local lane = (i * 5 + 2) % cols
-        local y = ((t * (0.5 + i * 0.2) + i * 71) % (h + 30)) - 15
-        local x = lane * pitch + 7
-        for k = 0, 5 do
-          shade(paper, 4, 0.85 - k * 0.14)
-          love.graphics.rectangle("fill", x, y - k * 3, 2, 3)
-        end
+      for i = 0, math.ceil(w / 37) do
+        local x, y = i * 37 + 5, h - 8
+        rect(3, 0.45, x, y, 8, 4)
+        rect(1, 1, x + 2, y + 1, 4, 2)
       end
 
     elseif pattern == "TRAIN" then
-      -- The view out of a window at speed, which is a scene where the
-      -- MOTION is the subject: poles snapping past, hills turning slowly,
-      -- wires dipping between the poles. Three speeds is the whole trick.
-      local sillY = math.floor(h * 0.82)
-      local skyY = 8
-
-      -- sky, and MOUNTAINS beyond it rather than rolling hills. What a
-      -- train window frames is distance, and rounded green humps read as
-      -- a park: peaks with snow on them read as somewhere you are being
-      -- carried through.
-      shade(paper, 1, 1)
-      love.graphics.rectangle("fill", 0, skyY, w, sillY - skyY)
+      local sill = math.floor(h * 0.86)
+      rect(2, 0.28, 0, 0, w, sill)
+      ball(1, 0.95, w * 0.76, h * 0.23, 11)
+      -- Each layer translates as one periodic landscape, preserving spacing.
       for rank = 0, 2 do
-        local base = sillY - 30 + rank * 12
-        local amp = 20 - rank * 5
-        local drift = t * (0.03 + rank * 0.05)
-        shade(paper, 2 + math.min(1, rank), 0.65 + rank * 0.2)
+        local period = rank == 0 and 240 or (rank == 1 and 180 or 128)
+        local drift = phase * period * (rank + 1)
         for x = 0, w, 2 do
-          local hx = ((x + math.floor(drift) + rank * 131) * 2654435761) % 4294967296
-          local jitter = (math.floor(hx / 65536) % 4) - 2
-          -- TRIANGLES, not sines: a sine gives a rounded hump, and a
-          -- range of humps is a park. Two triangle waves of different
-          -- periods give summits with straight sides and a saddle
-          -- between them, which is what a mountain reads as at this size.
-          local function tri(period, phase)
-            local u = ((x + drift + phase) % period) / period
-            return 1 - math.abs(u * 2 - 1)
-          end
-          local y = base
-            - math.floor(amp * tri(97 + rank * 23, rank * 31))
-            - math.floor(amp * 0.55 * tri(31 + rank * 7, rank * 17))
-            + jitter
-          love.graphics.rectangle("fill", x, y, 2, sillY - y)
-          -- snow on the far range only, where the summit is high enough
-          if rank == 0 and (base - y) > amp * 0.55 then
-            shade(paper, 1, 0.85)
-            love.graphics.rectangle("fill", x, y, 2, 3)
-            shade(paper, 2, 0.65)
-          end
+          local u = (x + drift) / period * tau
+          local peak = (math.cos(u) * 0.5 + 0.5) * (rank == 0 and 24 or 13)
+          local y = h * (0.57 + rank * 0.10) - peak - math.abs(math.sin(u * 2)) * 5
+          rect(rank == 0 and 3 or 2 + rank % 2, 0.40 + rank * 0.2, x, y, 2, sill - y)
+          if rank == 0 and peak > 19 then rect(1, 0.8, x, y, 2, 3) end
         end
       end
-
-      -- the wires: two catenaries sagging between the poles. The spacing
-      -- was 46 and the poles read as a fence: on a 160-pixel screen that
-      -- is four of them in frame at once, which is a picket, not a line
-      -- being travelled along.
-      local spacing = 96
-      local offset = (t * 1.7) % spacing
-      for pole = -1, math.ceil(w / spacing) + 1 do
-        local px2 = pole * spacing - offset
-        for wire = 0, 1 do
-          shade(paper, 4, 0.5 - wire * 0.15)
-          for x = 0, spacing do
-            local sag = math.sin(x / spacing * math.pi) * (6 + wire * 4)
-            love.graphics.rectangle("fill", px2 + x, 14 + wire * 7 + sag, 1, 1)
-          end
+      local spacing, drift = 112, phase * 112 * 6
+      for i = -1, math.ceil(w / spacing) + 1 do
+        local x = i * spacing - drift % spacing
+        local y = h * 0.72
+        rect(3, 0.9, x + 28, y - 12, 20, 12)
+        shade(paper, 4, 0.75)
+        poly("fill", x + 25, y - 12, x + 38, y - 21, x + 51, y - 12)
+        rect(1, 0.9, x + 31, y - 9, 3, 3)
+        rect(4, 0.75, x + 40, y - 8, 4, 8)
+        pine(x + 68, y + 4, 4, 3, 0.8)
+      end
+      for i = -1, math.ceil(w / 20) + 1 do
+        local x = i * 20 - (phase * 20 * 48) % 20
+        rect(4, 0.6, x, sill - 10, 2, 10)
+      end
+      rect(3, 0.95, 0, sill - 7, w, 2)
+      local poleSpace = 144
+      local offset = math.floor(phase * poleSpace * 12) % poleSpace
+      for i = -1, math.ceil(w / poleSpace) + 1 do
+        local x = i * poleSpace - offset
+        for dx = 0, poleSpace, 2 do
+          local sag = math.sin(dx / poleSpace * math.pi) * 8
+          rect(4, 0.6, x + dx, 15 + sag, 2, 1)
         end
-        -- the pole itself, the fastest thing on the screen
-        shade(paper, 4, 0.9)
-        love.graphics.rectangle("fill", px2, 10, 3, sillY - 10)
-        love.graphics.rectangle("fill", px2 - 5, 12, 13, 2)
+        rect(4, 0.95, x, 9, 3, sill - 9)
+        rect(4, 0.95, x - 5, 13, 13, 2)
+        rect(2, 0.9, x - 4, 11, 2, 2)
+        rect(2, 0.9, x + 6, 11, 2, 2)
       end
-
-      -- the sill, and the frame of the window
-      shade(paper, 4, 1)
-      love.graphics.rectangle("fill", 0, sillY, w, h - sillY)
-      shade(paper, 3, 1)
-      love.graphics.rectangle("fill", 0, sillY, w, 3)
-      shade(paper, 4, 1)
-      love.graphics.rectangle("fill", 0, 0, w, skyY)
-      -- rain on the glass, running back with the airflow
-      for i = 0, 11 do
-        local hx = (i * 2246822519) % 4294967296
-        local x = math.floor(hx / 65536) % w
-        local y = skyY + ((t * (0.9 + (i % 3) * 0.5) + i * 23) % (sillY - skyY))
-        shade(paper, 1, 0.35)
-        love.graphics.rectangle("fill", x, y, 1, 4 + (i % 3))
-      end
+      rect(4, 1, 0, sill, w, h - sill)
+      rect(3, 1, 0, sill, w, 3)
+      rect(2, 0.8, 0, sill + 3, w, 1)
+      rect(4, 1, 0, 0, w, 5)
+      rect(3, 0.9, 0, 5, w, 2)
+      shade(paper, 1, 0.1)
+      poly("fill", w * 0.12, 7, w * 0.20, 7, w * 0.42, sill, w * 0.34, sill)
 
     elseif pattern == "CASTLE" then
-      -- Inside, not outside: a stone wall, an arched window with weather
-      -- behind it, and torches. The motion is the flame and what the
-      -- window shows, because a wall that moves is not a wall.
-      local course = 12
-      for row = 0, math.ceil(h / course) do
-        local y = row * course
-        local offset = (row % 2) * 14
-        for x = -14, w, 28 do
-          local hx = ((x + row * 131) * 2654435761) % 4294967296
-          shade(paper, 2 + math.floor(hx / 65536) % 2, 0.55)
-          love.graphics.rectangle("fill", x + offset + 1, y + 1, 26, course - 2)
+      rect(3, 1, 0, 0, w, h)
+      for row = 0, math.ceil(h / 12) do
+        for col = -1, math.ceil(w / 26) do
+          local x, y = col * 26 + row % 2 * 13, row * 12
+          rect(4, 0.4, x, y, 26, 12)
+          rect(2, 0.12 + hash(col, row) % 5 * 0.045, x + 1, y + 1, 24, 10)
+          rect(1, 0.10, x + 2, y + 1, 22, 1)
         end
       end
-      -- the mortar reading as lines between the courses
-      shade(paper, 4, 0.35)
-      for row = 0, math.ceil(h / course) do
-        love.graphics.rectangle("fill", 0, row * course, w, 1)
+      -- A deep stone arch, moonlit landscape and foreground flagstones.
+      local cx, radius = w * 0.57, math.max(10, math.min(26, w * 0.22))
+      local top, bottom = h * 0.20, h * 0.70
+      for x = cx - radius - 5, cx + radius + 5 do
+        local dx = (x - cx) / (radius + 5)
+        local y = top + radius - math.sqrt(math.max(0, 1 - dx * dx)) * (radius + 5)
+        rect(4, 0.95, x, y, 1, bottom - y + 4)
       end
-
-      -- the window: an arch of sky, with rain crossing it
-      local wx, wy, ww, wh2 = math.floor(w * 0.62), 18, 34, 46
-      shade(paper, 4, 0.9)
-      love.graphics.rectangle("fill", wx - 3, wy - 3, ww + 6, wh2 + 6)
-      shade(paper, 1, 1)
-      love.graphics.rectangle("fill", wx, wy + 10, ww, wh2 - 10)
-      disc(wx + math.floor(ww / 2), wy + 10, math.floor(ww / 2))
-      for i = 0, 15 do
-        local rx = wx + ((i * 13 + math.floor(t * 0.9)) % ww)
-        local ry = wy + 2 + ((i * 17 + math.floor(t * 1.7)) % (wh2 - 4))
-        shade(paper, 2, 0.7)
-        love.graphics.rectangle("fill", rx, ry, 1, 3)
+      for x = cx - radius, cx + radius do
+        local dx = (x - cx) / radius
+        local y = top + radius - math.sqrt(math.max(0, 1 - dx * dx)) * radius
+        rect(2, 0.95, x, y, 1, bottom - y)
       end
-      -- the bars
-      shade(paper, 4, 0.8)
-      for i = 1, 3 do
-        love.graphics.rectangle("fill", wx + i * math.floor(ww / 4), wy, 2, wh2)
+      for stone = 0, 8 do
+        local angle = math.pi + stone / 8 * math.pi
+        stroke(2, 0.7, cx + math.cos(angle) * (radius + 4),
+          top + radius + math.sin(angle) * (radius + 4),
+          cx + math.cos(angle) * (radius + 1),
+          top + radius + math.sin(angle) * (radius + 1), 2)
       end
-
-      -- two torches, flickering out of phase
-      for i = 0, 1 do
-        local tx = math.floor(w * (0.16 + i * 0.16))
-        local ty = math.floor(h * 0.42)
-        shade(paper, 4, 0.9)
-        love.graphics.rectangle("fill", tx, ty, 3, 12)
-        local flick = math.sin((t + i * 37) / 9)
-        local tall = 10 + math.floor(flick * 4)
-        -- the glow first, so the flame sits in it rather than on it
-        shade(paper, 1, 0.30 + 0.08 * flick)
-        disc(tx + 1, ty - 6, 18)
-        shade(paper, 1, 0.18 + 0.06 * flick)
-        disc(tx + 1, ty - 6, 26)
-        -- a flame on a pale wall can only read by being PALER: the body
-        -- in the lightest tone, a mid-tone edge to give it a shape
-        shade(paper, 2, 0.9)
-        poly("fill", tx - 4, ty, tx + 1, ty - tall, tx + 6, ty)
-        shade(paper, 1, 1)
-        poly("fill", tx - 2, ty - 1, tx + 1, ty - tall + 4, tx + 4, ty - 1)
+      ball(1, 0.9, cx + radius * 0.37, top + radius * 0.93, 6)
+      for x = cx - radius, cx + radius do
+        local y = bottom - 10 - math.sin((x - cx) / 12) * 4
+        rect(3, 0.9, x, y, 1, bottom - y)
+      end
+      rect(4, 0.95, cx - 1, top, 2, bottom - top)
+      rect(4, 0.9, cx - radius, bottom - 18, radius * 2, 2)
+      rect(2, 0.9, cx - radius - 6, bottom + 2, radius * 2 + 12, 4)
+      for side = 0, 1 do
+        local x = cx + (side == 0 and -radius - 7 or radius + 4)
+        for y = top + radius, bottom, 9 do rect(2, 0.55, x, y, 3, 7) end
+      end
+      local floorY = math.floor(h * 0.85)
+      rect(4, 0.55, 0, floorY, w, h - floorY)
+      for y = floorY + 2, h, 7 do
+        rect(2, 0.3, 0, y, w, 1)
+        for x = 0, w, 32 do rect(4, 0.45, x + ((y - floorY) % 2) * 16, y, 1, 7) end
+      end
+      shade(paper, 1, 0.07)
+      poly("fill", cx - radius + 4, floorY, cx + radius - 4, floorY,
+        cx + radius + 15, h, cx - radius - 15, h)
+      for side = 0, 1 do
+        local x, y = w * (side == 0 and 0.13 or 0.88), h * 0.52
+        local bannerTop = h * 0.13
+        rect(4, 0.9, x - 7, bannerTop, 14, h * 0.22)
+        rect(2, 0.6, x - 7, bannerTop, 2, h * 0.22)
+        rect(2, 0.6, x + 5, bannerTop, 2, h * 0.22)
+        rect(2, 0.95, x - 9, bannerTop - 2, 18, 2)
+        shade(paper, 1, 0.55)
+        poly("fill", x, bannerTop + 8, x + 3, bannerTop + 12,
+          x, bannerTop + 16, x - 3, bannerTop + 12)
+        local flick = wave(13, side / 3) + wave(21, side / 7) * 0.4
+        ball(1, 0.035 + flick * 0.008, x, y - 3, 22)
+        ball(1, 0.07 + flick * 0.01, x, y - 3, 13)
+        ball(1, 0.08 + flick * 0.01, x, y - 3, 7)
+        rect(4, 1, x - 2, y + 2, 4, 12)
+        rect(4, 1, x - 4, y + 2, 8, 3)
+        for dy = 0, 10 do
+          local width = math.max(1, 5 - dy * 0.45)
+          rect(2, 1, x - width / 2 + math.floor(flick * dy / 12), y - dy, width, 1)
+          if dy < 6 then rect(1, 1, x, y - dy, 2, 1) end
+        end
+      end
+      for i = 0, 5 do
+        local age = (phase * 2 + i / 6) % 1
+        rect(1, 0.3 * math.sin(age * math.pi), cx - radius + hash(i, 1) % (radius * 2), bottom + age * 15, 1, 1)
       end
     end
-
     love.graphics.setColor(0, 0, 0, 1)
   end
 
@@ -2703,27 +2590,26 @@ return function(mod)
     local g = love.graphics
     local canvas = g.newCanvas and surfaceFor(w, h)
     if not canvas then return paint() end
+    local previous = g.getCanvas and g.getCanvas() or nil
+    local pushed = false
     local ok = pcall(function()
-      local previous = g.getCanvas and g.getCanvas() or nil
       -- a canvas does not reset the transform, and the scene is drawn in
       -- its own coordinates from 0,0
       g.push()
+      pushed = true
       g.origin()
       g.setCanvas(canvas)
       g.clear(0, 0, 0, 0)
       paint()
-      g.setCanvas(previous)
-      g.pop()
-      g.setColor(1, 1, 1, 1)
-      g.draw(canvas, 0, 0)
     end)
-    -- a canvas that failed mid-way has left the target where it found it
-    -- (setCanvas is inside the pcall), so the fallback is the same draw
-    -- again rather than a frame with a hole in it
-    if not ok then
-      pcall(g.setCanvas)
-      paint()
+    -- Restore the caller even if the painter failed inside a panel.
+    g.setCanvas(previous)
+    if pushed then g.pop() end
+    if ok then
+      g.setColor(1, 1, 1, 1)
+      if pcall(g.draw, canvas, 0, 0) then return end
     end
+    paint()
   end
 
   -- BIG is the same screen at twice the pixel density -- a 56-pixel cell
@@ -2763,16 +2649,16 @@ return function(mod)
 
     onOwnSurface(w, h, function()
       local k = math.max(1, math.floor(math.min(w / 160, h / 144)))
-      local scaled = k > 1 and pcall(function()
-        love.graphics.push()
-        love.graphics.scale(k, k)
-      end)
+      local pushed = k > 1 and pcall(love.graphics.push)
+      local scaled = pushed and pcall(love.graphics.scale, k, k)
+      if pushed and not scaled then love.graphics.pop() end
       -- if the transform did not take, draw at the real size rather than
       -- at a size nothing is applying: a corner of a scene is worse than
       -- a sparse one
       if not scaled then k = 1 end
-      drawPattern(paper, w / k, h / k, t)
-      if scaled then pcall(love.graphics.pop) end
+      local ok, err = pcall(drawPattern, paper, w / k, h / k, t)
+      if scaled then love.graphics.pop() end
+      if not ok then error(err, 0) end
     end)
   end
 
@@ -4150,6 +4036,7 @@ return function(mod)
           pick.art = pick.artBy[pick.id] or 1
         elseif input:wasPressed("left") or input:wasPressed("right") then
           local step = input:wasPressed("left") and -1 or 1
+          pick.moved = true
           local list = styles()
           pick.art = ((pick.art - 1 + step) % #list) + 1
           pick.artBy[pick.id] = pick.art
@@ -4637,7 +4524,7 @@ return function(mod)
       if self.mode ~= "box" and not L.full then return false end
       local paper = paperOf(game.save.currentBox)
       if self.mode == "box" and self.paperPick then
-        paper = WALLPAPER_BY_ID[self.paperPick.id] or paper
+        paper = paperOf(self.paperPick.box, self.paperPick)
       end
       if not (paper and paper.palette) then return false end
       local okFX, FX = pcall(require, "src.render.PaletteFX")
@@ -4938,7 +4825,7 @@ return function(mod)
         -- the chooser previews on the background, so the palette has to
         -- follow the cursor too or the preview is drawn under the saved
         -- box's colours
-        paper = WALLPAPER_BY_ID[self.paperPick.id] or paper
+        paper = paperOf(self.paperPick.box, self.paperPick)
       end
 
       -- A wallpaper is NOT four shades waiting for a palette: shade() sets
@@ -5162,7 +5049,8 @@ return function(mod)
     -- eight pages -- "the order in which somebody stops reading", as the
     -- header above says -- and in a month nobody entered. So it goes first,
     -- the pages that were wrong are right, and everybody reads them once.
-    local NEWS_VERSION = "1.25.0"
+    -- 1.26.0 repaints the original scenes and adds the PRISM geometric set.
+    local NEWS_VERSION = "1.26.0"
 
     -- `hi` is the accent colour: the line that names the thing, and the
     -- contest. Drawn in RGB and marked trueColor so the shade remap leaves
@@ -5244,12 +5132,13 @@ return function(mod)
       {
         title = "WALLPAPERS",
         lines = {
-          { "91 wallpapers,", true },
+          { "98 wallpapers,", true },
           { "one per box.", true },
           { "" },
-          { "Places, drawn" },
-          { "here and by 27" },
-          { "artists." },
+          { "Original scenes" },
+          { "redrawn.", true },
+          { "90S: MEMPHIS", true },
+          { "and PRISM.", true },
           { "" },
           { "Next page: how" },
           { "to change one." },
@@ -5672,9 +5561,8 @@ return function(mod)
         -- background anyway
         local paper, style
         if self.paperPick then
-          paper = WALLPAPER_BY_ID[self.paperPick.id] or WALLPAPER_BY_ID.PLAIN
-          local list = artFor(self.paperPick.id)
-          style = list[math.max(1, math.min(#list, self.paperPick.art))]
+          paper = paperOf(self.paperPick.box, self.paperPick)
+          style = artOf(self.paperPick.box, self.paperPick)
         else
           paper = paperOf(game.save.currentBox)
           style = artOf(game.save.currentBox)

@@ -4519,4 +4519,210 @@ do
   end
 end
 
+-- Both geometric designs offer at least five colours without renumbering old saves.
+do
+  local exports = run.loader.exports.gen3_box
+  local styles, base = exports.wallpaperArt["90S"], nil
+  for _, paper in ipairs(exports.wallpapers) do if paper.id == "90S" then base = paper end end
+  local names, backgrounds = {}, { ["90S"] = {}, ["90S_PRISM"] = {} }
+  for i, style in ipairs(styles) do
+    if i <= 5 then names[#names + 1] = style.by end
+    local palette = style.palette or base.palette
+    local chromatic = false
+    for _, colour in ipairs(palette) do
+      if colour[1] ~= colour[2] or colour[2] ~= colour[3] then chromatic = true end
+    end
+    if chromatic then
+      local design = backgrounds[style.pattern or base.pattern]
+      if design then design[table.concat(palette[1], ",")] = true end
+    end
+  end
+  T.eq(table.concat(names, "|"), "GEN3 BOX|GEN3 MINT|GEN3 SUNSET|GEN3 GRAPE|GEN3 MONO",
+    "90S keeps the original artist indices used by saved boxes and favourites")
+  T.eq(#styles, 12, "90S offers seven original palettes and five PRISM palettes")
+  for pattern, colours in pairs(backgrounds) do
+    local count = 0
+    for _ in pairs(colours) do count = count + 1 end
+    T.check(count >= 5, pattern .. " has at least five distinct chromatic backgrounds")
+  end
+  local G = love.graphics
+  local realNew, realRect, realPoly = G.newCanvas, G.rectangle, G.polygon
+  local shapes = {}
+  G.newCanvas = nil
+  G.rectangle = function(...) shapes[#shapes + 1] = "R" .. table.concat({ ... }, ",") end
+  G.polygon = function(...) shapes[#shapes + 1] = "P" .. table.concat({ ... }, ",") end
+  exports.paintWallpaper(base, 160, 144, nil, 0)
+  local original = table.concat(shapes, ";")
+  shapes = {}
+  exports.paintWallpaper(base, 160, 144, { pattern = "90S_PRISM", palette = base.palette }, 0)
+  T.check(original ~= table.concat(shapes, ";"), "PRISM changes the composition, not only the colours")
+  G.newCanvas, G.rectangle, G.polygon = realNew, realRect, realPoly
+end
+
+-- Authored scenes and palette variants animate safely at every shipped panel size.
+do
+  local G, exports = love.graphics, run.loader.exports.gen3_box
+  local names = { "newCanvas", "setColor", "rectangle", "polygon", "line", "circle" }
+  local saved = {}
+  for _, name in ipairs(names) do saved[name] = G[name] end
+  G.newCanvas = nil
+  local opts = run.loader.modOptions.gen3_box
+  local oldAnimate = opts.animate
+  opts.animate = true
+  local commands
+  local function record(kind, ...)
+    local args = { ... }
+    for _, value in ipairs(args) do
+      if type(value) == "number" then
+        assert(value == value and math.abs(value) < math.huge, "non-finite drawing coordinate")
+      end
+    end
+    commands[#commands + 1] = kind .. table.concat(args, ",")
+  end
+  G.setColor = function(r, g, b, a)
+    for _, v in ipairs({ r, g, b, a or 1 }) do assert(v >= 0 and v <= 1, "invalid wallpaper colour") end
+    record("C", r, g, b, a or 1)
+  end
+  G.rectangle = function(mode, x, y, w, h)
+    assert(w >= 0 and h >= 0, "negative wallpaper rectangle")
+    record("R", mode, x, y, w, h)
+  end
+  G.polygon = function(...) record("P", ...) end
+  G.line = function(...) record("L", ...) end
+  G.circle = function(...) record("D", ...) end
+  local function frame(paper, style, size, tick)
+    commands = {}
+    exports.paintWallpaper(paper, size[1], size[2], style, tick)
+    return table.concat(commands, ";")
+  end
+  for _, paper in ipairs(exports.wallpapers) do
+    if paper.palette then
+      for _, style in ipairs(exports.wallpaperArt[paper.id]) do
+        if not style.layers and not style.image then
+          local ok, err = pcall(function()
+            for _, size in ipairs({ { 160, 144 }, { 320, 288 }, { 148, 136 }, { 288, 248 }, { 576, 576 } }) do
+              local first = frame(paper, style, size, 0)
+              local moved = false
+              for _, tick in ipairs({ 37, 480, 960, 1919 }) do
+                if first ~= frame(paper, style, size, tick) then moved = true end
+              end
+              assert(moved, "scene does not animate")
+              assert(first == frame(paper, style, size, 1920), "animation cycle does not close")
+            end
+          end)
+          T.check(ok, paper.id .. " / " .. style.by .. ": valid animated geometry and closed cycle (" .. tostring(err) .. ")")
+        end
+      end
+    end
+  end
+  opts.animate = oldAnimate
+  for _, name in ipairs(names) do G[name] = saved[name] end
+end
+
+-- Village roofs keep visible space between neighbouring houses at every size.
+do
+  local G, exports = love.graphics, run.loader.exports.gen3_box
+  local realNew, realPoly = G.newCanvas, G.polygon
+  local snow
+  for _, paper in ipairs(exports.wallpapers) do if paper.id == "SNOW" then snow = paper end end
+  G.newCanvas = nil
+  for _, size in ipairs({ { 160, 144 }, { 320, 288 }, { 148, 136 }, { 288, 248 } }) do
+    local rows = {}
+    G.polygon = function(mode, ...)
+      local p = { ... }
+      if mode == "fill" and #p == 6 and p[2] == p[6] then
+        local row = rows[p[2]] or {}
+        rows[p[2]] = row
+        row[#row + 1] = { left = math.min(p[1], p[3], p[5]), right = math.max(p[1], p[3], p[5]) }
+      end
+    end
+    exports.paintWallpaper(snow, size[1], size[2], nil, 0)
+    local count, separated = 0, true
+    for _, row in pairs(rows) do
+      table.sort(row, function(a, b) return a.left < b.left end)
+      for i, roof in ipairs(row) do
+        count = count + 1
+        if i > 1 and roof.left - row[i - 1].right < 4 then separated = false end
+      end
+    end
+    T.check(count > 2 and separated, "SNOW roofs have gaps at " .. size[1] .. "x" .. size[2])
+  end
+  G.newCanvas, G.polygon = realNew, realPoly
+end
+
+-- A failed painter must not redirect later panels or leave a nested BIG scale.
+do
+  local G = love.graphics
+  local names = { "push", "pop", "origin", "scale", "setCanvas", "getCanvas", "rectangle", "draw" }
+  local saved = {}
+  for _, name in ipairs(names) do saved[name] = G[name] end
+  local paint = run.loader.exports.gen3_box.paintWallpaper
+  local paper = run.loader.exports.gen3_box.wallpapers[2]
+  for _, fault in ipairs({ "paint", "composite" }) do
+    for _, size in ipairs({ { 160, 144 }, { 320, 288 } }) do
+      local parent, target = {}, nil
+      target = parent
+      local transform, stack = { 19, 23, 3 }, {}
+      local failed, fallback = false, false
+      G.push = function() stack[#stack + 1] = { unpack(transform) } end
+      G.pop = function() transform = assert(table.remove(stack), "unbalanced wallpaper pop") end
+      G.origin = function() transform = { 0, 0, 1 } end
+      G.scale = function(k) transform[3] = transform[3] * k end
+      G.getCanvas = function() return target end
+      G.setCanvas = function(c) target = c end
+      G.draw = function()
+        if fault == "composite" and not failed then failed = true; error("injected wallpaper composite failure") end
+      end
+      G.rectangle = function()
+        if fault == "paint" and not failed then failed = true; error("injected wallpaper failure") end
+        if target == parent and transform[1] == 19 and transform[2] == 23 then fallback = true end
+      end
+      local ok = pcall(paint, paper, size[1], size[2], nil, 12)
+      T.check(ok and fallback, "a failed wallpaper retries on the caller's canvas and origin")
+      T.check(target == parent, "wallpaper failure preserves the caller's canvas")
+      T.eq(#stack, 0, "wallpaper failure balances every transform push")
+      T.eq(table.concat(transform, ","), "19,23,3", "wallpaper failure restores the caller's transform")
+    end
+  end
+  for _, name in ipairs(names) do G[name] = saved[name] end
+end
+
+-- FAVOURITE previews the resolved scene AND artist before confirmation.
+do
+  local opts, store = run.loader.modOptions.gen3_box, run.loader.modSave.gen3_box
+  local oldGrid, oldPeek, oldAnimate = opts.grid, opts.peek, opts.animate
+  local oldPapers, oldFaves = store.boxPapers, store.favePapers
+  opts.grid, opts.peek, opts.animate = "big", false, false
+  store.boxPapers = { [1] = { id = "SEA", art = 4 } }
+  store.favePapers = { { id = "SEA", art = 4 } }
+  local game = fakeGame({})
+  local screen = factory.new(game)
+  local G, realRect, realColor = love.graphics, love.graphics.rectangle, love.graphics.setColor
+  local ink, ground = {}, nil
+  G.setColor = function(r, g, b, a) ink = { r, g, b, a or 1 } end
+  G.rectangle = function(mode, x, y, w, h)
+    if not ground and mode == "fill" and x == 0 and y == 0 and w == 160 and h == 144 then
+      ground = table.concat(ink, ",")
+    end
+  end
+  screen:draw()
+  local expected = ground
+  screen.paperPick = { id = "FAVE", art = 1, box = 1, moved = true }
+  ground = nil
+  screen:draw()
+  T.check(expected ~= nil and ground == expected, "FAVOURITE previews the selected favourite's palette")
+  T.check(screen.remapOff(), "FAVOURITE preview keeps Pokemon in their own colours")
+  G.rectangle, G.setColor = realRect, realColor
+  screen.paperPick = nil
+  game.press("up"); screen:update()
+  game.press("a"); screen:update()
+  local menu = game.stack:top()
+  for i, item in ipairs(menu.items) do if item.label == "WALLPAPER" then menu.index = i end end
+  game.press("a"); menu:update()
+  game.press("right"); screen:update()
+  T.check(screen.paperPick.moved, "changing only the artist dismisses the chooser instructions")
+  opts.grid, opts.peek, opts.animate = oldGrid, oldPeek, oldAnimate
+  store.boxPapers, store.favePapers = oldPapers, oldFaves
+end
+
 T.finish("gen3_box")

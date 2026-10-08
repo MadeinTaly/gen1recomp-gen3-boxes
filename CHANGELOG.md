@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.26.0 -- sixteen scenes redrawn, and 90S gets PRISM
+
+- Repaint all sixteen GEN3 BOX scenes with layered pixel art: a forest stream,
+  crystal cave and waterfall, ringed planet, snowy village, moonlit lake and
+  more. Weather, reflections, fish, petals, trains and circuit charges share
+  a seamless 1920-tick animation cycle. Give CAVE, CITY and CASTLE stronger
+  base palettes; authored variants keep their existing IDs. Third-party
+  artwork is unchanged. Rebuild the original 90S entry as a bold Memphis
+  pattern, with six colour palettes plus MONO, and add a distinct PRISM
+  composition in five colours. Its entries are GEN3 PRISM, GEN3 PRISM MINT,
+  GEN3 PRISM BLUE, GEN3 PRISM SUN and GEN3 PRISM ROSE. All twelve choices stay
+  in the 90S category; the first five artist positions keep old saves working.
+- Separate the snow village's houses and roofs instead of overlapping wide
+  buildings at a fixed spacing.
+- Preview FAVOURITE using its actual scene and artist, including the palette
+  settings that keep Pokemon coloured. Changing only the artist now replaces
+  the chooser instructions with the artist's name.
+- Restore the caller's canvas and transforms when wallpaper rendering fails,
+  including BIG's nested scale and a failed canvas composite.
+
 ## 1.25.0 -- the contest goes first, and WHAT'S NEW stops lying
 
 WHAT'S NEW opens once more for everyone, because three of its eight pages had
