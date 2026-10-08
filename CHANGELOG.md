@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.26.1 -- proper trees for FOREST and SAKURA
+
+- Redraw FOREST and SAKURA trees with asymmetric foliage clusters, layered
+  light and shade, tapered branching trunks and visible roots. Preserve the
+  stream, lake reflections, falling petals and existing palette choices.
+- Keep third-party artwork unchanged.
+- Fix moonlight, reflections and foreground accents in the reversed NIGHT
+  palettes of FOREST and SAKURA.
+- Rasterize the trees in pixel rows so concave foliage and roots render
+  correctly with LÖVE's convex-only polygon drawing. Reuse the silhouettes
+  instead of recalculating their pixel rows every frame.
+
 ## 1.26.0 -- sixteen scenes redrawn, and 90S gets PRISM
 
 - Repaint all sixteen GEN3 BOX scenes with layered pixel art: a forest stream,

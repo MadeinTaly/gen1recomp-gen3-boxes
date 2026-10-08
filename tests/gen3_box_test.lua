@@ -4619,6 +4619,72 @@ do
   for _, name in ipairs(names) do G[name] = saved[name] end
 end
 
+-- Moonlight must stay bright when a NIGHT artist reverses the palette ramp.
+do
+  local G, exports = love.graphics, run.loader.exports.gen3_box
+  local realNew, realRect, realColour = G.newCanvas, G.rectangle, G.setColor
+  G.newCanvas = nil
+  local ink, moon, cx, cy
+  G.setColor = function(r, g, b) ink = r + g + b end
+  G.rectangle = function(mode, x, y, width, height)
+    if not moon and mode == "fill" and height == 1 and y == cy and x <= cx and x + width > cx then moon = ink end
+  end
+  for _, paper in ipairs(exports.wallpapers) do
+    if paper.id == "FOREST" or paper.id == "SAKURA" then
+      cx = math.floor(160 * (paper.id == "FOREST" and 0.66 or 0.69))
+      cy = math.floor(144 * (paper.id == "FOREST" and 0.25 or 0.30))
+      local bright = true
+      for _, style in ipairs(exports.wallpaperArt[paper.id]) do
+        if not style.layers and not style.image then
+          moon = nil
+          exports.paintWallpaper(paper, 160, 144, style, 0)
+          local maximum = 0
+          for _, c in ipairs(style.palette or paper.palette) do maximum = math.max(maximum, (c[1] + c[2] + c[3]) / 255) end
+          if not moon or moon < maximum - 0.000001 then bright = false end
+        end
+      end
+      T.check(bright, paper.id .. " moon uses the brightest colour in every authored palette")
+    end
+  end
+  G.newCanvas, G.rectangle, G.setColor = realNew, realRect, realColour
+end
+
+-- LÖVE fills convex polygons only; concave tree outlines must use pixel rows.
+do
+  local G, exports = love.graphics, run.loader.exports.gen3_box
+  local realNew, realPoly = G.newCanvas, G.polygon
+  G.newCanvas = nil
+  for _, paper in ipairs(exports.wallpapers) do
+    if paper.id == "FOREST" or paper.id == "SAKURA" then
+      local convex = true
+      G.polygon = function(mode, ...)
+        if mode ~= "fill" then return end
+        local p, sign = { ... }, nil
+        local count = #p / 2
+        for i = 0, count - 1 do
+          local a, b, c = i * 2 + 1, ((i + 1) % count) * 2 + 1, ((i + 2) % count) * 2 + 1
+          local cross = (p[b] - p[a]) * (p[c + 1] - p[b + 1])
+            - (p[b + 1] - p[a + 1]) * (p[c] - p[b])
+          if cross ~= 0 then
+            local nextSign = cross > 0
+            if sign ~= nil and sign ~= nextSign then convex = false end
+            sign = nextSign
+          end
+        end
+      end
+      for _, style in ipairs(exports.wallpaperArt[paper.id]) do
+        if not style.layers and not style.image then
+          for _, size in ipairs({ { 160, 144 }, { 148, 136 }, { 288, 248 }, { 576, 576 } }) do
+            exports.paintWallpaper(paper, size[1], size[2], style, 37)
+          end
+        end
+      end
+      T.check(convex, paper.id .. " never sends a concave filled polygon to LÖVE")
+    end
+  end
+  G.newCanvas, G.polygon = realNew, realPoly
+end
+
 -- Village roofs keep visible space between neighbouring houses at every size.
 do
   local G, exports = love.graphics, run.loader.exports.gen3_box

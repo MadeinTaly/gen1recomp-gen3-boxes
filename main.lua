@@ -1537,12 +1537,19 @@ return function(mod)
     return drew
   end
 
+  -- Tree silhouettes are reusable masks, never cached colours or animation frames.
+  local treeMasks, treeMaskW, treeMaskH = {}, 0, 0
+
   -- Original scenes share a pixel grid and a 32-second loop at 60 ticks/s.
   -- Geometry stays still; only weather, water and explicitly travelling layers move.
   local function drawPattern(paper, w, h, t)
     local pattern = paper.pattern
     local phase = (t % 1920) / 1920
     local tau = math.pi * 2
+    local c = paper.palette
+    local darkFirst = c[1][1] + c[1][2] + c[1][3] < c[4][1] + c[4][2] + c[4][3]
+    local ink, shadow, leaf, light = darkFirst and 1 or 4, darkFirst and 2 or 3,
+      darkFirst and 3 or 2, darkFirst and 4 or 1
     local function wave(turns, offset)
       return math.sin(tau * (phase * (turns or 1) + (offset or 0)))
     end
@@ -1602,6 +1609,142 @@ return function(mod)
         for dy = 0, size * 2 do
           local half = math.floor(dy * 0.55 + tier * size * 0.2)
           rect(tone, alpha, x - half, top + dy, half * 2 + 1, 1)
+        end
+      end
+    end
+    local function broadleaf(x, base, size, mirror, blossom, alpha)
+      if x + size * 72 < 0 or x - size * 72 > w or base < 0 or base - size * 118 > h then return end
+      if treeMaskW ~= w or treeMaskH ~= h then
+        treeMasks, treeMaskW, treeMaskH = {}, w, h
+      end
+      local stretchX, stretchY, skew = 1, 1, 0
+      local function shape(tone, opacity, points, ox, oy, scale)
+        local p, minY, maxY = {}, math.huge, -math.huge
+        for i = 1, #points, 2 do
+          local u, v = points[i] * stretchX + points[i + 1] * skew, points[i + 1] * stretchY
+          p[i] = math.floor(x + ((ox or 0) + u * (scale or 1)) * size * mirror)
+          p[i + 1] = math.floor(base + ((oy or 0) + v * (scale or 1)) * size)
+          minY, maxY = math.min(minY, p[i + 1]), math.max(maxY, p[i + 1])
+        end
+        local originX, originY = p[1], p[2]
+        for i = 1, #p, 2 do p[i], p[i + 1] = p[i] - originX, p[i + 1] - originY end
+        local key = table.concat(p, ",")
+        local mask = treeMasks[key]
+        if not mask then
+          mask = {}
+          -- LOVE fills convex polygons only; cache the concave shape's scanlines.
+          for yy = minY - originY, maxY - originY do
+            local intersections = {}
+            for i = 1, #p, 2 do
+              local j = i + 2 > #p and 1 or i + 2
+              local x1, y1, x2, y2 = p[i], p[i + 1], p[j], p[j + 1]
+              if (y1 <= yy and y2 > yy) or (y2 <= yy and y1 > yy) then
+                intersections[#intersections + 1] = x1 + (yy - y1) / (y2 - y1) * (x2 - x1)
+              end
+            end
+            table.sort(intersections)
+            for i = 1, #intersections - 1, 2 do
+              local left, right = math.floor(intersections[i]), math.ceil(intersections[i + 1])
+              local previous = mask[#mask]
+              if previous and previous[1] == left and previous[3] == right - left + 1
+                and previous[2] + previous[4] == yy then
+                previous[4] = previous[4] + 1
+              else
+                mask[#mask + 1] = { left, yy, right - left + 1, 1 }
+              end
+            end
+          end
+          treeMasks[key] = mask
+        end
+        shade(paper, tone, opacity * alpha)
+        for _, band in ipairs(mask) do
+          local left, top = math.max(0, originX + band[1]), math.max(0, originY + band[2])
+          local right = math.min(math.ceil(w), originX + band[1] + band[3])
+          local bottom = math.min(math.ceil(h), originY + band[2] + band[4])
+          if right > left and bottom > top then
+            love.graphics.rectangle("fill", left, top, right - left, bottom - top)
+          end
+        end
+      end
+      local function limb(ax, ay, bx, by, startWidth, endWidth)
+        local dx, dy = bx - ax, by - ay
+        local length = math.sqrt(dx * dx + dy * dy)
+        local nx, ny = -dy / length, dx / length
+        shape(ink, 1, {ax + nx * startWidth, ay + ny * startWidth,
+          bx + nx * endWidth, by + ny * endWidth,
+          bx - nx * endWidth, by - ny * endWidth,
+          ax - nx * startWidth, ay - ny * startWidth})
+      end
+      -- Tapered forks and flared roots remain visible through the crown's gaps.
+      shape(ink, 1, {-13,0,-7,-7,-5,-22,-7,-37,-4,-52,0,-70,5,-74,
+        3,-51,3,-31,8,-10,15,-1,7,-3,4,-7,3,0,-2,-2,-3,-8,-7,-2})
+      limb(-3,-42,-15,-59,4,2)
+      limb(-15,-59,-34,-66,2,0.6)
+      limb(-15,-59,-18,-84,2,0.6)
+      limb(0,-57,18,-73,4,1.7)
+      limb(18,-73,36,-77,1.7,0.5)
+      limb(18,-73,22,-96,1.7,0.5)
+      limb(-2,-64,1,-90,2.5,0.6)
+      limb(3,-31,17,-49,2,0.7)
+      limb(17,-49,20,-59,0.7,0.2)
+      limb(17,-49,27,-55,0.7,0.2)
+      shape(shadow, 0.85, {-7,-4,-3,-18,-4,-34,-2,-49,1,-60,0,-40,0,-23,4,-8,8,-3,3,-5,0,-13,-1,-2})
+      shape(leaf, 0.35, {-6,-9,-4,-24,-5,-34,-3,-43,-3,-29,-2,-18,-3,-10})
+      if alpha > 0.5 then
+        shape(shadow, 0.8, {-1,-28,1,-36,2,-27,1,-22})
+        shape(ink, 0.9, {-1,-29,0,-33,1,-28,0,-25})
+      end
+      -- Original jagged foliage groups: broad lit planes, a broken lower edge,
+      -- and a few connected leaf marks rather than circular lobes or random dots.
+      local edge = {-14,0,-12,-4,-9,-4,-10,-8,-5,-8,-4,-12,0,-10,3,-14,
+        7,-11,12,-12,11,-8,16,-6,13,-2,17,1,12,4,14,7,8,8,7,12,
+        2,10,-1,13,-5,10,-10,11,-9,6,-14,5,-12,2}
+      local lit = {-12,-2,-9,-5,-9,-8,-4,-7,-3,-10,1,-8,4,-12,7,-9,
+        11,-10,10,-6,14,-5,10,-2,12,1,7,1,6,5,2,3,-1,6,-4,3,-9,4,-8,0}
+      local top = {-8,-5,-5,-7,-1,-5,2,-8,6,-7,8,-9,10,-6,6,-3,
+        2,-4,0,-1,-4,-3,-8,-2}
+      local flatter = {-15,0,-13,-3,-14,-5,-9,-5,-9,-8,-4,-7,-2,-10,
+        2,-9,6,-11,8,-8,13,-8,12,-5,16,-3,14,0,16,3,11,4,12,7,
+        7,7,5,10,1,9,-3,11,-6,8,-10,9,-10,5,-14,4,-12,1}
+      local marks = {{-5,-5,0.75},{4,-6,0.8},{-8,1,0.65},{1,1,0.85},{7,4,0.7},{-3,6,0.65}}
+      local groups = {
+        {-29,-73,1.12},{-10,-92,1.27},{14,-97,1.10},{35,-83,1.08},
+        {17,-75,1.16},{-15,-73,1.20},{-35,-58,0.83},{-4,-58,0.94},{32,-63,0.94},
+      }
+      for i, group in ipairs(groups) do
+        local gx, gy, scale = group[1], group[2], group[3]
+        if blossom then gx, gy = gx * 1.18, gy * 0.76 - 12 end
+        stretchX = 0.86 + (i * 3 % 5) * 0.09
+        stretchY = 1.12 - (i * 2 % 5) * 0.07
+        skew = (i % 3 - 1) * 0.16
+        local outline = i % 2 == 0 and flatter or edge
+        local sway = math.floor(wave(1, i * 0.035) * 1.3) / math.max(size, 0.1)
+        gx = gx + sway
+        local cx, cy = x + gx * size * mirror, base + gy * size
+        local reach = scale * size * 25
+        if cx + reach >= 0 and cx - reach <= w and cy + reach >= 0 and cy - reach <= h then
+          shape(ink, 0.55, outline, gx, gy + 2, scale)
+          shape(shadow, 1, outline, gx, gy, scale)
+          shape(leaf, 0.9, lit, gx, gy, scale)
+          if alpha > 0.5 then
+            shape(light, blossom and 0.35 or 0.3, top, gx, gy - 1, scale)
+            shape(leaf, 0.85, {-9,5,-5,4,-3,6,0,4,3,6,0,8,-4,7,-7,9}, gx, gy, scale)
+            shape(shadow, 0.72, {4,-1,8,-2,11,0,8,2,7,5,5,3}, gx, gy, scale)
+            for j, mark in ipairs(marks) do
+              local mx = gx + (mark[1] + (i + j) % 3 - 1) * scale
+              local my = gy + mark[2] * scale
+              local ms = mark[3] * scale
+              if blossom then
+                shape(light, j < 4 and 0.82 or 0.58,
+                  {-3,0,-1,-2,1,-1,3,-2,5,0,4,2,1,2,0,4,-2,2,-4,2}, mx, my, ms)
+                shape(shadow, 0.5, {1,1,3,0,3,2,1,3}, mx, my, ms)
+              else
+                shape(j < 4 and light or leaf, j < 4 and 0.6 or 0.95,
+                  {-5,0,-3,-2,1,-2,2,-3,5,-2,3,0,0,0,-1,2,-4,2}, mx, my, ms)
+                shape(shadow, 0.75, {-4,2,-1,0,2,1,4,0,3,2,0,3,-2,3}, mx, my, ms)
+              end
+            end
+          end
         end
       end
     end
@@ -1692,11 +1835,11 @@ return function(mod)
     elseif pattern == "FOREST" then
       local floorY = math.floor(h * 0.66)
       rect(2, 0.25, 0, 0, w, h)
-      ball(1, 0.75, w * 0.66, h * 0.25, 23)
-      for i = 0, math.ceil(w / 14) do
-        local x = i * 14 + hash(i, 1) % 6
-        rect(3, 0.22, x, 12, 3, floorY)
-        pine(x + 2, floorY + 8, 8 + i % 3, 3, 0.2)
+      ball(light, 0.75, w * 0.66, h * 0.25, 23)
+      for i = 0, math.ceil(w / 38) do
+        local x = i * 38 + hash(i, 1) % 9
+        broadleaf(x, floorY + 3, h / 144 * (0.42 + i % 2 * 0.06),
+          i % 2 == 0 and 1 or -1, false, 0.24)
       end
       for x = 0, w, 2 do
         local y = floorY + math.sin(x / 28) * 5
@@ -1708,39 +1851,28 @@ return function(mod)
         local cx = w * 0.55 + math.sin(depth * 4) * w * 0.12
         local width = 3 + depth * depth * w * 0.42
         rect(2, 0.95, cx - width / 2 - 2, y, width + 4, 1)
-        rect(1, 0.75, cx - width / 2, y, width, 1)
+        rect(light, 0.75, cx - width / 2, y, width, 1)
         if y % 7 == 0 then rect(3, 0.35, cx - width / 3 + wave(2, y / 20) * 2, y, width / 2, 1) end
       end
-      for side = 0, 1 do
-        local x = side == 0 and w * 0.08 or w * 0.92
-        rect(4, 0.9, x, 0, 7, h * 0.88)
-        rect(3, 0.8, x + 2, 10, 2, h * 0.72)
-        stroke(4, 0.9, x + 2, h * 0.35, x + (side == 0 and 22 or -24), h * 0.18, 3)
-        stroke(4, 0.9, x + 3, h * 0.83, x - 8, h * 0.91, 3)
-        for i = 0, 7 do
-          local cx = x - 27 + i * 8 + math.floor(wave(1, i / 15))
-          local cy = 5 + hash(i, side + 7) % 25
-          ball(3, 1, cx, cy, 12 + i % 4)
-          ball(2, 0.85, cx - 2, cy - 4, 9 + i % 3)
-          rect(1, 0.6, cx - 5, cy - 8, 5, 1)
-        end
-      end
+      local treeSize = math.max(0.4, math.min(w / 160, h / 144))
+      broadleaf(w * 0.09, h * 0.92, treeSize, 1, false, 1)
+      broadleaf(w * 0.97, h * 0.98, treeSize * 1.13, -1, false, 1)
       for i = 0, math.ceil(w / 9) do
         local x = i * 9 + hash(i, 4) % 4
         local y = h - 6 - hash(i, 3) % 13
         if x < w * 0.32 or x > w * 0.74 then
-          stroke(4, 0.6, x, y + 4, x - 2, y, 1)
-          stroke(4, 0.6, x, y + 4, x + 3, y - 2, 1)
+          stroke(ink, 0.6, x, y + 4, x - 2, y, 1)
+          stroke(ink, 0.6, x, y + 4, x + 3, y - 2, 1)
           if i % 3 == 0 then
-            rect(2, 1, x + 1, y - 1, 4, 2)
-            rect(1, 1, x + 2, y - 2, 2, 1)
+            rect(leaf, 1, x + 1, y - 1, 4, 2)
+            rect(light, 1, x + 2, y - 2, 2, 1)
           end
         end
       end
       for i = 0, 7 do
         local x, y = hash(i, 6) % w + wave(1, i / 5) * 3, h * 0.35 + hash(i, 8) % math.max(1, h * 0.45)
-        ball(1, 0.08 + 0.08 * wave(3, i / 7), x, y, 3)
-        rect(1, 0.5 + 0.4 * wave(3, i / 7), x, y, 1, 1)
+        ball(light, 0.08 + 0.08 * wave(3, i / 7), x, y, 3)
+        rect(light, 0.5 + 0.4 * wave(3, i / 7), x, y, 1, 1)
       end
 
     elseif pattern == "SKY" then
@@ -2231,7 +2363,7 @@ return function(mod)
     elseif pattern == "SAKURA" then
       local water = math.floor(h * 0.65)
       rect(2, 0.25, 0, 0, w, water)
-      ball(1, 0.9, w * 0.69, h * 0.30, 16)
+      ball(light, 0.9, w * 0.69, h * 0.30, 16)
       for x = 0, w, 2 do
         local y = water - 7 - math.sin(x / 32) * 5
         rect(3, 0.28, x, y, 2, water - y)
@@ -2239,41 +2371,27 @@ return function(mod)
       rect(3, 0.5, 0, water, w, h - water)
       for y = water + 3, h, 4 do
         local width = 15 + (y - water) * 0.3
-        rect(1, 0.45, w * 0.69 - width / 2 + wave(3, y / 22) * 3, y, width, 1)
+        rect(light, 0.45, w * 0.69 - width / 2 + wave(3, y / 22) * 3, y, width, 1)
       end
-      ripples(water + 2, h, 1, 0.35, 22)
-      -- A sloping trunk and branching canopy replace the straight ceiling bar.
-      stroke(4, 0.95, 0, h * 0.8, w * 0.11, h * 0.3, 8)
-      stroke(4, 0.95, w * 0.11, h * 0.3, w * 0.43, 12, 5)
-      stroke(4, 0.9, w * 0.19, h * 0.24, w * 0.10, 4, 3)
-      stroke(4, 0.9, w * 0.30, h * 0.17, w * 0.59, 24, 3)
-      stroke(3, 0.8, 3, h * 0.75, w * 0.12, h * 0.32, 2)
-      for i = 0, math.ceil(w / 4) do
-        local x = hash(i, 2) % math.max(1, w * 0.66)
-        local branch = i % 2 == 0 and (h * 0.27 - x * 0.28) or (9 + x * 0.1)
-        local y = branch + hash(i, 3) % 17 - 8
-        local sway = math.floor(wave(1, x / 600) * 1.5)
-        local radius = 6 + i % 3
-        ball(3, 0.9, x + sway, y + 2, radius)
-        ball(2, 1, x + sway - 1, y - 1, radius)
-        for petal = 0, 4 do
-          local px, py = x - 5 + petal * 2 + sway, y - 3 + (petal * 3) % 7
-          rect(1, 0.9, px - 1, py, 3, 1)
-          rect(1, 0.9, px, py - 1, 1, 3)
-          rect(3, 0.35, px, py, 1, 1)
-        end
+      ripples(water + 2, h, light, 0.35, 22)
+      -- The tree grows from the near bank; distant crowns soften the far shore.
+      for i = 0, math.ceil(w / 65) do
+        broadleaf(i * 65 + 18, water - 1, h / 144 * 0.3,
+          i % 2 == 0 and -1 or 1, true, 0.18)
       end
       for x = 0, w, 2 do
         local y = h - 7 + math.sin(x / 24) * 3
-        rect(4, 0.65, x, y, 2, h - y)
-        rect(2, 0.8, x, y, 2, 2)
+        rect(ink, 0.65, x, y, 2, h - y)
+        rect(leaf, 0.8, x, y, 2, 2)
       end
+      local treeSize = math.max(0.4, math.min(w / 160, h / 144))
+      broadleaf(w * 0.26, h - 5, treeSize * 1.06, 1, true, 1)
       for i = 0, 19 do
         local age = (phase * (2 + i % 2) + i * 0.173) % 1
         local y = age * (h + 12) - 6
         local x = (hash(i, 7) + age * 28 + wave(3, i / 7) * 4) % w
-        rect(2, 0.95, x, y, 2, 1 + i % 2)
-        rect(1, 0.65, x, y, 1, 1)
+        rect(leaf, 0.95, x, y, 2, 1 + i % 2)
+        rect(light, 0.65, x, y, 1, 1)
       end
 
     elseif pattern == "AURORA" then
