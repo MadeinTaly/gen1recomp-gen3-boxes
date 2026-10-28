@@ -29,8 +29,8 @@ The Gen 3 art -- `assets/gen3_wallpapers`, `assets/gen3_ui` and
 `assets/gen3_pointers` -- is under the same terms. It was generated with an
 AI image tool (ChatGPT) from prompts and shape templates written for this mod,
 then cut and fitted to the cart's own shapes by hand; MOON POND
-(`laghetto.png`) was supplied by the mod's author. None of it is taken from a
-ROM.
+(`laghetto.png`) was generated the same way by the mod's author. None of it is
+taken from a ROM.
 
 ## What it does not cover
 
