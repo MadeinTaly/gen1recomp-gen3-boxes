@@ -1,5 +1,55 @@
 # Changelog
 
+## 1.27.0-beta.1 -- the Gen 3 PC: all boxes, wallpapers, skins, pointers, touch
+
+Prerelease: the first build that loads on Gen 3. Verified in game on Emerald
+(0.3.97); Ruby, Sapphire, FireRed and LeafGreen are untested.
+
+On a Gen 3 boot the mod replaces nothing: the cart's own storage screen
+stays, and gains:
+
+- The WALLPAPER picker is the cart's two steps again, a theme and then a
+  wallpaper, with every wallpaper in a theme: the cart's SCENERY 1, 2, 3,
+  ETC and FRIENDS first (named from the ROM), then NATURE, FOOD, ADVENTURE
+  and RETRO. B in a theme goes back to the themes.
+- Eighteen wallpapers after the sixteen originals (and FRIENDS, once
+  Walda's phrase is solved): PIZZA, WATERFALL, STEAMPUNK, SAKURA NIGHT,
+  VAPORWAVE, MOON POND, SPACE, CANDY, AUTUMN, HALLOWEEN, AURORA, TEMPLE,
+  ARCADE, LIBRARY, SUSHI, SKY KINGDOM, FOCACCIA and PESTO. Each keeps the
+  original 160x144 shape, so the box name and the 6x5 grid sit where they
+  always do. EXTRA WALLPAPERS in the mod options (on by default) hides them.
+- Skins for the box screen: ORIGINAL, MINIMAL, MINIMAL DARK, NIGHT and
+  YOLO FLUO. A skin brings its own side panel and backdrop and recolours the
+  cart's buttons, party drawer and PKMN DATA bar at draw time.
+- Twenty pointers beside the cart's hand, all pointing down.
+- POINTER SHADOW: SOFT (half strength, the default), ORIGINAL or OFF.
+- SKIN and POINTER in the box menu (the one with WALLPAPER), with a live
+  preview; B puts back what was there. Both are also mod options.
+- ALL BOXES: every box on one screen, as many as the window holds, in pages.
+  It is laid out from the window itself, so a phone held upright gets a
+  column-wise grid that fills the screen (six boxes on 540x960) and a
+  desktop gets a wide one. The skin's own frame runs round the edge, and big
+  PAGE and CLOSE buttons sit along the bottom; the engine's on-screen pad is
+  hidden while the view is up and comes back as it was. Above the boxes, a
+  PKMN DATA card, centred: the cart's screen with the front picture, then
+  name, gender and level, item and markings of the Pokemon in hand or under
+  the cursor. PKMN DATA CARD in the mod options (on by default) hides it, and
+  the boxes take its room. Along the bottom, the
+  cart's own PARTY POKeMON and CLOSE BOX between the PAGE arrows; PARTY
+  opens the party drawer on the cart's screen. The wheel, or a two-finger
+  pinch, zooms: each step halves the boxes shown, down to one, and zoomed in
+  the cells show each Pokemon's front picture instead of its icon. The
+  backdrop's pattern grows with the boxes.
+- Touch: a tap is the cart's own A on what was tapped -- a slot, the box
+  name, the arrows, PARTY POKeMON, CLOSE BOX, a party slot or a menu row.
+  The mouse wheel changes box, or scrolls an open list.
+- The wallpaper choice is saved with the box. A save opened without the mod
+  shows the last original wallpaper instead.
+- Gen 3 has no hook for any of this, so the mod patches the box screen and
+  its chrome (pc_chrome / box_storage_ui) in a few named places; touch and
+  wheel go through the official input.pointer and input.wheel hooks. An
+  engine update that renames those functions can break this part.
+
 ## 1.26.1 -- proper trees for FOREST and SAKURA
 
 - Redraw FOREST and SAKURA trees with asymmetric foliage clusters, layered

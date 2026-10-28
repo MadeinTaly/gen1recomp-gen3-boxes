@@ -5,7 +5,7 @@ return {
   -- shown in the manager's detail pane next to the author
   support = "https://linktr.ee/made_in_taly",
   tags = { "ui", "storage", "quality-of-life", "boxes" },
-  compat = { modApi = 2, games = { "gen1", "gen2" } },
+  compat = { modApi = 2, games = { "gen1", "gen2", "gen3" } },
   differences = {
     added = {
       "SLOTS: how opaque each cell is over the wallpaper -- CLEAR, 25%, 40%, 60%, 80% -- because how much scene you want behind your Pokemon is a taste with no right answer",

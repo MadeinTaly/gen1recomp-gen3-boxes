@@ -1,11 +1,12 @@
 {
   "id": "gen3_box",
   "name": "Gen 3 Box",
-  "version": "1.26.1",
+  "version": "1.27.0-beta.1",
   "api": 2,
   "games": [
     "gen1",
-    "gen2"
+    "gen2",
+    "gen3"
   ],
   "entry": "main.lua",
   "profile": "content",
@@ -18,6 +19,6 @@
   "permissions": [
     "engine_internals"
   ],
-  "description": "A Ruby/Sapphire-style storage screen over Gen 1's twelve boxes of twenty: a visible 5x4 grid drawn from the per-species battle pics, a cursor that picks a Pokemon up and puts it down, swapping on an occupied slot, and SELECT to cross between the box and the party. Search every box by species, type, or mark with FIND; sort by dex, level, name, or type with UNDO; mark Pokemon with the four Gen 3 symbols; give each box a custom name up to eight glyphs and pick one of 98 wallpapers across sixteen scenes, including the Memphis and PRISM geometric designs in 90S, which cover the whole screen and drift while you look at them, with the grid's slots laid over them at an opacity you choose; and hear a cry every time a Pokemon lands. BOX HEALS rests everything in storage when you close the screen. The wallpaper drifts while you look at it, and every cell sits on a 15% white wash so the grid reads as a shelf of slots. GRID BIG doubles the surface to 320x288, showing battle pics at full size and giving each Pokemon its own species palette. OW SPRITES (on by default) draws Wilds of Kanto's overworld sprites in the CLASSIC grid when that mod is installed. It runs on Gold as well as on Red, Blue and Yellow: Gen 2's fourteen boxes, its split Special, its own summary screen and its MAIL rules are all honoured.",
+  "description": "A Ruby/Sapphire-style storage screen over Gen 1's twelve boxes of twenty: a visible 5x4 grid drawn from the per-species battle pics, a cursor that picks a Pokemon up and puts it down, swapping on an occupied slot, and SELECT to cross between the box and the party. Search every box by species, type, or mark with FIND; sort by dex, level, name, or type with UNDO; mark Pokemon with the four Gen 3 symbols; give each box a custom name up to eight glyphs and pick one of 98 wallpapers across sixteen scenes, including the Memphis and PRISM geometric designs in 90S, which cover the whole screen and drift while you look at them, with the grid's slots laid over them at an opacity you choose; and hear a cry every time a Pokemon lands. BOX HEALS rests everything in storage when you close the screen. The wallpaper drifts while you look at it, and every cell sits on a 15% white wash so the grid reads as a shelf of slots. GRID BIG doubles the surface to 320x288, showing battle pics at full size and giving each Pokemon its own species palette. OW SPRITES (on by default) draws Wilds of Kanto's overworld sprites in the CLASSIC grid when that mod is installed. It runs on Gold as well as on Red, Blue and Yellow: Gen 2's fourteen boxes, its split Special, its own summary screen and its MAIL rules are all honoured. On Ruby, Sapphire and Emerald it works inside the cart's own PC: eighteen extra wallpapers after the sixteen originals (EXTRA WALLPAPERS, on by default), five skins for the box screen (ORIGINAL, MINIMAL, MINIMAL DARK, NIGHT, YOLO FLUO), twenty-one pointers, a softer pointer shadow, an ALL BOXES view that shows every box the window holds and moves Pokemon between them, SKIN and POINTER in the box menu, tap to select and the mouse wheel to change box.",
   "github": "MadeinTaly/gen1recomp-gen3-boxes"
 }

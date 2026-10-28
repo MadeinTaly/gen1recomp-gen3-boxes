@@ -25,6 +25,13 @@ The wallpapers labelled `GEN3 BOX` in the WALLPAPER menu -- every scene drawn
 in `main.lua` rather than loaded from a file. The drawing code is MIT like the
 rest of the code; the pictures it produces are art, under the terms above.
 
+The Gen 3 art -- `assets/gen3_wallpapers`, `assets/gen3_ui` and
+`assets/gen3_pointers` -- is under the same terms. It was generated with an
+AI image tool (ChatGPT) from prompts and shape templates written for this mod,
+then cut and fitted to the cart's own shapes by hand; MOON POND
+(`laghetto.png`) was supplied by the mod's author. None of it is taken from a
+ROM.
+
 ## What it does not cover
 
 Third-party art shipped alongside keeps **its own licence**, which is

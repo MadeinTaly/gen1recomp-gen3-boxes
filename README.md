@@ -23,7 +23,8 @@ published, and it can be installed from the launcher's **Find mods** tab
 without touching a file at all.
 
 Requires Gen1Recomp with mod API 2 (engine 0.1.37 or newer). Gold needs
-0.1.79 or newer — see **On Gold** below.
+0.1.79 or newer — see **On Gold** below. Ruby, Sapphire and Emerald need an
+engine with Gen 3 (tested on 0.3.97) — see **On Ruby, Sapphire and Emerald**.
 
 ## On Gold
 
@@ -49,6 +50,30 @@ What is different there, and nowhere else:
 
 Everything else — FIND, SORT, MARKS, NAME BOX, PLACE CRY, the header row and
 the BOX MENU — is the same screen doing the same thing.
+
+## On Ruby, Sapphire and Emerald
+
+**Prerelease** (`1.27.0-beta.x`): verified in game on Emerald; Ruby,
+Sapphire, FireRed and LeafGreen are untested.
+
+Gen 3 already has a box screen of its own, so there the mod replaces nothing:
+the cart's PC stays exactly as it is and gains, from **START → MODS → Gen 3
+Box → OPTIONS** or from the box menu (A on the box name):
+
+| | on Gen 3 |
+| --- | --- |
+| `EXTRA WALLPAPERS` | eighteen more wallpapers (on by default). The WALLPAPER picker is the cart's two steps, a theme then a wallpaper: SCENERY 1-3, ETC and FRIENDS as the cart has them, then NATURE, FOOD, ADVENTURE and RETRO |
+| `BOX SKIN` / SKIN | ORIGINAL, MINIMAL, MINIMAL DARK, NIGHT, YOLO FLUO: the side panel, the backdrop and a recolour of the buttons; previewed live from the box menu |
+| `BOX POINTER` / POINTER | the cart's hand or one of twenty pointers |
+| `POINTER SHADOW` | SOFT (half strength, default), ORIGINAL, OFF |
+| ALL BOXES | SELECT, or ALL BOXES in the box menu: every box the screen holds, laid out from the device itself — a column on a phone held upright, a grid on a desktop — with a PKMN DATA card on top (`PKMN DATA CARD` hides it), PARTY POKéMON and CLOSE BOX along the bottom. Move a Pokémon between boxes by tap or with A; the wheel or a pinch zooms, and zoomed in each cell shows the Pokémon's front picture |
+| touch | a tap is the cart's own A on what was tapped; the wheel changes box |
+
+There is no hook for any of this on Gen 3, so the mod patches the box screen
+in a few named places (`pc_chrome`, `box_storage_ui`); touch, wheel and the
+ALL BOXES view go through the official `input.pointer`, `input.wheel` and
+`render.hud` hooks. An engine update that renames those functions can break
+the Gen 3 part until the mod follows it.
 
 ## Controls
 
