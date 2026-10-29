@@ -76,16 +76,16 @@ Box → OPTIONS** or from the box menu (A on the box name):
 
 | | on Gen 3 |
 | --- | --- |
-| `EXTRA WALLPAPERS` | eighteen more wallpapers (on by default). The WALLPAPER picker is the cart's two steps, a theme then a wallpaper: SCENERY 1-3, ETC and FRIENDS as the cart has them, then NATURE, FOOD, ADVENTURE and RETRO |
-| `BOX SKIN` / SKIN | ORIGINAL, MINIMAL, MINIMAL DARK, NIGHT, YOLO FLUO: the side panel, the backdrop and a recolour of the buttons; previewed live from the box menu |
+| `EXTRA WALLPAPERS` | eighteen more wallpapers (on by default). The WALLPAPER picker is the cart's two steps, a theme then a wallpaper: SCENERY 1-3, ETC and FRIENDS as the cart has them, then NATURE, FOOD, ADVENTURE and RETRO. The box wears the wallpaper under the cursor as you scroll; A keeps it, B puts the old one back |
+| `BOX SKIN` / SKIN | fifteen: ORIGINAL, MINIMAL, MINIMAL DARK, NIGHT, YOLO FLUO, GAME BOY, POKE BALL, ULTRA BALL, MASTER BALL, TEAM MAGMA, TEAM AQUA, FOREST, OCEAN, SAKURA, CYBER. The side panel, the backdrop, the ALL BOXES frame and a recolour of the buttons and the party drawer (never of the Pokémon in it); previewed live from the box menu |
 | `BOX POINTER` / POINTER | the cart's hand or one of twenty pointers |
 | `OPEN FROM` | START+PC (default): a BOXES row on the START menu opens the PC from anywhere; PC: only the cart's own PC. Same row as on Gen 1 and 2 |
 | `BOX HEALS` | off by default, as on Gen 1 and 2: closing the PC rests everything in storage, through the cart's own `Storage.fullHealMon` |
-| `FULL SCREEN` | on by default: ALL BOXES (below). Off takes SELECT and the box-menu row away |
+| `FULL SCREEN` | on by default: ALL BOXES (below). Off takes its box-menu row away |
 | `TOUCH` | on by default: taps and the wheel (below). Off leaves the PC buttons-only |
 | `PLACE CRY` | on by default: the cry of a Pokémon as it is put down, on the cart's screen and in ALL BOXES |
 | `POINTER SHADOW` | SOFT (half strength, default), ORIGINAL, OFF |
-| ALL BOXES | SELECT, or ALL BOXES in the box menu: every box the screen holds, laid out from the device itself — a column on a phone held upright, a grid on a desktop — with a PKMN DATA card on top (`PKMN DATA CARD` hides it), PARTY POKéMON and CLOSE BOX along the bottom. Move a Pokémon between boxes by tap or with A; the wheel or a pinch zooms, and zoomed in each cell shows the Pokémon's front picture |
+| ALL BOXES | ALL BOXES in the box menu (SELECT stays the cart's): every box the screen holds, laid out from the device itself — a column on a phone held upright, a grid on a desktop — with a PKMN DATA card on top (`PKMN DATA CARD` hides it) and each box's fill count by its name. Drag a Pokémon with a finger, or tap / A to pick up and put down, between boxes and the party (START or PARTY POKéMON shows the party as a row over the boxes); the cart's own rules apply, so the last Pokémon of the party stays. A box's name opens that box's menu and the view comes back after. The wheel or a pinch zooms, and zoomed in each cell shows the Pokémon's front picture; zoom and the party row are remembered |
 | touch | a tap is the cart's own A on what was tapped; the wheel changes box |
 | WHAT'S NEW | Gen 3's own: once per version on the first PC open, and from WHAT'S NEW in the box menu |
 | WHAT'S NEW | Gen 3's own: once per version on the first PC open, and from WHAT'S NEW in the box menu |

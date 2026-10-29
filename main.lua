@@ -155,6 +155,56 @@ local GEN3_SKINS = {
     tint = { hue = 2.6, sat = 1.9, val = 1.15, duo = 0 },
     text = { fg = { 0.08, 0.02, 0.12 }, shadow = { 1.00, 1.00, 1.00 } },
     card = { bg = { 0.75, 1.00, 0.08 }, line = { 0.05, 0.02, 0.10 } } },
+  { id = "gameboy", name = "GAME BOY", panel = "panel_gameboy", bg = "bg_gameboy",
+    tint = { hue = 0, sat = 0, val = 1, duo = 1,
+             lo = { 0.06, 0.22, 0.06 }, hi = { 0.61, 0.74, 0.06 } },
+    text = { fg = { 0.06, 0.22, 0.06 }, shadow = { 0.55, 0.67, 0.06 } },
+    card = { bg = { 0.55, 0.67, 0.06 }, line = { 0.19, 0.38, 0.19 } } },
+  { id = "pokeball", name = "POKE BALL", panel = "panel_pokeball", bg = "bg_pokeball",
+    tint = { hue = 0, sat = 0.7, val = 1, duo = 0.5,
+             lo = { 0.35, 0.05, 0.05 }, hi = { 0.98, 0.96, 0.95 } },
+    text = { fg = { 0.15, 0.15, 0.18 }, shadow = { 0.85, 0.85, 0.88 } },
+    card = { bg = { 0.95, 0.94, 0.92 }, line = { 0.85, 0.1, 0.1 } } },
+  { id = "ultraball", name = "ULTRA BALL", panel = "panel_ultraball", bg = "bg_ultraball",
+    tint = { hue = 0, sat = 0.7, val = 1, duo = 0.6,
+             lo = { 0.1, 0.1, 0.12 }, hi = { 1.0, 0.85, 0.2 } },
+    text = { fg = { 0.12, 0.12, 0.14 }, shadow = { 0.85, 0.85, 0.8 } },
+    card = { bg = { 0.94, 0.93, 0.88 }, line = { 0.12, 0.12, 0.14 } } },
+  { id = "masterball", name = "MASTER BALL", panel = "panel_masterball", bg = "bg_masterball",
+    tint = { hue = 0, sat = 0.7, val = 1, duo = 0.6,
+             lo = { 0.25, 0.08, 0.4 }, hi = { 0.95, 0.75, 0.95 } },
+    text = { fg = { 0.2, 0.1, 0.3 }, shadow = { 0.85, 0.8, 0.9 } },
+    card = { bg = { 0.94, 0.93, 0.95 }, line = { 0.45, 0.2, 0.65 } } },
+  { id = "magma", name = "TEAM MAGMA", panel = "panel_magma", bg = "bg_magma",
+    tint = { hue = 0, sat = 0.7, val = 1, duo = 0.7,
+             lo = { 0.12, 0.05, 0.05 }, hi = { 1.0, 0.55, 0.25 } },
+    text = { fg = { 0.20, 0.10, 0.08 }, shadow = { 0.85, 0.80, 0.75 } },
+    card = { bg = { 0.93, 0.92, 0.88 }, line = { 0.85, 0.25, 0.10 } } },
+  { id = "aqua", name = "TEAM AQUA", panel = "panel_aqua", bg = "bg_aqua",
+    tint = { hue = 0, sat = 0.7, val = 1, duo = 0.7,
+             lo = { 0.03, 0.08, 0.2 }, hi = { 0.6, 0.9, 1.0 } },
+    text = { fg = { 0.08, 0.18, 0.35 }, shadow = { 0.75, 0.85, 0.95 } },
+    card = { bg = { 0.85, 0.92, 0.97 }, line = { 0.10, 0.30, 0.55 } } },
+  { id = "forest", name = "FOREST", panel = "panel_forest", bg = "bg_forest",
+    tint = { hue = 0, sat = 0.7, val = 1, duo = 0.6,
+             lo = { 0.18, 0.12, 0.06 }, hi = { 0.85, 0.95, 0.6 } },
+    text = { fg = { 0.2, 0.14, 0.08 }, shadow = { 0.85, 0.8, 0.65 } },
+    card = { bg = { 0.9, 0.84, 0.68 }, line = { 0.4, 0.28, 0.15 } } },
+  { id = "ocean", name = "OCEAN", panel = "panel_ocean", bg = "bg_ocean",
+    tint = { hue = 0, sat = 0.7, val = 1, duo = 0.6,
+             lo = { 0.1, 0.3, 0.4 }, hi = { 0.9, 0.98, 1.0 } },
+    text = { fg = { 0.12, 0.25, 0.32 }, shadow = { 0.85, 0.92, 0.95 } },
+    card = { bg = { 0.95, 0.92, 0.82 }, line = { 0.35, 0.7, 0.75 } } },
+  { id = "sakura", name = "SAKURA", panel = "panel_sakura", bg = "bg_sakura",
+    tint = { hue = 0, sat = 0.7, val = 1, duo = 0.6,
+             lo = { 0.35, 0.15, 0.2 }, hi = { 1.0, 0.9, 0.94 } },
+    text = { fg = { 0.35, 0.15, 0.22 }, shadow = { 0.95, 0.85, 0.9 } },
+    card = { bg = { 1.0, 0.96, 0.94 }, line = { 0.9, 0.55, 0.7 } } },
+  { id = "cyber", name = "CYBER", panel = "panel_cyber", bg = "bg_cyber",
+    tint = { hue = 0, sat = 0.7, val = 1, duo = 0.75,
+             lo = { 0.02, 0.03, 0.06 }, hi = { 0.3, 0.95, 1.0 } },
+    text = { fg = { 0.10, 0.10, 0.16 }, shadow = { 0.70, 0.72, 0.78 } },
+    card = { bg = { 0.80, 0.82, 0.85 }, line = { 0.95, 0.20, 0.75 } } },
 }
 
 -- "hand" is the cart's own; the rest are 32x128 sheets in the cart's
@@ -285,7 +335,34 @@ local function gen3(mod)
   local function skin() return (find(GEN3_SKINS, chosen("gen3_skin", "original"))) end
   local function pointer() return (find(GEN3_POINTERS, chosen("gen3_pointer", "hand"))) end
 
-  local SWAPPED = { "_frameImg", "_bgImg", "_cursorImg" }
+  local tintShader -- the skin's recolour shader, defined with tinted() below
+  -- the party drawer's textures are recoloured into copies once per skin:
+  -- the drawer itself is then drawn as the cart draws it, Pokemon icons in
+  -- their own colours on top
+  local TINTED = { "_partyDrawerBgImg", "_partySlotFilledImg", "_partySlotEmptyImg" }
+  local copies = {}
+  local function tintedCopy(img, sk)
+    local key = tostring(img) .. "|" .. sk.id
+    if copies[key] ~= nil then return copies[key] or nil end
+    copies[key] = false
+    pcall(function()
+      local w, h = img:getDimensions()
+      local canvas = love.graphics.newCanvas(w, h, { dpiscale = 1 })
+      love.graphics.push("all")
+      love.graphics.setCanvas(canvas)
+      love.graphics.origin()
+      love.graphics.clear(0, 0, 0, 0)
+      love.graphics.setShader(tintShader(sk.tint))
+      love.graphics.setColor(1, 1, 1, 1)
+      love.graphics.draw(img, 0, 0)
+      love.graphics.pop()
+      canvas:setFilter("nearest", "nearest")
+      copies[key] = canvas
+    end)
+    return copies[key] or nil
+  end
+  local SWAPPED = { "_frameImg", "_bgImg", "_cursorImg",
+                    "_partyDrawerBgImg", "_partySlotFilledImg", "_partySlotEmptyImg" }
   local native, ours = {}, {}
   local function apply()
     for _, field in ipairs(SWAPPED) do
@@ -298,6 +375,9 @@ local function gen3(mod)
     ours._frameImg = not rs and s.panel and art("assets/gen3_ui/" .. s.panel .. ".png") or nil
     ours._bgImg = s.bg and art("assets/gen3_ui/" .. s.bg .. ".png") or nil
     ours._cursorImg = p.id ~= "hand" and art("assets/gen3_pointers/" .. p.id .. ".png") or nil
+    for _, field in ipairs(TINTED) do
+      ours[field] = s.tint and native[field] and tintedCopy(native[field], s) or nil
+    end
     for _, field in ipairs(SWAPPED) do PcChrome[field] = ours[field] or native[field] end
   end
 
@@ -309,17 +389,23 @@ local function gen3(mod)
   end
 
   local shader
-  local function tinted(draw)
-    local t = skin().tint
-    if not t or PcChrome._effect or not love.graphics.newShader then return draw() end
+  function tintShader(t)
+    if not (t and love.graphics.newShader) then return nil end
     if shader == nil then
       local ok, made = pcall(love.graphics.newShader, GEN3_TINT_SHADER)
       shader = ok and made or false
     end
-    if not shader then return draw() end
+    if not shader then return nil end
     shader:send("lo", t.lo or { 0, 0, 0 }); shader:send("hi", t.hi or { 1, 1, 1 })
     shader:send("duo", t.duo or 0); shader:send("hue", t.hue or 0)
     shader:send("sat", t.sat or 1); shader:send("val", t.val or 1)
+    return shader
+  end
+  local function tinted(draw)
+    local t = skin().tint
+    if not t or PcChrome._effect then return draw() end
+    local shader = tintShader(t)
+    if not shader then return draw() end
     local previous = love.graphics.getShader()
     love.graphics.setShader(shader)
     local ok, err = pcall(draw)
@@ -327,7 +413,7 @@ local function gen3(mod)
     if not ok then error(err, 0) end
   end
 
-  for _, name in ipairs({ "drawTopButtons", "drawPartyDrawer", "drawWaveforms" }) do
+  for _, name in ipairs({ "drawTopButtons", "drawWaveforms" }) do
     local original = PcChrome[name]
     PcChrome[name] = function(...)
       local args, n = { ... }, select("#", ...)
@@ -375,6 +461,12 @@ local function gen3(mod)
       lettering:setFilter("nearest", "nearest")
     end)
     return lettering or nil
+  end
+
+  local drawBackground = PcChrome.drawBackground
+  PcChrome.drawBackground = function(frame, ...)
+    if skin().bg then frame = math.floor((tonumber(frame) or 0) / 3) end
+    return drawBackground(frame, ...)
   end
 
   local drawInterfaceFrame = PcChrome.drawInterfaceFrame
@@ -509,6 +601,9 @@ local function gen3(mod)
 
   -- whichever list is up: nil | "menu" | "wallpaper" | "skin" | "pointer"
   local list, cursor, before
+  -- the box's wallpaper when the picker opened, put back by B; and `quiet`,
+  -- a preview change: no fade, nothing for the cart to animate
+  local wpBefore, quiet
   local view -- the ALL BOXES view when it is up (below)
 
   local function listFor(kind)
@@ -524,6 +619,7 @@ local function gen3(mod)
     local entries = listFor(kind)
     if kind == "theme" then
       local box = currentBox()
+      if wpBefore == nil then wpBefore = box and box.wallpaper end
       for i, t in ipairs(entries) do
         for _, id in ipairs(t.ids) do if box and id == box.wallpaper then cursor = i end end
       end
@@ -539,13 +635,32 @@ local function gen3(mod)
   end
 
   -- live preview: the skin or pointer under the cursor is the one on screen
+  local function previewWallpaper()
+    local box = currentBox()
+    if not box then return end
+    local entries = listFor(list)
+    local e = entries[cursor]
+    if not e then return end
+    local id
+    if list == "theme" then
+      for _, x in ipairs(e.ids) do if x == wpBefore then id = x end end
+      id = id or e.ids[1]
+    else
+      id = e.id
+    end
+    if id and box.wallpaper ~= id then box.wallpaper = id; quiet = true end
+  end
+
+  -- live preview: the skin, pointer or wallpaper under the cursor is the
+  -- one on screen
   local function preview()
     if list == "skin" then choose("gen3_skin", GEN3_SKINS[cursor].id); apply() end
     if list == "pointer" then choose("gen3_pointer", GEN3_POINTERS[cursor].id); apply() end
+    if list == "theme" or list == "wallpaper" then previewWallpaper() end
   end
 
   local function close(mode)
-    list, cursor, before = nil, nil, nil
+    list, cursor, before, wpBefore = nil, nil, nil, nil
     BoxStorageUI.mode = mode
   end
 
@@ -565,7 +680,11 @@ local function gen3(mod)
   end
 
   local handleInput = BoxStorageUI.handleInput
-  local openView, viewInput, viewPointer, drawCard -- ALL BOXES, defined below
+  local openView, viewInput, viewPointer, drawCard, resumeView -- ALL BOXES, defined below
+  local resume -- the view, set aside while one box's menu is open
+  local hitAt -- what is under a point of the window (ALL BOXES)
+  local remember -- the view's zoom and party row, kept for next time
+  local toggleParty -- the party row on or off (ALL BOXES)
   local newsPage, openNews -- WHAT'S NEW, defined at the end
 
   -- PLACE CRY: the cry of the Pokemon just put down, through the cart's own
@@ -579,10 +698,6 @@ local function gen3(mod)
   BoxStorageUI.handleInput = function(input)
     if view then return viewInput(input) end
     if not active() then
-      if BoxStorageUI.open and BoxStorageUI.mode == "browse" and input:wasPressed("select")
-          and option("fullscreen", true) ~= false then
-        return openView()
-      end
       return handleInput(input)
     end
     local p = BoxStorageUI._presentation
@@ -615,7 +730,9 @@ local function gen3(mod)
         close("browse"); se("SE_BAG_POCKET")
       elseif list == "theme" then
         theme = e
-        open("wallpaper"); se("SE_SELECT")
+        local keep = wpBefore
+        open("wallpaper"); wpBefore = keep
+        preview(); se("SE_SELECT")
       elseif list == "wallpaper" then
         local box = currentBox()
         if box then box.wallpaper = e.id end
@@ -635,11 +752,17 @@ local function gen3(mod)
         open("theme")
         for i, t in ipairs(listFor("theme")) do if from and t.theme == from.theme then cursor = i end end
       else
+        if list == "theme" and wpBefore ~= nil then
+          local box = currentBox()
+          if box and box.wallpaper ~= wpBefore then box.wallpaper = wpBefore; quiet = true end
+        end
         close("browse")
       end
       se("SE_SELECT")
     end
-    if p and BoxStorageUI.open then p:observe(snapshot, Presentation.capture(BoxStorageUI)) end
+    -- a preview swaps the wallpaper outright: no fade on every step
+    if p and BoxStorageUI.open and not quiet then p:observe(snapshot, Presentation.capture(BoxStorageUI)) end
+    quiet = nil
   end
 
   local draw = BoxStorageUI.draw
@@ -771,7 +894,10 @@ local function gen3(mod)
     -- PKMN DATA CARD off: no card, and the boxes have its room
     local card = option("gen3_card", true) ~= false
     local barH = card and math.ceil(72 * bs) or 0
-    local iy = top + (card and barH + 6 * k or 0)
+    -- PARTY POKeMON shows the party as a row of six over the boxes
+    local partyOn = view and view.showParty
+    local partyH = partyOn and math.ceil(32 * bs) or 0
+    local iy = top + (card and barH + 6 * k or 0) + (partyOn and partyH + 6 * k or 0)
     ih = h - iy - border - bar
     best = pick(math.huge)
     local zoom = view and view.zoom or 0
@@ -786,7 +912,9 @@ local function gen3(mod)
                 w = w, h = h, border = border,
                 x = math.floor(ix + (iw - gw) / 2), y = math.floor(iy + (ih - gh) / 2) }
     -- the bar sits right on the grid's top
-    L.bar = card and { s = bs, y = math.max(top, L.y - barH - 4 * k),
+    local partyY = L.y - partyH - 4 * k
+    L.party = partyOn and { s = bs, y = math.max(top, partyY), x = math.floor((w - 176 * bs) / 2) } or nil
+    L.bar = card and { s = bs, y = math.max(top, (partyOn and partyY - 6 * k or L.y - 4 * k) - barH),
               x = math.floor((w - 176 * bs) / 2) } or nil
     -- the bottom bar: PAGE arrows at the ends and, between them, the cart's
     -- own PARTY POKeMON (96x16) and CLOSE BOX (72x16), as big as fits
@@ -832,29 +960,29 @@ local function gen3(mod)
 
   function openView()
     if BoxStorageUI.holdingMon then return end
+    resume = nil
     local _, storage = boxes()
     local L = layout(windowSize())
     local b = storage and storage.currentBox or 1
-    view = { page = math.floor((b - 1) / L.per), box = b, slot = 1 }
+    local okR, kept = pcall(function() return mod.save:get("allBoxes") end)
+    kept = okR and type(kept) == "table" and kept or {}
+    view = { box = b, slot = 1, zoom = tonumber(kept.zoom) or 0, showParty = kept.showParty == true }
+    view.page = math.floor((b - 1) / layout(windowSize()).per)
     hidePad(true)
     se("SE_SELECT")
   end
 
+  -- where the cursor is: a box slot, or a party slot when the row is shown
+  local function here()
+    if view.where == "party" then return "party", view.pslot, nil end
+    return "box", view.slot, view.box
+  end
+
   local function closeView()
     local h = view and view.hand
-    if h then
-      local list = boxes()
-      if list[h.box] and list[h.box].mons[h.slot] == nil then
-        list[h.box].mons[h.slot] = h.mon
-      else
-        local placed = false
-        for _, bx in ipairs(list) do
-          for s = 1, StorageMod.IN_BOX_COUNT do
-            if not placed and bx.mons[s] == nil then bx.mons[s] = h.mon; placed = true end
-          end
-        end
-      end
-    end
+    -- a Pokemon still in hand goes back where it came from, or wherever the
+    -- cart's own restoreHeldMon finds room
+    if h then pcall(StorageMod.restoreHeldMon, session(), h.mon, h.origin) end
     -- the cart's screen comes back on the box the cursor was in
     local _, storage = boxes()
     if storage and view then storage.currentBox = view.box end
@@ -863,19 +991,62 @@ local function gen3(mod)
     se("SE_SELECT")
   end
 
-  local function act()
-    local list = boxes()
-    local bx = list[view.box]
-    if not bx then return end
-    local here = bx.mons[view.slot]
+  -- The box menu of the box whose name the cursor is on: the view steps
+  -- aside, the cart's own box menu opens on that box (WALLPAPER with its
+  -- preview, SKIN, POINTER, NAME where the cart has it), and once that is
+  -- done and the cart is back to browsing, the view comes back as it was.
+  local function openBoxMenu(b)
     if view.hand then
-      bx.mons[view.slot] = view.hand.mon
-      cry(view.hand.mon)
-      view.hand = here and { mon = here, box = view.box, slot = view.slot } or nil
+      pcall(function()
+        require("src.core.game3.audio").playSe(require("src.core.game3.se_ids").SE_FAILURE)
+      end)
+      return
+    end
+    resume = { page = view.page, box = b, slot = view.slot, showParty = view.showParty,
+               zoom = view.zoom, where = "header" }
+    local _, storage = boxes()
+    if storage then storage.currentBox = b end
+    view = nil
+    hidePad(false)
+    BoxStorageUI.cursorSlot, BoxStorageUI.mode, BoxStorageUI.boxMenuCursor = 0, "box_menu", 1
+    se("SE_SELECT")
+  end
+  function resumeView()
+    if not (resume and BoxStorageUI.open and BoxStorageUI.mode == "browse") then return end
+    view, resume = resume, nil
+    hidePad(true)
+  end
+
+  local function refuse()
+    pcall(function()
+      require("src.core.game3.audio").playSe(require("src.core.game3.se_ids").SE_FAILURE)
+    end)
+  end
+
+  local function act()
+    if view.where == "header" then return openBoxMenu(view.box) end
+    local s = session()
+    local loc, slot, boxId = here()
+    if view.hand then
+      local held = view.hand.mon
+      -- Ruby/Sapphire's own refusals (box_storage_ui.lua place_held)
+      if RsStorage.matches(s) then
+        if loc == "box" and RsStorage.hasMail(held) then return refuse() end
+        if loc == "party" and not RsStorage.canReplaceParty(s, slot, held) then return refuse() end
+      end
+      local ok, target = StorageMod.placeHeldMon(s, held, loc, slot, boxId, nil)
+      if not ok then return refuse() end
+      cry(held)
+      view.hand = target and { mon = target, origin = { loc = loc, slot = slot, boxId = boxId } } or nil
       se("SE_BAG_POCKET")
-    elseif here then
-      view.hand = { mon = here, box = view.box, slot = view.slot }
-      bx.mons[view.slot] = nil
+    else
+      if RsStorage.matches(s) and loc == "party" and not RsStorage.canRemoveParty(s, slot) then return refuse() end
+      local mon, why = StorageMod.pickUpMon(s, loc, slot, boxId)
+      if not mon then
+        if why ~= "empty_slot" then refuse() end
+        return
+      end
+      view.hand = { mon = mon, origin = { loc = loc, slot = slot, boxId = boxId } }
       se("SE_SELECT")
     end
   end
@@ -883,6 +1054,29 @@ local function gen3(mod)
   local function moveCursor(dx, dy)
     local L = layout(windowSize())
     local total = #boxes()
+    if view.where == "party" then
+      if dx ~= 0 then view.pslot = (view.pslot - 1 + dx) % 6 + 1; se("SE_SELECT") end
+      if dy > 0 then view.where = nil; se("SE_SELECT") end
+      return
+    end
+    if view.where == "header" then
+      local t = (view.box - 1) % L.per + L.pv
+      if dy > 0 then view.where = nil
+      elseif dy < 0 and t < L.cols and view.showParty then
+        view.where, view.pslot = "party", math.min(6, (view.slot - 1) % 6 + 1)
+      elseif dx ~= 0 then
+        local b = view.box + dx
+        if b < 1 or b > total then return end
+        view.box, view.page = b, math.floor((b - 1) / L.per)
+      else return end
+      se("SE_SELECT")
+      return
+    end
+    if dy < 0 and view.slot <= 6 then
+      view.where = "header"
+      se("SE_SELECT")
+      return
+    end
     local col, row = (view.slot - 1) % 6 + dx, math.floor((view.slot - 1) / 6) + dy
     local t = (view.box - 1) % L.per + L.pv
     local tc, tr = t % L.cols, math.floor(t / L.cols)
@@ -918,6 +1112,7 @@ local function gen3(mod)
     local after = layout(windowSize())
     if after.s == before.s and after.per == before.per then view.zoom = z - d; return end
     view.page = math.floor((view.box - 1) / after.per)
+    remember()
     se("SE_SELECT")
   end
 
@@ -930,7 +1125,8 @@ local function gen3(mod)
   end
 
   function viewInput(input)
-    if input:wasPressed("b") or input:wasPressed("select") then closeView()
+    if input:wasPressed("start") then toggleParty()
+    elseif input:wasPressed("b") or input:wasPressed("select") then closeView()
     elseif input:wasPressed("a") then act()
     elseif input:wasPressed("l") then turnPage(-1)
     elseif input:wasPressed("r") then turnPage(1)
@@ -943,19 +1139,19 @@ local function gen3(mod)
   -- a tap in window units: a button does what it shows, a slot is the
   -- cursor going there and A on it; elsewhere does nothing (CLOSE is a
   -- button: a stray thumb on a phone must not throw the view away)
-  local function viewTap(wx, wy)
+  -- what is under a point of the window: a button, a party slot, a box's
+  -- name or one of its slots
+  function hitAt(wx, wy)
     local L = layout(windowSize())
     for _, btn in ipairs(L.buttons) do
       if wx >= btn.x and wy >= btn.y and wx < btn.x + btn.w and wy < btn.y + btn.h then
-        if btn.id == "prev" then turnPage(-1)
-        elseif btn.id == "next" then turnPage(1)
-        elseif btn.id == "party" then
-          -- back on the cart's screen with the party drawer open, as its own
-          -- PARTY POKeMON does (box_storage_ui.lua, cursorSlot -10 and A)
-          closeView()
-          BoxStorageUI.mode, BoxStorageUI.drawerOpen, BoxStorageUI.partyCursor = "party_drawer", true, 1
-        else closeView() end
-        return
+        return { kind = "button", id = btn.id }
+      end
+    end
+    if L.party then
+      local x, y = (wx - L.party.x) / L.party.s, (wy - L.party.y) / L.party.s
+      if x >= 4 and x < 172 and y >= 0 and y < 32 then
+        return { kind = "party", slot = math.floor((x - 4) / 28) + 1 }
       end
     end
     local first = view.page * L.per + 1
@@ -963,14 +1159,46 @@ local function gen3(mod)
       local ox, oy = tileOrigin(L, b)
       local x, y = (wx - ox) / L.s, (wy - oy) / L.s
       if x >= 0 and y >= 0 and x < TILE_W and y < TILE_H then
+        if y < 16 then return { kind = "header", box = b } end
         local col, row = math.floor((x - 8) / 24), math.floor((y - 16) / 24)
         if col >= 0 and col < 6 and row >= 0 and row < 5 then
-          view.box, view.slot = b, row * 6 + col + 1
-          act()
+          return { kind = "box", box = b, slot = row * 6 + col + 1 }
         end
-        return
+        return nil
       end
     end
+    return nil
+  end
+
+  -- the cursor onto what was hit (a slot or party slot)
+  local function aim(hit)
+    if hit.kind == "party" then view.where, view.pslot = "party", hit.slot
+    else view.where, view.box, view.slot = nil, hit.box, hit.slot end
+  end
+
+  function remember()
+    pcall(function()
+      mod.save:set("allBoxes", { zoom = view.zoom or 0, showParty = view.showParty == true })
+    end)
+  end
+
+  function toggleParty()
+    view.showParty = not view.showParty
+    view.where, view.pslot = view.showParty and "party" or nil, 1
+    remember()
+    se("SE_SELECT")
+  end
+
+  local function viewTap(wx, wy)
+    local hit = hitAt(wx, wy)
+    if not hit then return end
+    if hit.kind == "button" then
+      if hit.id == "prev" then turnPage(-1)
+      elseif hit.id == "next" then turnPage(1)
+      elseif hit.id == "party" then toggleParty()
+      else closeView() end
+    elseif hit.kind == "header" then openBoxMenu(hit.box)
+    else aim(hit); act() end
   end
 
   -- the bar's contents in its own 128x36 units (pc_chrome.lua
@@ -1087,7 +1315,10 @@ local function gen3(mod)
       -- cursor; an empty slot leaves the bar empty
       local bar = L.bar
       local bxv = list[view.box]
-      local mon = view.hand and view.hand.mon or (bxv and bxv.mons[view.slot])
+      local party = session() and session().party or {}
+      local mon = view.hand and view.hand.mon
+        or (view.where == "party" and party[view.pslot])
+        or (view.where ~= "party" and bxv and bxv.mons[view.slot]) or nil
       love.graphics.push()
       love.graphics.translate(bar.x, bar.y)
       love.graphics.scale(bar.s, bar.s)
@@ -1106,6 +1337,40 @@ local function gen3(mod)
       love.graphics.pop()
       love.graphics.setColor(1, 1, 1, 1)
     end
+    if L.party then
+      -- the party: six cells in a row, the cursor and the hand on it when
+      -- it is there
+      local pr = L.party
+      local party = session() and session().party or {}
+      local card = skin().card or { bg = { 148 / 255, 148 / 255, 173 / 255 }, line = { 82 / 255, 82 / 255, 90 / 255 } }
+      love.graphics.push()
+      love.graphics.translate(pr.x, pr.y)
+      love.graphics.scale(pr.s, pr.s)
+      love.graphics.setColor(card.line[1], card.line[2], card.line[3], 1)
+      love.graphics.rectangle("fill", 0, 0, 176, 32, 3, 3)
+      for i = 1, 6 do
+        local cx = 4 + (i - 1) * 28
+        love.graphics.setColor(card.bg[1], card.bg[2], card.bg[3], 1)
+        love.graphics.rectangle("fill", cx, 2, 26, 28, 2, 2)
+        love.graphics.setColor(1, 1, 1, 1)
+        drawIcon(party[i], cx + 13, 16)
+      end
+      if view.where == "party" then
+        local cx = 4 + (view.pslot - 1) * 28 + 13
+        love.graphics.setColor(1, 1, 1, 0.9)
+        love.graphics.setLineWidth(2 / pr.s)
+        love.graphics.rectangle("line", cx - 13, 2, 26, 28)
+        if view.hand then love.graphics.setColor(1, 1, 1, 1); drawIcon(view.hand.mon, cx, 12) end
+        local img = PcChrome._cursorImg
+        if img then
+          love.graphics.setColor(1, 1, 1, 1)
+          local f = view.hand and 3 or 0
+          love.graphics.draw(img, love.graphics.newQuad(0, f * 32, 32, 32, img:getDimensions()), cx - 16, -14)
+        end
+      end
+      love.graphics.pop()
+      love.graphics.setColor(1, 1, 1, 1)
+    end
     local first = view.page * L.per + 1
     for b = first, math.min(#list, first + L.per - 1) do
       local bx = list[b]
@@ -1120,7 +1385,10 @@ local function gen3(mod)
       love.graphics.pop()
       love.graphics.setScissor()
       love.graphics.setColor(1, 1, 1, 1)
-      local name = bx.name or ("BOX " .. b)
+      -- the name, and how full the box is
+      local n = 0
+      for slot = 1, StorageMod.IN_BOX_COUNT do if bx.mons[slot] then n = n + 1 end end
+      local name = string.format("%s  %d/%d", bx.name or ("BOX " .. b), n, StorageMod.IN_BOX_COUNT)
       local okW, nw = pcall(require("src.ui.game3.frlg_font").measure, name)
       Window.printPx(name, 80 - math.floor((okW and nw or 40) / 2), 4)
       -- Zoomed in far enough that a cell is a battle picture's size, the
@@ -1132,12 +1400,13 @@ local function gen3(mod)
         love.graphics.setColor(1, 1, 1, 1)
         if pics then drawPic(bx.mons[s], cx, cy, L.s) else drawIcon(bx.mons[s], cx, cy) end
       end
-      if b == view.box then
+      if b == view.box and view.where ~= "party" then
         love.graphics.setColor(1, 1, 1, 0.9)
         love.graphics.setLineWidth(2 / L.s)
         love.graphics.rectangle("line", -1, -1, TILE_W + 2, TILE_H + 2)
         local cx, cy = slotCentre(view.slot)
-        if view.hand then
+        if view.where == "header" then cx, cy = 80, 14 end
+        if view.hand and not view.dragX then
           love.graphics.setColor(1, 1, 1, 1)
           if pics then drawPic(view.hand.mon, cx, cy - 8, L.s) else drawIcon(view.hand.mon, cx, cy - 8) end
         end
@@ -1157,8 +1426,27 @@ local function gen3(mod)
     love.graphics.translate(L.border + 4 * L.k, L.border)
     love.graphics.scale(L.kb, L.kb)
     love.graphics.setColor(1, 1, 1, 1)
-    Window.printPx(string.format("ALL BOXES  %d/%d", view.page + 1, pages), 0, 0)
+    -- what A does here, and the other keys
+    local hint
+    if view.where == "header" then hint = "A: BOX MENU"
+    elseif view.hand then hint = "A: PUT DOWN"
+    else hint = "A: PICK UP" end
+    local line = string.format("ALL BOXES %d/%d   %s   START: PARTY   B: BACK", view.page + 1, pages, hint)
+    -- smaller rather than cut off, on a narrow screen
+    local okW, tw = pcall(FrlgFont.measure, line)
+    local room = (w - 2 * L.border - 8 * L.k) / L.kb
+    if okW and tw and tw > room then love.graphics.scale(room / tw, room / tw) end
+    Window.printPx(line, 0, 0)
     love.graphics.pop()
+    if view.hand and view.dragX then
+      local ds = math.max(2, L.s)
+      love.graphics.push()
+      love.graphics.translate(view.dragX, view.dragY)
+      love.graphics.scale(ds, ds)
+      love.graphics.setColor(1, 1, 1, 1)
+      drawIcon(view.hand.mon, 0, -10)
+      love.graphics.pop()
+    end
     -- the buttons, through the skin's recolour
     local sheet = art("assets/gen3_ui/buttons.png")
     if sheet then
@@ -1284,13 +1572,21 @@ local function gen3(mod)
       return math.sqrt((a.x - b.x) ^ 2 + (a.y - b.y) ^ 2)
     end
     if ev.phase == "pressed" then
-      fingers[id] = { x = ev.gameX, y = ev.gameY, x0 = ev.gameX, y0 = ev.gameY }
+      fingers[id] = { x = ev.gameX, y = ev.gameY, x0 = ev.gameX, y0 = ev.gameY,
+                      start = hitAt(ev.gameX, ev.gameY) }
       if count() == 2 then pinch = { d = spread(), used = false } end
     elseif ev.phase == "moved" then
       local f = fingers[id]
       if not f then return end
       f.x, f.y = ev.gameX, ev.gameY
       if math.abs(f.x - f.x0) > SLOP or math.abs(f.y - f.y0) > SLOP then f.moved = true end
+      -- one finger leaving a Pokemon picks it up and carries it
+      if f.moved and not f.drag and not pinch and count() == 1 and not view.hand
+          and f.start and (f.start.kind == "box" or f.start.kind == "party") then
+        aim(f.start); act()
+        if view.hand then f.drag = true end
+      end
+      if f.drag then view.dragX, view.dragY = f.x, f.y end
       if pinch and count() == 2 then
         local d = spread()
         if d and pinch.d and pinch.d > 0 then
@@ -1301,7 +1597,15 @@ local function gen3(mod)
     elseif ev.phase == "released" or ev.phase == "cancelled" then
       local f = fingers[id]
       fingers[id] = nil
-      if ev.phase == "released" and f and not f.moved and not pinch then viewTap(ev.gameX, ev.gameY) end
+      if f and f.drag then
+        -- dropped on a slot: put down there; anywhere else: back where it was
+        view.dragX, view.dragY = nil, nil
+        local hit = ev.phase == "released" and hitAt(ev.gameX, ev.gameY)
+        if hit and (hit.kind == "box" or hit.kind == "party") then aim(hit) else aim(f.start) end
+        if view.hand then act() end
+      elseif ev.phase == "released" and f and not f.moved and not pinch then
+        viewTap(ev.gameX, ev.gameY)
+      end
       if count() == 0 then pinch = nil end
     end
   end
@@ -1338,21 +1642,26 @@ local function gen3(mod)
   -- version and its own "seen" key, so the two generations never mark each
   -- other read. Bump NEWS3_VERSION when a page here changes, not on every
   -- release.
-  local NEWS3_VERSION = "1.27.0"
+  local NEWS3_VERSION = "1.27.2"
   local NEWS3 = {
     { title = "ALL BOXES", lines = {
-      "SELECT in the PC shows",
-      "every box at once.",
-      "Tap or press A to carry a",
-      "POKéMON between boxes.",
-      "Wheel or pinch to zoom in",
-      "and see each one big." } },
+      "In the box menu (A on the",
+      "box name): every box at once.",
+      "Drag a POKéMON, or tap it,",
+      "to move it. START shows the",
+      "party; a box's name opens its",
+      "menu. Wheel or pinch zooms." } },
     { title = "SKIN AND POINTER", lines = {
       "A on the box name opens",
       "the box menu: SKIN and",
       "POINTER change the look,",
       "shown live as you scroll.",
       "B puts back what was there." } },
+    { title = "WALLPAPER PREVIEW", lines = {
+      "Scrolling the themes and",
+      "wallpapers puts each one on",
+      "the box as you go. A keeps",
+      "it, B puts the old one back." } },
     { title = "WALLPAPERS", lines = {
       "WALLPAPER picks a theme",
       "first. After the game's own:",
@@ -1397,6 +1706,7 @@ local function gen3(mod)
 
   local drawBelow = BoxStorageUI.draw
   BoxStorageUI.draw = function(...)
+    resumeView()
     drawBelow(...)
     if not (newsPage and BoxStorageUI.open) then return end
     local page = NEWS3[newsPage]

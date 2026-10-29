@@ -8,6 +8,10 @@ local DIR = "mods/gen3_box"
 local LAST_WALLPAPER = 118 -- PESTO, the last of the mod's eighteen
 
 local function load(options)
+  -- each load patches the PC's modules: start from fresh ones, as a boot
+  -- does, or the patches of an earlier load would still sit underneath
+  package.loaded["src.ui.game3.box_storage_ui"] = nil
+  package.loaded["src.ui.game3.pc_chrome"] = nil
   local real = SaveData.loadOptions
   SaveData.loadOptions = function(fs)
     local o = real(fs); o.mods = o.mods or {}; o.mods.gen3_box = true
@@ -17,6 +21,14 @@ local function load(options)
   local run = T.sdk.loadMod(DIR, { generation = 3, data = T.sdk.gen3Data() })
   SaveData.loadOptions = real
   return run
+end
+
+local function openAll()
+  local B = require("src.ui.game3.box_storage_ui")
+  B.mode = "box_menu"
+  B.handleInput({ wasPressed = function(_, k) return k == "down" end })
+  B.handleInput({ wasPressed = function(_, k) return k == "down" end })
+  B.handleInput({ wasPressed = function(_, k) return k == "a" end })
 end
 
 local function press(key)
@@ -55,6 +67,15 @@ T.eq(BoxStorageUI.mode, "pick_wallpaper", "B dagli sfondi torna ai temi")
 press("b")
 T.eq(BoxStorageUI.mode, "browse", "B dai temi chiude")
 
+-- the picker previews: the box wears what the cursor is on, B puts it back
+box.wallpaper = 1
+BoxStorageUI.mode = "pick_wallpaper"
+press("up")   -- RETRO: its first wallpaper, VAPORWAVE, on the box already
+T.eq(box.wallpaper, 105, "scorrendo i temi lo sfondo si vede subito sul box")
+press("b")
+T.eq(box.wallpaper, 1, "B dai temi rimette lo sfondo di prima")
+T.eq(BoxStorageUI.mode, "browse", "e chiude")
+
 BoxStorageUI.mode = "pick_wallpaper_group" -- Ruby/Sapphire's theme menu is taken over too
 press("b")
 T.eq(BoxStorageUI.mode, "browse", "B chiude anche dal menu a gruppi di R/S")
@@ -87,7 +108,7 @@ local boxes = storage.boxes
 local mon = { tag = "moved" }
 boxes[1].mons[1], boxes[2].mons[1] = mon, nil
 storage.currentBox = 1
-press("select")              -- opens the view on box 1, slot 1
+openAll()                    -- opens the view on box 1, slot 1
 press("a")                   -- picks it up
 T.eq(boxes[1].mons[1], nil, "A nella vista prende il Pokemon dallo slot")
 for _ = 1, 6 do press("right") end -- off the right edge of box 1: the next box in the grid
@@ -103,6 +124,26 @@ T.eq(back, landed, "uscendo con un Pokemon in mano torna al suo posto")
 T.eq(storage.currentBox, landed, "lo schermo del gioco riapre sul box del cursore")
 press("a")                   -- the view is closed: this is the cart's A again
 T.check(BoxStorageUI.mode ~= nil, "dopo B l'input torna al gioco")
+
+-- ------- ALL BOXES with the party row: party -> box, and the last one stays
+BoxStorageUI.mode = "browse"
+local mA, mB = { tag = "A" }, { tag = "B" }
+session.party = { mA, mB }
+storage.currentBox = 1
+boxes[1].mons[1] = nil
+openAll()                    -- the view
+press("start")               -- the party row, cursor on party slot 1
+press("a")                   -- picks A up out of the party
+T.eq(#session.party, 1, "dalla riga squadra si prende un Pokemon (la squadra si compatta)")
+press("down")                -- into the box under it
+press("a")                   -- puts A down in the box
+local inBox
+for b, bx in ipairs(boxes) do for s = 1, 30 do if bx.mons[s] == mA then inBox = b end end end
+T.check(inBox ~= nil, "e lo si posa in un box")
+press("up")                  -- back to the party row
+press("a")                   -- B is the last one: the cart's rule refuses it
+T.eq(#session.party, 1, "l'ultimo Pokemon della squadra non si puo togliere")
+press("b")
 
 run.release()
 
@@ -153,7 +194,10 @@ BoxStorageUI.open, BoxStorageUI._session, BoxStorageUI.mode = true, session, "br
 local kept = { tag = "kept" }
 storage.boxes[1].mons[1] = kept
 press("select"); press("a")
-T.eq(storage.boxes[1].mons[1], kept, "FULL SCREEN spento: SELECT non apre ALL BOXES (A non prende il Pokemon)")
+-- with the view closed, A is the cart's own: the Pokemon is still in its
+-- slot or in the cart's hand, never in the view's
+T.check(storage.boxes[1].mons[1] == kept or BoxStorageUI.holdingMon == kept,
+  "FULL SCREEN spento: SELECT non apre ALL BOXES (la A resta del gioco)")
 run.release()
 
 T.finish("gen3_wallpapers")

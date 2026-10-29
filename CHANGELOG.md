@@ -1,5 +1,30 @@
 # Changelog
 
+## 1.27.2 -- ALL BOXES grows up, and ten more skins
+
+On Ruby, Sapphire and Emerald:
+
+- SELECT is the cart's again: it no longer opens ALL BOXES, which opens from
+  its row in the box menu.
+- ALL BOXES shows the party as a row over the boxes (PARTY POKeMON or
+  START), and Pokemon move between party and boxes there through the cart's
+  own pick-up and place, so its rules hold: the last Pokemon of the party
+  stays, mail stays out of the boxes on Ruby and Sapphire.
+- Drag a Pokemon with a finger to move it; let go off a slot and it goes
+  back. A tap still picks up and puts down.
+- A box's name in ALL BOXES opens that box's menu (WALLPAPER, SKIN,
+  POINTER, NAME where the cart has it); the view comes back after.
+- The title strip says what A does where the cursor is, and each box's name
+  carries its fill count. Zoom and the party row are remembered.
+- The WALLPAPER picker previews: the box wears the theme or wallpaper under
+  the cursor as you scroll, A keeps it, B puts the old one back.
+- Ten more skins: GAME BOY, POKE BALL, ULTRA BALL, MASTER BALL, TEAM MAGMA,
+  TEAM AQUA, FOREST, OCEAN, SAKURA, CYBER.
+- A skin no longer recolours the Pokemon in the party drawer: the drawer's
+  own textures are recoloured instead. The backdrop under a mod skin drifts
+  at a third of the speed.
+- WHAT'S NEW is updated for all of the above.
+
 ## 1.27.1 -- Gen 3 on a par with Gen 1 and 2
 
 - On Ruby, Sapphire and Emerald, the Gen 1/2 options that mean something on
