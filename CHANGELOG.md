@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.27.3 -- the card plays its Pokemon, and the new skins fit
+
+- On Emerald, the PKMN DATA card in ALL BOXES plays the Pokemon's own front
+  animation each time a new one lands in it -- Pikachu's yellow flash, the
+  two-frame poses -- through the cart's mon_anim, as the summary screen
+  does. Without the cart's animation data (FireRed, LeafGreen) the picture
+  stands still, as before.
+- The ten skins added in 1.27.2 no longer show a black strip down the left
+  of the side panel: each piece is now cut by what was actually drawn and
+  fitted to the panel's shape.
+- On those skins the card's name, level and item were printed on the
+  card's thick frame; the card's text is now drawn further in, by however
+  much each skin's frame needs.
+
+## 1.27.3 -- the card plays the Pokemon's own animation
+
+- On Emerald, the PKMN DATA card in ALL BOXES plays the Pokemon's own front
+  animation each time a new one lands in it -- Pikachu's yellow flash, the
+  two-frame poses -- through the cart's mon_anim, as the summary screen
+  does. Where the cart has no animation data (FireRed, LeafGreen) the
+  picture stands still, as before.
+
 ## 1.27.2 -- ALL BOXES grows up, and ten more skins
 
 On Ruby, Sapphire and Emerald:

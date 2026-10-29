@@ -155,52 +155,52 @@ local GEN3_SKINS = {
     tint = { hue = 2.6, sat = 1.9, val = 1.15, duo = 0 },
     text = { fg = { 0.08, 0.02, 0.12 }, shadow = { 1.00, 1.00, 1.00 } },
     card = { bg = { 0.75, 1.00, 0.08 }, line = { 0.05, 0.02, 0.10 } } },
-  { id = "gameboy", name = "GAME BOY", panel = "panel_gameboy", bg = "bg_gameboy",
+  { id = "gameboy", name = "GAME BOY", panel = "panel_gameboy", cardInset = 4, bg = "bg_gameboy",
     tint = { hue = 0, sat = 0, val = 1, duo = 1,
              lo = { 0.06, 0.22, 0.06 }, hi = { 0.61, 0.74, 0.06 } },
     text = { fg = { 0.06, 0.22, 0.06 }, shadow = { 0.55, 0.67, 0.06 } },
     card = { bg = { 0.55, 0.67, 0.06 }, line = { 0.19, 0.38, 0.19 } } },
-  { id = "pokeball", name = "POKE BALL", panel = "panel_pokeball", bg = "bg_pokeball",
+  { id = "pokeball", name = "POKE BALL", panel = "panel_pokeball", cardInset = 5, bg = "bg_pokeball",
     tint = { hue = 0, sat = 0.7, val = 1, duo = 0.5,
              lo = { 0.35, 0.05, 0.05 }, hi = { 0.98, 0.96, 0.95 } },
     text = { fg = { 0.15, 0.15, 0.18 }, shadow = { 0.85, 0.85, 0.88 } },
     card = { bg = { 0.95, 0.94, 0.92 }, line = { 0.85, 0.1, 0.1 } } },
-  { id = "ultraball", name = "ULTRA BALL", panel = "panel_ultraball", bg = "bg_ultraball",
+  { id = "ultraball", name = "ULTRA BALL", panel = "panel_ultraball", cardInset = 5, bg = "bg_ultraball",
     tint = { hue = 0, sat = 0.7, val = 1, duo = 0.6,
              lo = { 0.1, 0.1, 0.12 }, hi = { 1.0, 0.85, 0.2 } },
     text = { fg = { 0.12, 0.12, 0.14 }, shadow = { 0.85, 0.85, 0.8 } },
     card = { bg = { 0.94, 0.93, 0.88 }, line = { 0.12, 0.12, 0.14 } } },
-  { id = "masterball", name = "MASTER BALL", panel = "panel_masterball", bg = "bg_masterball",
+  { id = "masterball", name = "MASTER BALL", panel = "panel_masterball", cardInset = 5, bg = "bg_masterball",
     tint = { hue = 0, sat = 0.7, val = 1, duo = 0.6,
              lo = { 0.25, 0.08, 0.4 }, hi = { 0.95, 0.75, 0.95 } },
     text = { fg = { 0.2, 0.1, 0.3 }, shadow = { 0.85, 0.8, 0.9 } },
     card = { bg = { 0.94, 0.93, 0.95 }, line = { 0.45, 0.2, 0.65 } } },
-  { id = "magma", name = "TEAM MAGMA", panel = "panel_magma", bg = "bg_magma",
+  { id = "magma", name = "TEAM MAGMA", panel = "panel_magma", cardInset = 6, bg = "bg_magma",
     tint = { hue = 0, sat = 0.7, val = 1, duo = 0.7,
              lo = { 0.12, 0.05, 0.05 }, hi = { 1.0, 0.55, 0.25 } },
     text = { fg = { 0.20, 0.10, 0.08 }, shadow = { 0.85, 0.80, 0.75 } },
     card = { bg = { 0.93, 0.92, 0.88 }, line = { 0.85, 0.25, 0.10 } } },
-  { id = "aqua", name = "TEAM AQUA", panel = "panel_aqua", bg = "bg_aqua",
+  { id = "aqua", name = "TEAM AQUA", panel = "panel_aqua", cardInset = 6, bg = "bg_aqua",
     tint = { hue = 0, sat = 0.7, val = 1, duo = 0.7,
              lo = { 0.03, 0.08, 0.2 }, hi = { 0.6, 0.9, 1.0 } },
     text = { fg = { 0.08, 0.18, 0.35 }, shadow = { 0.75, 0.85, 0.95 } },
     card = { bg = { 0.85, 0.92, 0.97 }, line = { 0.10, 0.30, 0.55 } } },
-  { id = "forest", name = "FOREST", panel = "panel_forest", bg = "bg_forest",
+  { id = "forest", name = "FOREST", panel = "panel_forest", cardInset = 7, bg = "bg_forest",
     tint = { hue = 0, sat = 0.7, val = 1, duo = 0.6,
              lo = { 0.18, 0.12, 0.06 }, hi = { 0.85, 0.95, 0.6 } },
     text = { fg = { 0.2, 0.14, 0.08 }, shadow = { 0.85, 0.8, 0.65 } },
     card = { bg = { 0.9, 0.84, 0.68 }, line = { 0.4, 0.28, 0.15 } } },
-  { id = "ocean", name = "OCEAN", panel = "panel_ocean", bg = "bg_ocean",
+  { id = "ocean", name = "OCEAN", panel = "panel_ocean", cardInset = 7, bg = "bg_ocean",
     tint = { hue = 0, sat = 0.7, val = 1, duo = 0.6,
              lo = { 0.1, 0.3, 0.4 }, hi = { 0.9, 0.98, 1.0 } },
     text = { fg = { 0.12, 0.25, 0.32 }, shadow = { 0.85, 0.92, 0.95 } },
     card = { bg = { 0.95, 0.92, 0.82 }, line = { 0.35, 0.7, 0.75 } } },
-  { id = "sakura", name = "SAKURA", panel = "panel_sakura", bg = "bg_sakura",
+  { id = "sakura", name = "SAKURA", panel = "panel_sakura", cardInset = 6, bg = "bg_sakura",
     tint = { hue = 0, sat = 0.7, val = 1, duo = 0.6,
              lo = { 0.35, 0.15, 0.2 }, hi = { 1.0, 0.9, 0.94 } },
     text = { fg = { 0.35, 0.15, 0.22 }, shadow = { 0.95, 0.85, 0.9 } },
     card = { bg = { 1.0, 0.96, 0.94 }, line = { 0.9, 0.55, 0.7 } } },
-  { id = "cyber", name = "CYBER", panel = "panel_cyber", bg = "bg_cyber",
+  { id = "cyber", name = "CYBER", panel = "panel_cyber", cardInset = 6, bg = "bg_cyber",
     tint = { hue = 0, sat = 0.7, val = 1, duo = 0.75,
              lo = { 0.02, 0.03, 0.06 }, hi = { 0.3, 0.95, 1.0 } },
     text = { fg = { 0.10, 0.10, 0.16 }, shadow = { 0.70, 0.72, 0.78 } },
@@ -467,6 +467,36 @@ local function gen3(mod)
   PcChrome.drawBackground = function(frame, ...)
     if skin().bg then frame = math.floor((tonumber(frame) or 0) / 3) end
     return drawBackground(frame, ...)
+  end
+
+  -- A skin whose card has a thick bezel moves the card's text in by
+  -- `cardInset`: the cart prints name, level and item at fixed x 6, which on
+  -- those bezels is on the frame. The panel is drawn in two passes, its top
+  -- (screen, picture, waveforms) as the cart has it and its card (y 80 on)
+  -- shifted right, each clipped to its half.
+  local drawLeftDataPanel = PcChrome.drawLeftDataPanel
+  PcChrome.drawLeftDataPanel = function(...)
+    local dx = skin().cardInset
+    if not dx or not love.graphics.transformPoint then return drawLeftDataPanel(...) end
+    local args, n = { ... }, select("#", ...)
+    local sx, sy, sw, sh = love.graphics.getScissor()
+    local function clip(x0, y0, x1, y1)
+      local ax, ay = love.graphics.transformPoint(x0, y0)
+      local bx, by = love.graphics.transformPoint(x1, y1)
+      love.graphics.intersectScissor(ax, ay, bx - ax, by - ay)
+    end
+    local ok, err = pcall(function()
+      clip(0, 0, 80, 80)
+      drawLeftDataPanel(unpack(args, 1, n))
+      love.graphics.setScissor(sx, sy, sw, sh)
+      love.graphics.push()
+      clip(0, 80, 80, 160)
+      love.graphics.translate(dx, 0)
+      drawLeftDataPanel(unpack(args, 1, n))
+      love.graphics.pop()
+    end)
+    love.graphics.setScissor(sx, sy, sw, sh)
+    if not ok then error(err, 0) end
   end
 
   local drawInterfaceFrame = PcChrome.drawInterfaceFrame
@@ -1205,13 +1235,46 @@ local function gen3(mod)
   -- drawLeftDataPanel prints the same fields, in the same fonts)
   local FrlgFont = require("src.ui.game3.frlg_font")
   local ItemsData = require("src.core.game3.items_data")
+  -- The picture plays the Pokemon's own front animation once each time a
+  -- new one lands in the card, as the summary screen does
+  -- (rse/summary_menu.lua watchMonAnim): the cart's mon_anim, stepped at
+  -- the game's 60 a second. Where the cart has no animation data (FireRed,
+  -- LeafGreen) the picture stands still.
+  local cardAnim = {}
+  local function animatedPic(mon, cx, cy, front)
+    local okA, MonAnim = pcall(require, "src.core.game3.mon_anim")
+    if not (okA and MonAnim.enabled and MonAnim.enabled()) then return false end
+    local now = love.timer.getTime()
+    if cardAnim.mon ~= mon then
+      local egg = Pokemon.isEgg(mon)
+      local sp = egg and Pokemon.SPECIES_EGG or tonumber(Pokemon.speciesOf(mon)) or 0
+      local sprite = MonAnim.newSprite(sp, { affineMode = "off", hFlip = false })
+      sprite.data[0] = sp
+      sprite.callback = function(sp_)
+        sp_.data[1] = 1
+        MonAnim.summary(sp_, sp, egg)
+      end
+      cardAnim = { mon = mon, sprite = sprite, last = now }
+    end
+    local steps = math.min(8, math.floor((now - cardAnim.last) * 60))
+    for _ = 1, steps do MonAnim.step(cardAnim.sprite, true) end
+    cardAnim.last = cardAnim.last + steps / 60
+    local pic = MonAnim.framePic(Pokemon.monPicSpecies(mon), cardAnim.sprite.frame, Pokemon.isShiny(mon)) or front
+    love.graphics.setColor(1, 1, 1, 1)
+    MonAnim.draw(cardAnim.sprite, pic.image, cx, cy)
+    return true
+  end
+
   function drawCard(mon)
     -- the front picture on the screen, centred as the cart centres it
     local pic = Pokemon.monFrontPic(mon, nil, "box")
     if pic and pic.image then
-      local pw, ph = pic.image:getDimensions()
-      love.graphics.setColor(1, 1, 1, 1)
-      love.graphics.draw(pic.image, 36 - pw / 2, 36 - ph / 2)
+      local okD, drawn = pcall(animatedPic, mon, 36, 36, pic)
+      if not (okD and drawn) then
+        local pw, ph = pic.image:getDimensions()
+        love.graphics.setColor(1, 1, 1, 1)
+        love.graphics.draw(pic.image, 36 - pw / 2, 36 - ph / 2)
+      end
     end
     local text, male, female = PcChrome.textColors()
     if Pokemon.isEgg(mon) then
