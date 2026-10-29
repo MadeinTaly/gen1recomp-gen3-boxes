@@ -712,6 +712,7 @@ local function gen3(mod)
   local handleInput = BoxStorageUI.handleInput
   local openView, viewInput, viewPointer, drawCard, resumeView -- ALL BOXES, defined below
   local resume -- the view, set aside while one box's menu is open
+  local autoView -- FULL SCREEN: open ALL BOXES as soon as the PC is ready
   local hitAt -- what is under a point of the window (ALL BOXES)
   local remember -- the view's zoom and party row, kept for next time
   local toggleParty -- the party row on or off (ALL BOXES)
@@ -1009,6 +1010,7 @@ local function gen3(mod)
   end
 
   local function closeView()
+    local main = view and view.main
     local h = view and view.hand
     -- a Pokemon still in hand goes back where it came from, or wherever the
     -- cart's own restoreHeldMon finds room
@@ -1019,6 +1021,11 @@ local function gen3(mod)
     view = nil
     hidePad(false)
     se("SE_SELECT")
+    if main and BoxStorageUI.open then
+      -- the cart's own CLOSE BOX: its exit animation and its rules
+      BoxStorageUI.mode, BoxStorageUI.cursorSlot = "browse", -20
+      BoxStorageUI.handleInput({ wasPressed = function(_, k) return k == "a" end })
+    end
   end
 
   -- The box menu of the box whose name the cursor is on: the view steps
@@ -1033,7 +1040,7 @@ local function gen3(mod)
       return
     end
     resume = { page = view.page, box = b, slot = view.slot, showParty = view.showParty,
-               zoom = view.zoom, where = "header" }
+               zoom = view.zoom, where = "header", main = view.main }
     local _, storage = boxes()
     if storage then storage.currentBox = b end
     view = nil
@@ -1042,6 +1049,19 @@ local function gen3(mod)
     se("SE_SELECT")
   end
   function resumeView()
+    if autoView and not newsPage and BoxStorageUI.open
+        and (BoxStorageUI.mode == "browse" or BoxStorageUI.mode == "party_drawer") then
+      autoView = false
+      local deposit = BoxStorageUI.mode == "party_drawer"
+      BoxStorageUI.mode, BoxStorageUI.drawerOpen = "browse", false
+      openView()
+      if view then
+        view.main = true
+        -- DEPOSIT POKeMON opens on the party
+        if deposit then view.showParty, view.where, view.pslot = true, "party", 1 end
+      end
+      return
+    end
     if not (resume and BoxStorageUI.open and BoxStorageUI.mode == "browse") then return end
     view, resume = resume, nil
     hidePad(true)
@@ -1499,7 +1519,8 @@ local function gen3(mod)
     local okW, tw = pcall(FrlgFont.measure, line)
     local room = (w - 2 * L.border - 8 * L.k) / L.kb
     if okW and tw and tw > room then love.graphics.scale(room / tw, room / tw) end
-    Window.printPx(line, 0, 0)
+    -- printPx clips at the cart's 240 by default: give it the line's width
+    Window.printPx(line, 0, 0, { maxWidth = math.max(room, (okW and tw or 0) + 8) })
     love.graphics.pop()
     if view.hand and view.dragX then
       local ds = math.max(2, L.s)
@@ -1705,11 +1726,11 @@ local function gen3(mod)
   -- version and its own "seen" key, so the two generations never mark each
   -- other read. Bump NEWS3_VERSION when a page here changes, not on every
   -- release.
-  local NEWS3_VERSION = "1.27.2"
+  local NEWS3_VERSION = "1.27.4"
   local NEWS3 = {
     { title = "ALL BOXES", lines = {
-      "In the box menu (A on the",
-      "box name): every box at once.",
+      "The PC opens on every box",
+      "at once (FULL SCREEN).",
       "Drag a POKéMON, or tap it,",
       "to move it. START shows the",
       "party; a box's name opens its",
@@ -1753,6 +1774,11 @@ local function gen3(mod)
   local show = BoxStorageUI.show
   BoxStorageUI.show = function(...)
     local r = show(...)
+    -- FULL SCREEN: ALL BOXES is the screen, once WHAT'S NEW (if any) is read;
+    -- MOVE ITEMS (FireRed/LeafGreen) is an item screen and stays the cart's
+    if option("fullscreen", true) ~= false and BoxStorageUI.subMode ~= "move_items" then
+      autoView = true
+    end
     local ok, seen = pcall(function() return mod.save:get("newsSeen3") end)
     if not (ok and seen == NEWS3_VERSION) then newsPage = 1 end
     return r

@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.27.4 -- FULL SCREEN means full screen on Gen 3 too
+
+- On Ruby, Sapphire and Emerald, FULL SCREEN (on by default) now does what
+  it does on Gen 1 and 2: the PC opens straight into ALL BOXES, after WHAT'S
+  NEW when there is one, and on the party row for DEPOSIT POKeMON. CLOSE
+  BOX and B close the PC through the cart's own CLOSE BOX, instead of
+  dropping back to the small screen. A box's name still opens its box menu
+  and comes back to the full screen. FULL SCREEN off keeps the cart's
+  screen, as before.
+- The ALL BOXES title line is no longer cut short ("B: BA"): the cart's
+  printer stopped at 240 pixels, the line now gets its real width.
+- WHAT'S NEW says so.
+
 ## 1.27.3 -- the card plays its Pokemon, and the new skins fit
 
 - On Emerald, the PKMN DATA card in ALL BOXES plays the Pokemon's own front

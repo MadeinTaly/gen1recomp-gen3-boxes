@@ -81,11 +81,11 @@ Box → OPTIONS** or from the box menu (A on the box name):
 | `BOX POINTER` / POINTER | the cart's hand or one of twenty pointers |
 | `OPEN FROM` | START+PC (default): a BOXES row on the START menu opens the PC from anywhere; PC: only the cart's own PC. Same row as on Gen 1 and 2 |
 | `BOX HEALS` | off by default, as on Gen 1 and 2: closing the PC rests everything in storage, through the cart's own `Storage.fullHealMon` |
-| `FULL SCREEN` | on by default: ALL BOXES (below). Off takes its box-menu row away |
+| `FULL SCREEN` | on by default, as on Gen 1 and 2: the PC opens straight into ALL BOXES (below) — on the party row for DEPOSIT — and CLOSE BOX or B closes the PC. Off: the cart's own screen, with ALL BOXES gone from the box menu |
 | `TOUCH` | on by default: taps and the wheel (below). Off leaves the PC buttons-only |
 | `PLACE CRY` | on by default: the cry of a Pokémon as it is put down, on the cart's screen and in ALL BOXES |
 | `POINTER SHADOW` | SOFT (half strength, default), ORIGINAL, OFF |
-| ALL BOXES | ALL BOXES in the box menu (SELECT stays the cart's): every box the screen holds, laid out from the device itself — a column on a phone held upright, a grid on a desktop — with a PKMN DATA card on top (`PKMN DATA CARD` hides it) and each box's fill count by its name. Drag a Pokémon with a finger, or tap / A to pick up and put down, between boxes and the party (START or PARTY POKéMON shows the party as a row over the boxes); the cart's own rules apply, so the last Pokémon of the party stays. A box's name opens that box's menu and the view comes back after. The wheel or a pinch zooms, and zoomed in each cell shows the Pokémon's front picture; zoom and the party row are remembered |
+| ALL BOXES | the PC's screen with FULL SCREEN on, else ALL BOXES in the box menu (SELECT stays the cart's): every box the screen holds, laid out from the device itself — a column on a phone held upright, a grid on a desktop — with a PKMN DATA card on top (`PKMN DATA CARD` hides it) and each box's fill count by its name. Drag a Pokémon with a finger, or tap / A to pick up and put down, between boxes and the party (START or PARTY POKéMON shows the party as a row over the boxes); the cart's own rules apply, so the last Pokémon of the party stays. A box's name opens that box's menu and the view comes back after. The wheel or a pinch zooms, and zoomed in each cell shows the Pokémon's front picture; zoom and the party row are remembered |
 | touch | a tap is the cart's own A on what was tapped; the wheel changes box |
 | WHAT'S NEW | Gen 3's own: once per version on the first PC open, and from WHAT'S NEW in the box menu |
 | WHAT'S NEW | Gen 3's own: once per version on the first PC open, and from WHAT'S NEW in the box menu |
