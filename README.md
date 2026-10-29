@@ -9,6 +9,20 @@ box, and re-deposit to move anything. This is the Ruby/Sapphire answer to
 that — a 5×4 grid of the current box, one button to grab and drop, and one
 button between the box and your party.
 
+On **Ruby, Sapphire and Emerald** the game already has that screen, so the mod
+keeps it and adds to it instead: eighteen more wallpapers in themes, skins and
+pointers, touch and the mouse wheel, BOX HEALS, a BOXES row on the START menu,
+and **ALL BOXES** — every box on one screen, laid out for a phone held upright
+or a desktop. Every one of them can be turned off, as on Gen 1 and 2. See
+**On Ruby, Sapphire and Emerald** below.
+
+On **Ruby, Sapphire and Emerald** the game already has that screen, so the mod
+keeps it and adds to it instead: eighteen more wallpapers in themes, skins and
+pointers for the box screen, touch and the mouse wheel, and **ALL BOXES** —
+every box on one screen, laid out for a phone held upright or a desktop, with
+Pokémon carried between them by tap. See **On Ruby, Sapphire and Emerald**
+below.
+
 ## Install
 
 Download `gen3_box-<version>.zip` from
@@ -65,9 +79,16 @@ Box → OPTIONS** or from the box menu (A on the box name):
 | `EXTRA WALLPAPERS` | eighteen more wallpapers (on by default). The WALLPAPER picker is the cart's two steps, a theme then a wallpaper: SCENERY 1-3, ETC and FRIENDS as the cart has them, then NATURE, FOOD, ADVENTURE and RETRO |
 | `BOX SKIN` / SKIN | ORIGINAL, MINIMAL, MINIMAL DARK, NIGHT, YOLO FLUO: the side panel, the backdrop and a recolour of the buttons; previewed live from the box menu |
 | `BOX POINTER` / POINTER | the cart's hand or one of twenty pointers |
+| `OPEN FROM` | START+PC (default): a BOXES row on the START menu opens the PC from anywhere; PC: only the cart's own PC. Same row as on Gen 1 and 2 |
+| `BOX HEALS` | off by default, as on Gen 1 and 2: closing the PC rests everything in storage, through the cart's own `Storage.fullHealMon` |
+| `FULL SCREEN` | on by default: ALL BOXES (below). Off takes SELECT and the box-menu row away |
+| `TOUCH` | on by default: taps and the wheel (below). Off leaves the PC buttons-only |
+| `PLACE CRY` | on by default: the cry of a Pokémon as it is put down, on the cart's screen and in ALL BOXES |
 | `POINTER SHADOW` | SOFT (half strength, default), ORIGINAL, OFF |
 | ALL BOXES | SELECT, or ALL BOXES in the box menu: every box the screen holds, laid out from the device itself — a column on a phone held upright, a grid on a desktop — with a PKMN DATA card on top (`PKMN DATA CARD` hides it), PARTY POKéMON and CLOSE BOX along the bottom. Move a Pokémon between boxes by tap or with A; the wheel or a pinch zooms, and zoomed in each cell shows the Pokémon's front picture |
 | touch | a tap is the cart's own A on what was tapped; the wheel changes box |
+| WHAT'S NEW | Gen 3's own: once per version on the first PC open, and from WHAT'S NEW in the box menu |
+| WHAT'S NEW | Gen 3's own: once per version on the first PC open, and from WHAT'S NEW in the box menu |
 
 There is no hook for any of this on Gen 3, so the mod patches the box screen
 in a few named places (`pc_chrome`, `box_storage_ui`); touch, wheel and the

@@ -61,16 +61,25 @@ T.eq(BoxStorageUI.mode, "browse", "B chiude anche dal menu a gruppi di R/S")
 T.eq(box.wallpaper, 1, "e non cambia lo sfondo")
 
 -- ------- box menu: the cart's rows plus SKIN and POINTER before CANCEL
--- SWITCH BOX, WALLPAPER, ALL BOXES, SKIN, POINTER, CANCEL
+-- SWITCH BOX, WALLPAPER, ALL BOXES, WHAT'S NEW, SKIN, POINTER, CANCEL
 BoxStorageUI.mode = "box_menu"
-press("down"); press("down"); press("down") -- SKIN
+press("down"); press("down"); press("down"); press("down") -- SKIN
 press("a")
 press("down")                -- ORIGINAL -> MINIMAL, previewed live
 press("b")                   -- back to the menu, preview undone
 T.eq(BoxStorageUI.mode, "box_menu", "B dalla lista skin torna al menu del box")
-press("up"); press("up"); press("up") -- back to SWITCH BOX (cursor was left on SKIN)
+press("up"); press("up"); press("up"); press("up") -- back to SWITCH BOX (cursor was left on SKIN)
 press("a")                   -- the cart's own row: the cart runs it
 T.eq(BoxStorageUI.mode, "pick_box", "SWITCH BOX e' eseguito dal gioco (pick_box)")
+
+-- ------- WHAT'S NEW, Gen 3's own: from the box menu, B closes it
+BoxStorageUI.mode = "box_menu"
+press("down"); press("down"); press("down") -- WHAT'S NEW
+press("a")
+T.eq(BoxStorageUI.mode, "browse", "WHAT'S NEW dal menu del box chiude il menu")
+press("right"); press("left")   -- turns pages, consumed by the popup
+press("b")
+T.eq(BoxStorageUI.mode, "browse", "B chiude WHAT'S NEW e torna al box")
 
 -- ------- ALL BOXES: a Pokemon carried from box 1 to box 2
 BoxStorageUI.mode = "browse"
@@ -112,6 +121,39 @@ BoxStorageUI.mode = "browse"
 press("select")
 press("b")
 T.eq(BoxStorageUI.mode, "browse", "ALL BOXES apre e chiude anche senza la carta")
+run.release()
+
+-- ------- the Gen 1/2 options on Gen 3
+local Runtime = require("src.mods.Runtime")
+local function startItems()
+  local noop = function() end
+  local items = { { id = "pokemon", label = "POKEMON", onSelect = noop },
+                  { id = "exit", label = "EXIT", onSelect = noop } }
+  return Runtime.call("ui.start_menu.items", function(_, it) return it end, { session = session }, items)
+end
+
+-- defaults: OPEN FROM START+PC puts BOXES after POKEMON
+run = load()
+local items = startItems()
+T.eq(items[2] and items[2].label, "BOXES", "OPEN FROM START+PC: BOXES nel menu START dopo POKEMON")
+run.release()
+
+-- OPEN FROM PC, BOX HEALS on, FULL SCREEN off
+run = load({ access = "pc", heal = true, fullscreen = false })
+items = startItems()
+T.eq(#items, 2, "OPEN FROM PC: nessuna voce BOXES nel menu START")
+BoxStorageUI = require("src.ui.game3.box_storage_ui")
+BoxStorageUI.open, BoxStorageUI._session, BoxStorageUI._presentation = true, session, nil
+local hurt = { hp = 1, maxHp = 20, status = 8, moves = {} }
+storage.boxes[3].mons[4] = hurt
+pcall(BoxStorageUI.close)
+T.eq(hurt.hp, 20, "BOX HEALS: chiudere il PC rimette gli HP al massimo")
+T.eq(hurt.status, nil, "BOX HEALS: e toglie lo stato")
+BoxStorageUI.open, BoxStorageUI._session, BoxStorageUI.mode = true, session, "browse"
+local kept = { tag = "kept" }
+storage.boxes[1].mons[1] = kept
+press("select"); press("a")
+T.eq(storage.boxes[1].mons[1], kept, "FULL SCREEN spento: SELECT non apre ALL BOXES (A non prende il Pokemon)")
 run.release()
 
 T.finish("gen3_wallpapers")

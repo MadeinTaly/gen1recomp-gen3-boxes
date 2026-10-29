@@ -214,6 +214,15 @@ local function gen3(mod)
   local Profile = require("src.core.game3.profile")
 
   mod.options:define({
+    -- the same rows, keys and defaults as on Gen 1 and 2 (see the schema in
+    -- the Gen 1 screen below); the ones about that screen's own drawing --
+    -- GRID, SLOTS, BANDS, PEEK, OW SPRITES -- have no cart screen to act on
+    { key = "access", label = "OPEN FROM", type = "choice", default = "both",
+      choices = { { "START+PC", "both" }, { "START", "start" }, { "PC", "pc" } } },
+    { key = "heal", label = "BOX HEALS", type = "toggle", default = false },
+    { key = "fullscreen", label = "FULL SCREEN", type = "toggle", default = true },
+    { key = "touch", label = "TOUCH", type = "toggle", default = true },
+    { key = "placeCry", label = "PLACE CRY", type = "toggle", default = true },
     { key = "gen3_wallpapers", label = "EXTRA WALLPAPERS", type = "toggle", default = true },
     { key = "gen3_skin", label = "BOX SKIN", type = "choice", default = "original",
       choices = choiceRows(GEN3_SKINS) },
@@ -479,7 +488,8 @@ local function gen3(mod)
     local out = {}
     for i, act in ipairs(acts) do
       if act == "CANCEL" then
-        out[#out + 1] = { ours = "all", name = "ALL BOXES" }
+        if option("fullscreen", true) ~= false then out[#out + 1] = { ours = "all", name = "ALL BOXES" } end
+        out[#out + 1] = { ours = "news", name = "WHAT'S NEW" }
         out[#out + 1] = { ours = "skin", name = "SKIN" }
         out[#out + 1] = { ours = "pointer", name = "POINTER" }
       end
@@ -556,10 +566,21 @@ local function gen3(mod)
 
   local handleInput = BoxStorageUI.handleInput
   local openView, viewInput, viewPointer, drawCard -- ALL BOXES, defined below
+  local newsPage, openNews -- WHAT'S NEW, defined at the end
+
+  -- PLACE CRY: the cry of the Pokemon just put down, through the cart's own
+  -- cry player
+  local function cry(mon)
+    if option("placeCry", true) == false or not mon then return end
+    pcall(function()
+      require("src.core.game3.audio").playCry(require("src.core.game3.pokemon").speciesOf(mon))
+    end)
+  end
   BoxStorageUI.handleInput = function(input)
     if view then return viewInput(input) end
     if not active() then
-      if BoxStorageUI.open and BoxStorageUI.mode == "browse" and input:wasPressed("select") then
+      if BoxStorageUI.open and BoxStorageUI.mode == "browse" and input:wasPressed("select")
+          and option("fullscreen", true) ~= false then
         return openView()
       end
       return handleInput(input)
@@ -581,6 +602,8 @@ local function gen3(mod)
         list = nil
         handleInput(input)
         return
+      elseif list == "menu" and e.ours == "news" then
+        close("browse"); openNews()
       elseif list == "menu" and e.ours == "all" then
         close("browse"); openView()
       elseif list == "menu" then
@@ -847,6 +870,7 @@ local function gen3(mod)
     local here = bx.mons[view.slot]
     if view.hand then
       bx.mons[view.slot] = view.hand.mon
+      cry(view.hand.mon)
       view.hand = here and { mon = here, box = view.box, slot = view.slot } or nil
       se("SE_BAG_POCKET")
     elseif here then
@@ -1226,6 +1250,7 @@ local function gen3(mod)
   end
 
   local function tap(x, y)
+    if newsPage then return press("a") end
     if active() then return tapList(x, y) end
     local mode = BoxStorageUI.mode
     if mode == "browse" then
@@ -1281,7 +1306,10 @@ local function gen3(mod)
     end
   end
 
+  local function touchOn() return option("touch", true) ~= false end
+
   mod.hooks:wrap("input.pointer", function(next, game, ev)
+    if not touchOn() then return next(game, ev) end
     if view and BoxStorageUI.open and ev then
       -- the view takes every finger: two pinching zoom, one lifted where it
       -- went down is a tap
@@ -1301,7 +1329,137 @@ local function gen3(mod)
     return true
   end)
 
+  -- ------- WHAT'S NEW, Gen 3's own
+  --
+  -- Gen 1 and 2 have theirs on the mod's screen; Gen 3 has no screen of the
+  -- mod's to put it on, so it is a window on the cart's PC: once per
+  -- NEWS3_VERSION, the first time the PC opens after an update or an
+  -- install, and again on purpose from WHAT'S NEW in the box menu. Its own
+  -- version and its own "seen" key, so the two generations never mark each
+  -- other read. Bump NEWS3_VERSION when a page here changes, not on every
+  -- release.
+  local NEWS3_VERSION = "1.27.0"
+  local NEWS3 = {
+    { title = "ALL BOXES", lines = {
+      "SELECT in the PC shows",
+      "every box at once.",
+      "Tap or press A to carry a",
+      "POKéMON between boxes.",
+      "Wheel or pinch to zoom in",
+      "and see each one big." } },
+    { title = "SKIN AND POINTER", lines = {
+      "A on the box name opens",
+      "the box menu: SKIN and",
+      "POINTER change the look,",
+      "shown live as you scroll.",
+      "B puts back what was there." } },
+    { title = "WALLPAPERS", lines = {
+      "WALLPAPER picks a theme",
+      "first. After the game's own:",
+      "NATURE, FOOD, ADVENTURE",
+      "and RETRO, eighteen new",
+      "wallpapers in all." } },
+    { title = "TOUCH", lines = {
+      "Tap a POKéMON, a button or",
+      "a menu row: it is the same",
+      "as pressing A there.",
+      "The wheel changes box." } },
+    { title = "OPTIONS", lines = {
+      "START > MODS > Gen 3 Box >",
+      "OPTIONS turns any of this",
+      "off, and picks the skin,",
+      "pointer and shadow." } },
+  }
+
+  function openNews() newsPage = 1; se("SE_SELECT") end
+  local function closeNews()
+    newsPage = nil
+    pcall(function() mod.save:set("newsSeen3", NEWS3_VERSION) end)
+    se("SE_SELECT")
+  end
+
+  local show = BoxStorageUI.show
+  BoxStorageUI.show = function(...)
+    local r = show(...)
+    local ok, seen = pcall(function() return mod.save:get("newsSeen3") end)
+    if not (ok and seen == NEWS3_VERSION) then newsPage = 1 end
+    return r
+  end
+
+  local inputBelow = BoxStorageUI.handleInput
+  BoxStorageUI.handleInput = function(input)
+    if not (newsPage and BoxStorageUI.open) then return inputBelow(input) end
+    if input:wasPressed("b") then closeNews()
+    elseif input:wasPressed("a") or input:wasPressed("right") then
+      if newsPage >= #NEWS3 then closeNews() else newsPage = newsPage + 1; se("SE_SELECT") end
+    elseif input:wasPressed("left") and newsPage > 1 then newsPage = newsPage - 1; se("SE_SELECT") end
+  end
+
+  local drawBelow = BoxStorageUI.draw
+  BoxStorageUI.draw = function(...)
+    drawBelow(...)
+    if not (newsPage and BoxStorageUI.open) then return end
+    local page = NEWS3[newsPage]
+    -- the cart's own window, most of the 240x160 frame
+    Window.stdFrame(Window.template(2, 2, 26, 16))
+    Window.printPx(string.format("WHAT'S NEW %s  %d/%d", NEWS3_VERSION, newsPage, #NEWS3), 24, 20, { small = true })
+    Window.printPx(page.title, 24, 34)
+    for i, line in ipairs(page.lines) do
+      Window.printPx(line, 24, 34 + i * 14, { small = true })
+    end
+    Window.printPx(newsPage < #NEWS3 and "A: NEXT   B: CLOSE" or "A / B: CLOSE", 24, 136, { small = true })
+  end
+
+  -- PLACE CRY on the cart's screen: a Pokemon was in hand before the cart
+  -- handled the press and is not after it
+  local inputBefore = BoxStorageUI.handleInput
+  BoxStorageUI.handleInput = function(input)
+    local held = BoxStorageUI.holdingMon
+    local r = inputBefore(input)
+    if held and BoxStorageUI.holdingMon == nil and not view then cry(held) end
+    return r
+  end
+
+  -- BOX HEALS: closing the PC rests everything in storage -- full HP,
+  -- status cleared, PP restored -- through the cart's own Storage.fullHealMon
+  local closeBox = BoxStorageUI.close
+  BoxStorageUI.close = function(...)
+    if option("heal", false) == true then
+      pcall(function()
+        local S = require("src.core.game3.storage")
+        local storage = S.ensure(session())
+        for _, bx in ipairs(storage and storage.boxes or {}) do
+          for slot = 1, S.IN_BOX_COUNT do
+            local mon = bx.mons[slot]
+            if mon then S.fullHealMon(mon, session()); mon.status = nil end
+          end
+        end
+      end)
+    end
+    return closeBox(...)
+  end
+
+  -- OPEN FROM: a BOXES row on the START menu, unless the
+  -- choice is PC only (the cart's PC is always there either way)
+  mod.hooks:wrap("ui.start_menu.items", function(next, game, items)
+    items = next(game, items)
+    if option("access", "both") == "pc" or type(items) ~= "table" then return items end
+    -- after POKeMON when the menu has it, else just above EXIT (the last row)
+    local at = math.max(0, #items - 1)
+    for i, e in ipairs(items) do if e.id == "pokemon" or e.id == "POKEMON" then at = i end end
+    table.insert(items, math.min(at + 1, #items + 1), {
+      id = "gen3_box", label = "BOXES",
+      onSelect = function()
+        pcall(function() require("src.ui.game3.start_menu").close(true) end)
+        local s = game and game.session or require("src.core.game3.runtime").getSession()
+        BoxStorageUI.show({ session = s })
+      end,
+    })
+    return items
+  end)
+
   mod.hooks:wrap("input.wheel", function(next, game, dy)
+    if not touchOn() then return next(game, dy) end
     if not (BoxStorageUI.open and type(dy) == "number" and dy ~= 0) then return next(game, dy) end
     if view then zoom(dy > 0 and 1 or -1)
     elseif active() then press(dy > 0 and "up" or "down")

@@ -1,5 +1,30 @@
 # Changelog
 
+## 1.27.1 -- Gen 3 on a par with Gen 1 and 2
+
+- On Ruby, Sapphire and Emerald, the Gen 1/2 options that mean something on
+  the cart's PC, with the same names and defaults: OPEN FROM (a BOXES row on
+  the START menu, START+PC by default), BOX HEALS (off by default; closing
+  the PC rests everything in storage through the cart's own
+  Storage.fullHealMon), FULL SCREEN (ALL BOXES, on), TOUCH (taps and the
+  wheel, on) and PLACE CRY (on). Every Gen 3 feature can now be turned off.
+- Gen 3 gets its own WHAT'S NEW: once per version, the first time the PC
+  opens after an update or an install, five pages on ALL BOXES, SKIN and
+  POINTER, the wallpaper themes, touch and the options. A turns the page, B
+  closes; WHAT'S NEW in the box menu opens it again. It keeps its own "seen"
+  mark, apart from the Gen 1/2 one.
+- The README's opening says what the mod does on Gen 3.
+
+## 1.27.1 -- Gen 3 gets its own WHAT'S NEW
+
+- On Ruby, Sapphire and Emerald, a WHAT'S NEW window on the cart's PC: once
+  per version, the first time the PC opens after an update or an install,
+  five pages on ALL BOXES, SKIN and POINTER, the wallpaper themes, touch and
+  the options. A on, B closes, a tap turns the page; WHAT'S NEW in the box
+  menu opens it again. It keeps its own "seen" mark, apart from the Gen 1/2
+  one, so neither generation marks the other's read.
+- The README's opening says what the mod does on Gen 3.
+
 ## 1.27.0 -- the Gen 3 PC: all boxes, wallpapers, skins, pointers, touch
 
 The first release that loads on Gen 3 (it shipped first as 1.27.0-beta.1).
