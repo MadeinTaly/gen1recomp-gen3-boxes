@@ -1,9 +1,10 @@
 # Changelog
 
-## 1.27.0-beta.1 -- the Gen 3 PC: all boxes, wallpapers, skins, pointers, touch
+## 1.27.0 -- the Gen 3 PC: all boxes, wallpapers, skins, pointers, touch
 
-Prerelease: the first build that loads on Gen 3. Verified in game on Emerald
-(0.3.97); Ruby, Sapphire, FireRed and LeafGreen are untested.
+The first release that loads on Gen 3 (it shipped first as 1.27.0-beta.1).
+Verified in game on Emerald (0.3.97); Ruby, Sapphire, FireRed and LeafGreen
+are untested.
 
 On a Gen 3 boot the mod replaces nothing: the cart's own storage screen
 stays, and gains:

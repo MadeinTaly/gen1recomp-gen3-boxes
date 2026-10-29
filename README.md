@@ -53,8 +53,8 @@ the BOX MENU — is the same screen doing the same thing.
 
 ## On Ruby, Sapphire and Emerald
 
-**Prerelease** (`1.27.0-beta.x`): verified in game on Emerald; Ruby,
-Sapphire, FireRed and LeafGreen are untested.
+Since 1.27.0. Verified in game on Emerald; Ruby, Sapphire, FireRed and
+LeafGreen are untested.
 
 Gen 3 already has a box screen of its own, so there the mod replaces nothing:
 the cart's PC stays exactly as it is and gains, from **START → MODS → Gen 3
