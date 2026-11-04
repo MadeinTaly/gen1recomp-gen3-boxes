@@ -8,7 +8,6 @@ data/generated/
 assets/generated/
 dist/
 *.zip
-.claude/
 
 # Python leaves these next to the tools; they are not part of the mod.
 __pycache__/
