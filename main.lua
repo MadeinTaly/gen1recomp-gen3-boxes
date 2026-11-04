@@ -796,15 +796,9 @@ local function gen3(mod)
     quiet = nil
   end
 
-  local draw = BoxStorageUI.draw
-  BoxStorageUI.draw = function(...)
-    if not active() then return draw(...) end
-    -- the box underneath, without the cart's popup on top of it
-    local mode = BoxStorageUI.mode
-    BoxStorageUI.mode = "browse"
-    local ok, err = pcall(draw, ...)
-    BoxStorageUI.mode = mode
-    if not ok then error(err, 0) end
+  -- the list window, in the cart's 240x160: drawn on the cart's screen, and
+  -- over ALL BOXES when the menu was opened from there
+  local function drawPopup()
     local entries = listFor(list)
     local at = math.max(1, math.min(cursor or 1, #entries))
     if list == "menu" then
@@ -839,6 +833,18 @@ local function gen3(mod)
       if i == 1 then Window.cursorPx(44, y) end
       Window.printPx(e.name, 52, y)
     end
+  end
+
+  local draw = BoxStorageUI.draw
+  BoxStorageUI.draw = function(...)
+    if not active() then return draw(...) end
+    -- the box underneath, without the cart's popup on top of it
+    local mode = BoxStorageUI.mode
+    BoxStorageUI.mode = "browse"
+    local ok, err = pcall(draw, ...)
+    BoxStorageUI.mode = mode
+    if not ok then error(err, 0) end
+    drawPopup()
   end
 
   -- ------- ALL BOXES: many boxes on one screen
@@ -1044,7 +1050,6 @@ local function gen3(mod)
     local _, storage = boxes()
     if storage then storage.currentBox = b end
     view = nil
-    hidePad(false)
     BoxStorageUI.cursorSlot, BoxStorageUI.mode, BoxStorageUI.boxMenuCursor = 0, "box_menu", 1
     se("SE_SELECT")
   end
@@ -1564,6 +1569,33 @@ local function gen3(mod)
       end
     elseif view and not BoxStorageUI.open then
       closeView()
+    elseif resume and vp and BoxStorageUI.open and active() then
+      -- a box's menu opened from ALL BOXES stays in it: the view underneath,
+      -- as it was, and the list window over it right where the cart's own
+      -- screen would show it, so a finger lands on it the way it always did
+      hidePad(true)
+      local ok, err = pcall(function()
+        view = resume
+        local okV, errV = pcall(drawView, vp)
+        view = nil
+        if not okV then error(errV, 0) end
+        local Display = require("src.core.game3.display")
+        local sx, ox, oy, _, _, sy = Display.fit(vp.width, vp.height)
+        love.graphics.push()
+        love.graphics.translate(ox, oy)
+        love.graphics.scale(sx, sy or sx)
+        local okP, errP = pcall(drawPopup)
+        love.graphics.pop()
+        if not okP then error(errP, 0) end
+      end)
+      view = nil
+      if not ok then
+        love.graphics.setScissor()
+        if mod.log then pcall(function() mod.log:warn("box menu: " .. tostring(err)) end) end
+      end
+    elseif resume and BoxStorageUI.open then
+      -- a row the cart runs on its own screen (JUMP, NAME): the pad is back
+      hidePad(false)
     end
   end)
 

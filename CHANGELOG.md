@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.27.7 -- the box menu stays in full screen
+
+- On Ruby, Sapphire, Emerald, FireRed and LeafGreen a box's menu opened from
+  ALL BOXES (WALLPAPER, SKIN, POINTER) opens over the boxes instead of dropping
+  back to the small screen, and the previews show on the boxes as you scroll.
+
 ## 1.27.6 -- swipes are quiet
 
 - On Ruby, Sapphire, Emerald, FireRed and LeafGreen a box changed by a swipe,

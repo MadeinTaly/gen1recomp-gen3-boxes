@@ -67,7 +67,7 @@ the BOX MENU — is the same screen doing the same thing.
 
 ## On Ruby, Sapphire and Emerald
 
-![The eighteen Gen 3 wallpapers, and the pointers](docs/gen3-wallpapers.png)
+![The eighteen Gen 3 wallpapers, and pointers](docs/gen3-wallpapers.png)
 
 Since 1.27.0. Verified in game on Emerald and LeafGreen; Ruby, Sapphire and
 FireRed are untested.
