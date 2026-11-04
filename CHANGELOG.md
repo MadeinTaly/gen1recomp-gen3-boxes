@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.27.8 -- no support link
+
+- The support link is gone from the mod's details and from the README.
+  Nothing else changes.
+
 ## 1.27.7 -- the box menu stays in full screen
 
 - On Ruby, Sapphire, Emerald, FireRed and LeafGreen a box's menu opened from
