@@ -1665,12 +1665,32 @@ local function gen3(mod)
       f.x, f.y = ev.gameX, ev.gameY
       if math.abs(f.x - f.x0) > SLOP or math.abs(f.y - f.y0) > SLOP then f.moved = true end
       -- one finger leaving a Pokemon picks it up and carries it
-      if f.moved and not f.drag and not pinch and count() == 1 and not view.hand
+      if f.moved and not f.drag and not f.tried and not pinch and count() == 1 and not view.hand
           and f.start and (f.start.kind == "box" or f.start.kind == "party") then
+        f.tried = true
         aim(f.start); act()
         if view.hand then f.drag = true end
       end
-      if f.drag then view.dragX, view.dragY = f.x, f.y end
+      if f.drag then
+        view.dragX, view.dragY = f.x, f.y
+        -- carried onto a PAGE button: the next page, once per visit, so a
+        -- Pokemon can be dragged to a box that is not on screen
+        local over = hitAt(f.x, f.y)
+        over = over and over.kind == "button" and (over.id == "prev" or over.id == "next") and over.id or nil
+        if over and over ~= f.over then turnPage(over == "prev" and -1 or 1) end
+        f.over = over
+      elseif f.moved and not pinch and count() == 1 then
+        -- any other finger turns the page, on either axis: the boxes are
+        -- laid out in pages whichever way the window is held, and dragging
+        -- the content up or left shows what comes after it
+        local dx, dy = f.x - (f.sx or f.x0), f.y - (f.sy or f.y0)
+        local travel = math.abs(dy) > math.abs(dx) and dy or dx
+        local w, h = windowSize()
+        if math.abs(travel) >= math.min(w, h) / 4 then
+          f.sx, f.sy = f.x, f.y
+          if math.ceil(#boxes() / layout(w, h).per) > 1 then turnPage(travel < 0 and 1 or -1) end
+        end
+      end
       if pinch and count() == 2 then
         local d = spread()
         if d and pinch.d and pinch.d > 0 then
@@ -1687,6 +1707,8 @@ local function gen3(mod)
         local hit = ev.phase == "released" and hitAt(ev.gameX, ev.gameY)
         if hit and (hit.kind == "box" or hit.kind == "party") then aim(hit) else aim(f.start) end
         if view.hand then act() end
+        -- put back on a page the finger had left: the view goes with it
+        view.page = math.floor((view.box - 1) / layout(windowSize()).per)
       elseif ev.phase == "released" and f and not f.moved and not pinch then
         viewTap(ev.gameX, ev.gameY)
       end
@@ -1695,6 +1717,35 @@ local function gen3(mod)
   end
 
   local function touchOn() return option("touch", true) ~= false end
+
+  -- A finger dragged on the cart's own screen scrolls what the wheel scrolls:
+  -- the box under browse, the list when one is open (SKIN, POINTER, the
+  -- wallpapers), the row in anything else. It goes through the same presses
+  -- as the keys, so the live previews and the cart's rules stay as they are.
+  -- Lists step per row, boxes per a good swipe. Dragging the content up
+  -- shows what is further down.
+  local DRAG_SLOP, DRAG_ROW, DRAG_BOX = 6, 14, 32
+  local cartFinger
+
+  local function cartDrag(f, x, y)
+    local dx, dy = x - f.ax, y - f.ay
+    local vertical = math.abs(dy) > math.abs(dx)
+    local travel = vertical and dy or dx
+    local browse = not newsPage and not active() and BoxStorageUI.mode == "browse"
+    local step = (browse or newsPage) and DRAG_BOX or DRAG_ROW
+    if math.abs(travel) < step then return end
+    f.ax, f.ay = x, y
+    local forward = travel < 0
+    if newsPage then
+      press(forward and "right" or "left")
+    elseif browse then
+      press(forward and "r" or "l")
+    elseif vertical then
+      press(forward and "down" or "up")
+    elseif not active() then
+      press(forward and "right" or "left")
+    end
+  end
 
   mod.hooks:wrap("input.pointer", function(next, game, ev)
     if not touchOn() then return next(game, ev) end
@@ -1705,10 +1756,32 @@ local function gen3(mod)
       if not ok and mod.log then pcall(function() mod.log:warn("tap: " .. tostring(err)) end) end
       return true
     end
-    if not (BoxStorageUI.open and ev and ev.phase == "released" and ev.insideGame ~= false) then
+    if not (BoxStorageUI.open and ev) then
+      cartFinger = nil
       return next(game, ev)
     end
     local p = BoxStorageUI._presentation
+    if ev.phase == "pressed" then
+      local x, y = toFrame(ev)
+      cartFinger = x and { id = ev.id, x0 = x, y0 = y, ax = x, ay = y } or nil
+      return next(game, ev)
+    end
+    local f = cartFinger
+    if ev.phase == "moved" then
+      if not (f and f.id == ev.id) then return next(game, ev) end
+      local x, y = toFrame(ev)
+      if not x then return true end
+      if math.abs(x - f.x0) > DRAG_SLOP or math.abs(y - f.y0) > DRAG_SLOP then f.moved = true end
+      if f.moved and not (p and p:busy()) then
+        local ok, err = pcall(cartDrag, f, x, y)
+        if not ok and mod.log then pcall(function() mod.log:warn("drag: " .. tostring(err)) end) end
+      end
+      return true
+    end
+    if f and f.id == ev.id then cartFinger = nil end
+    if ev.phase ~= "released" or ev.insideGame == false then return next(game, ev) end
+    -- a finger that scrolled has done its work: letting go is not a tap
+    if f and f.id == ev.id and f.moved then return true end
     if p and p:busy() then return true end
     local x, y = toFrame(ev)
     if not x then return next(game, ev) end
@@ -1726,7 +1799,7 @@ local function gen3(mod)
   -- version and its own "seen" key, so the two generations never mark each
   -- other read. Bump NEWS3_VERSION when a page here changes, not on every
   -- release.
-  local NEWS3_VERSION = "1.27.4"
+  local NEWS3_VERSION = "1.27.5"
   local NEWS3 = {
     { title = "ALL BOXES", lines = {
       "The PC opens on every box",
@@ -1754,9 +1827,10 @@ local function gen3(mod)
       "wallpapers in all." } },
     { title = "TOUCH", lines = {
       "Tap a POKéMON, a button or",
-      "a menu row: it is the same",
-      "as pressing A there.",
-      "The wheel changes box." } },
+      "a menu row: it is A there.",
+      "Drag to scroll: boxes, pages",
+      "of ALL BOXES, SKIN, POINTER",
+      "and wallpaper lists." } },
     { title = "OPTIONS", lines = {
       "START > MODS > Gen 3 Box >",
       "OPTIONS turns any of this",
@@ -5200,6 +5274,15 @@ return function(mod)
     -- axis the finger actually travelled on and this decides whether that
     -- axis means anything here.
     self.touchScroll = function(dir, axis)
+      -- a popup owns the finger as it owns the keys: the grid must not
+      -- scroll behind a list somebody is reading
+      if self.news or self.paperPick or self.markWindow then
+        local btn
+        if self.news or axis == "x" then btn = dir > 0 and "right" or "left"
+        else btn = dir > 0 and "down" or "up" end
+        pcall(function() mod.input:tap(game, btn) end)
+        return true
+      end
       if self.mode ~= "box" then return false end
       local L = layout(game)
       if not L.full then
@@ -6113,6 +6196,7 @@ return function(mod)
     -- `self.row`, and acting is the same `a` branch. Both answer true when
     -- they did something, so the hook knows whether to consume the event.
     self.touchTap = function(i0, panel)
+      if self.news or self.paperPick or self.markWindow then return false end
       local n = self.mode == "box" and COLS or PARTY_COLS
       local c, r = i0 % n, math.floor(i0 / n)
       local samePanel = (panel == nil) or (panel == (self.panel or 0))

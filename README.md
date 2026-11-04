@@ -67,8 +67,8 @@ the BOX MENU — is the same screen doing the same thing.
 
 ## On Ruby, Sapphire and Emerald
 
-Since 1.27.0. Verified in game on Emerald; Ruby, Sapphire, FireRed and
-LeafGreen are untested.
+Since 1.27.0. Verified in game on Emerald and LeafGreen; Ruby, Sapphire and
+FireRed are untested.
 
 Gen 3 already has a box screen of its own, so there the mod replaces nothing:
 the cart's PC stays exactly as it is and gains, from **START → MODS → Gen 3
@@ -86,7 +86,7 @@ Box → OPTIONS** or from the box menu (A on the box name):
 | `PLACE CRY` | on by default: the cry of a Pokémon as it is put down, on the cart's screen and in ALL BOXES |
 | `POINTER SHADOW` | SOFT (half strength, default), ORIGINAL, OFF |
 | ALL BOXES | the PC's screen with FULL SCREEN on, else ALL BOXES in the box menu (SELECT stays the cart's): every box the screen holds, laid out from the device itself — a column on a phone held upright, a grid on a desktop — with a PKMN DATA card on top (`PKMN DATA CARD` hides it) and each box's fill count by its name. Drag a Pokémon with a finger, or tap / A to pick up and put down, between boxes and the party (START or PARTY POKéMON shows the party as a row over the boxes); the cart's own rules apply, so the last Pokémon of the party stays. A box's name opens that box's menu and the view comes back after. The wheel or a pinch zooms, and zoomed in each cell shows the Pokémon's front picture; zoom and the party row are remembered |
-| touch | a tap is the cart's own A on what was tapped; the wheel changes box |
+| touch | a tap is the cart's own A on what was tapped; a drag scrolls what the keys scroll: the box, ALL BOXES' pages, the box menu, SKIN, POINTER and the wallpaper lists; the wheel changes box |
 | WHAT'S NEW | Gen 3's own: once per version on the first PC open, and from WHAT'S NEW in the box menu |
 | WHAT'S NEW | Gen 3's own: once per version on the first PC open, and from WHAT'S NEW in the box menu |
 

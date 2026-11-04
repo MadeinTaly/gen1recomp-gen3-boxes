@@ -4239,6 +4239,23 @@ do
   T.check(screen.touchScroll(1, "y") == true,
     "e con una box sola sullo schermo vale anche il verticale")
   screen.touchScroll(-1, "y")
+
+  -- un popup aperto si tiene il dito come si tiene i tasti: la box dietro non
+  -- cambia, e il trascinamento arriva al popup come un tasto vero
+  local tapped = {}
+  local realPress, realRelease = game.input.sourcePress, game.input.sourceRelease
+  game.input.sourcePress = function(_, btn) tapped[#tapped + 1] = btn end
+  game.input.sourceRelease = function() end
+  local box0 = game.save.currentBox
+  screen.paperPick = { cat = 1, art = 1, artBy = {} }
+  T.check(screen.touchScroll(1, "y") == true, "col chooser aperto il trascinamento e' suo")
+  T.eq(game.save.currentBox, box0, "e la box dietro non cambia")
+  T.eq(tapped[1], "down", "arriva come DOWN")
+  screen.touchScroll(-1, "x")
+  T.eq(tapped[2], "left", "e di lato sceglie la mano")
+  T.check(screen.touchTap(1) == false, "un tocco non sposta il cursore dietro")
+  screen.paperPick = nil
+  game.input.sourcePress, game.input.sourceRelease = realPress, realRelease
 end
 
 -- ------- IN PIENO SCHERMO IL TRASCINAMENTO SCORRE, NON SALTA FRA I PANNELLI

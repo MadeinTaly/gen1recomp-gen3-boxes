@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.27.5 -- scrolling with a finger
+
+Everything the keys or the wheel scroll, a finger scrolls too.
+
+- On Ruby, Sapphire, Emerald, FireRed and LeafGreen, ALL BOXES turns its page
+  with a swipe on either axis, starting anywhere but on a Pokemon, which a
+  drag still picks up. A Pokemon carried onto a PAGE button goes to the next
+  page, so it can be dragged to a box that is not on screen.
+- On the cart's own screen a swipe changes box, and the box menu, SKIN,
+  POINTER and the wallpaper lists scroll row by row with their live previews.
+  Letting go of a drag is no longer a tap on whatever was under the finger.
+- On Red, Blue, Yellow and Gold a drag on an open popup (the wallpaper chooser,
+  the marks, WHAT'S NEW) goes to the popup. It used to change the box behind.
+
 ## 1.27.4 -- FULL SCREEN means full screen on Gen 3 too
 
 - On Ruby, Sapphire and Emerald, FULL SCREEN (on by default) now does what

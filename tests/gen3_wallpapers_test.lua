@@ -164,6 +164,45 @@ press("b")
 T.eq(BoxStorageUI.mode, "browse", "ALL BOXES apre e chiude anche senza la carta")
 run.release()
 
+-- ------- a finger on the cart's own screen scrolls, and letting go is no tap
+do
+  local R = require("src.mods.Runtime")
+  run = load({ fullscreen = false })
+  BoxStorageUI = require("src.ui.game3.box_storage_ui")
+  BoxStorageUI.open, BoxStorageUI._session, BoxStorageUI._presentation = true, session, nil
+  local Display = require("src.core.game3.display")
+  local Viewport = require("src.render.GameViewport")
+  local w, h = Viewport.dimensions()
+  local sc, ox, oy, _, _, sy = Display.fit(w, h)
+  local function ev(fx, fy, phase)
+    return { phase = phase, id = 1, insideGame = true,
+             gameX = ox + fx * sc, gameY = oy + fy * (sy or sc) }
+  end
+  local function send(fx, fy, phase) return R.call("input.pointer", function() return false end, {}, ev(fx, fy, phase)) end
+  local seen = {}
+  local below = BoxStorageUI.handleInput
+  BoxStorageUI.handleInput = function(input)
+    for _, k in ipairs({ "l", "r", "up", "down", "a" }) do
+      if input:wasPressed(k) then seen[#seen + 1] = k end
+    end
+  end
+  BoxStorageUI.mode = "browse"
+  send(160, 80, "pressed")
+  send(100, 80, "moved")
+  T.eq(seen[1], "r", "browse: dragging left is the next box")
+  T.check(send(100, 80, "released") == true, "and letting go is taken")
+  T.eq(#seen, 1, "without an A on what was under the finger")
+  seen = {}
+  BoxStorageUI.mode = "other"
+  send(120, 100, "pressed")
+  send(120, 70, "moved")
+  T.eq(seen[1], "down", "a menu: dragging up is DOWN")
+  send(120, 70, "released")
+  BoxStorageUI.handleInput = below
+  BoxStorageUI.mode = "browse"
+  run.release()
+end
+
 -- ------- the Gen 1/2 options on Gen 3
 local Runtime = require("src.mods.Runtime")
 local function startItems()
