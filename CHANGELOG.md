@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.27.9 -- no ball designs
+
+- The POKE BALL, ULTRA BALL and MASTER BALL skins and the ball pointer are
+  gone. A save that had one of them shows the ORIGINAL skin or the hand.
+
 ## 1.27.8 -- no support link
 
 - The support link is gone from the mod's details and from the README.

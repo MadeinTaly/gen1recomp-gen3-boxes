@@ -79,8 +79,8 @@ Box → OPTIONS** or from the box menu (A on the box name):
 | | on Gen 3 |
 | --- | --- |
 | `EXTRA WALLPAPERS` | eighteen more wallpapers (on by default). The WALLPAPER picker is the cart's two steps, a theme then a wallpaper: SCENERY 1-3, ETC and FRIENDS as the cart has them, then NATURE, FOOD, ADVENTURE and RETRO. The box wears the wallpaper under the cursor as you scroll; A keeps it, B puts the old one back |
-| `BOX SKIN` / SKIN | fifteen: ORIGINAL, MINIMAL, MINIMAL DARK, NIGHT, YOLO FLUO, GAME BOY, POKE BALL, ULTRA BALL, MASTER BALL, TEAM MAGMA, TEAM AQUA, FOREST, OCEAN, SAKURA, CYBER. The side panel, the backdrop, the ALL BOXES frame and a recolour of the buttons and the party drawer (never of the Pokémon in it); previewed live from the box menu |
-| `BOX POINTER` / POINTER | the cart's hand or one of twenty pointers |
+| `BOX SKIN` / SKIN | twelve: ORIGINAL, MINIMAL, MINIMAL DARK, NIGHT, YOLO FLUO, GAME BOY, TEAM MAGMA, TEAM AQUA, FOREST, OCEAN, SAKURA, CYBER. The side panel, the backdrop, the ALL BOXES frame and a recolour of the buttons and the party drawer (never of the Pokémon in it); previewed live from the box menu |
+| `BOX POINTER` / POINTER | the cart's hand or one of nineteen pointers |
 | `OPEN FROM` | START+PC (default): a BOXES row on the START menu opens the PC from anywhere; PC: only the cart's own PC. Same row as on Gen 1 and 2 |
 | `BOX HEALS` | off by default, as on Gen 1 and 2: closing the PC rests everything in storage, through the cart's own `Storage.fullHealMon` |
 | `FULL SCREEN` | on by default, as on Gen 1 and 2: the PC opens straight into ALL BOXES (below) — on the party row for DEPOSIT — and CLOSE BOX or B closes the PC. Off: the cart's own screen, with ALL BOXES gone from the box menu |

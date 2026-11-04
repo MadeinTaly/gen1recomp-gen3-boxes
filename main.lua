@@ -160,21 +160,6 @@ local GEN3_SKINS = {
              lo = { 0.06, 0.22, 0.06 }, hi = { 0.61, 0.74, 0.06 } },
     text = { fg = { 0.06, 0.22, 0.06 }, shadow = { 0.55, 0.67, 0.06 } },
     card = { bg = { 0.55, 0.67, 0.06 }, line = { 0.19, 0.38, 0.19 } } },
-  { id = "pokeball", name = "POKE BALL", panel = "panel_pokeball", cardInset = 5, bg = "bg_pokeball",
-    tint = { hue = 0, sat = 0.7, val = 1, duo = 0.5,
-             lo = { 0.35, 0.05, 0.05 }, hi = { 0.98, 0.96, 0.95 } },
-    text = { fg = { 0.15, 0.15, 0.18 }, shadow = { 0.85, 0.85, 0.88 } },
-    card = { bg = { 0.95, 0.94, 0.92 }, line = { 0.85, 0.1, 0.1 } } },
-  { id = "ultraball", name = "ULTRA BALL", panel = "panel_ultraball", cardInset = 5, bg = "bg_ultraball",
-    tint = { hue = 0, sat = 0.7, val = 1, duo = 0.6,
-             lo = { 0.1, 0.1, 0.12 }, hi = { 1.0, 0.85, 0.2 } },
-    text = { fg = { 0.12, 0.12, 0.14 }, shadow = { 0.85, 0.85, 0.8 } },
-    card = { bg = { 0.94, 0.93, 0.88 }, line = { 0.12, 0.12, 0.14 } } },
-  { id = "masterball", name = "MASTER BALL", panel = "panel_masterball", cardInset = 5, bg = "bg_masterball",
-    tint = { hue = 0, sat = 0.7, val = 1, duo = 0.6,
-             lo = { 0.25, 0.08, 0.4 }, hi = { 0.95, 0.75, 0.95 } },
-    text = { fg = { 0.2, 0.1, 0.3 }, shadow = { 0.85, 0.8, 0.9 } },
-    card = { bg = { 0.94, 0.93, 0.95 }, line = { 0.45, 0.2, 0.65 } } },
   { id = "magma", name = "TEAM MAGMA", panel = "panel_magma", cardInset = 6, bg = "bg_magma",
     tint = { hue = 0, sat = 0.7, val = 1, duo = 0.7,
              lo = { 0.12, 0.05, 0.05 }, hi = { 1.0, 0.55, 0.25 } },
@@ -210,10 +195,14 @@ local GEN3_SKINS = {
 -- "hand" is the cart's own; the rest are 32x128 sheets in the cart's
 -- four-frame layout (idle, moving, grab, holding).
 local GEN3_POINTERS = { { id = "hand", name = "HAND" } }
-for i, name in ipairs({ "ARROW", "GLOVE", "POKE BALL", "STAR", "PAW", "LEAF", "FLAME",
+-- The number is the file: 03 is gone, and the rest keep theirs so a saved
+-- choice still finds its pointer.
+for i, name in ipairs({ "ARROW", "GLOVE", false, "STAR", "PAW", "LEAF", "FLAME",
     "CRYSTAL", "MAGIC WAND", "QUILL", "SWORD", "PIZZA", "FISH", "HEART", "ROBOT",
     "GHOST", "BOLT", "CANDY CANE", "ANCHOR", "RAINBOW" }) do
-  GEN3_POINTERS[#GEN3_POINTERS + 1] = { id = string.format("pointer_%02d", i), name = name }
+  if name then
+    GEN3_POINTERS[#GEN3_POINTERS + 1] = { id = string.format("pointer_%02d", i), name = name }
+  end
 end
 
 -- the oval under the pointer on an empty slot: the cart draws it opaque
