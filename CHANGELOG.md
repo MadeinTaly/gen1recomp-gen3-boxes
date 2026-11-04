@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.27.6 -- swipes are quiet
+
+- On Ruby, Sapphire, Emerald, FireRed and LeafGreen a box changed by a swipe,
+  on the cart's screen or a page of ALL BOXES, no longer plays the button's
+  click. The buttons and L/R still do.
+
 ## 1.27.5 -- scrolling with a finger
 
 Everything the keys or the wheel scroll, a finger scrolls too.

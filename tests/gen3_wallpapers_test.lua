@@ -187,8 +187,20 @@ do
     end
   end
   BoxStorageUI.mode = "browse"
+  local Audio = require("src.core.game3.audio")
+  local realSe, sounds = Audio.playSe, 0
+  Audio.playSe = function() sounds = sounds + 1 end
+  local belowSilent = BoxStorageUI.handleInput
+  BoxStorageUI.handleInput = function(input)
+    Audio.playSe(5) -- the cart's box-change sound, as switch_box plays it
+    return belowSilent(input)
+  end
   send(160, 80, "pressed")
   send(100, 80, "moved")
+  T.eq(sounds, 0, "a box changed by a finger makes no sound")
+  T.check(Audio.playSe ~= realSe and Audio.playSe ~= nil, "and the sound is back afterwards")
+  BoxStorageUI.handleInput = belowSilent
+  Audio.playSe = realSe
   T.eq(seen[1], "r", "browse: dragging left is the next box")
   T.check(send(100, 80, "released") == true, "and letting go is taken")
   T.eq(#seen, 1, "without an A on what was under the finger")

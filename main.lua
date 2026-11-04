@@ -1166,12 +1166,14 @@ local function gen3(mod)
     se("SE_SELECT")
   end
 
-  local function turnPage(d)
+  -- quiet: a page turned by a finger makes no sound. A swipe is not a button
+  -- press, and a click per page under a moving finger is noise.
+  local function turnPage(d, quiet)
     local L = layout(windowSize())
     local pages = math.ceil(#boxes() / L.per)
     view.page = (view.page + d) % pages
     view.box = math.min(#boxes(), view.page * L.per + 1)
-    se("SE_SELECT")
+    if not quiet then se("SE_SELECT") end
   end
 
   function viewInput(input)
@@ -1677,7 +1679,7 @@ local function gen3(mod)
         -- Pokemon can be dragged to a box that is not on screen
         local over = hitAt(f.x, f.y)
         over = over and over.kind == "button" and (over.id == "prev" or over.id == "next") and over.id or nil
-        if over and over ~= f.over then turnPage(over == "prev" and -1 or 1) end
+        if over and over ~= f.over then turnPage(over == "prev" and -1 or 1, true) end
         f.over = over
       elseif f.moved and not pinch and count() == 1 then
         -- any other finger turns the page, on either axis: the boxes are
@@ -1688,7 +1690,7 @@ local function gen3(mod)
         local w, h = windowSize()
         if math.abs(travel) >= math.min(w, h) / 4 then
           f.sx, f.sy = f.x, f.y
-          if math.ceil(#boxes() / layout(w, h).per) > 1 then turnPage(travel < 0 and 1 or -1) end
+          if math.ceil(#boxes() / layout(w, h).per) > 1 then turnPage(travel < 0 and 1 or -1, true) end
         end
       end
       if pinch and count() == 2 then
@@ -1739,7 +1741,13 @@ local function gen3(mod)
     if newsPage then
       press(forward and "right" or "left")
     elseif browse then
-      press(forward and "r" or "l")
+      -- the cart's L/R plays its box-change sound; under a finger it is silent
+      local Audio = require("src.core.game3.audio")
+      local playSe = Audio.playSe
+      Audio.playSe = function() end
+      local ok, err = pcall(press, forward and "r" or "l")
+      Audio.playSe = playSe
+      if not ok then error(err, 0) end
     elseif vertical then
       press(forward and "down" or "up")
     elseif not active() then
