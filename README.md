@@ -482,10 +482,6 @@ Not affiliated with, endorsed by, or connected to Nintendo, Game Freak, or
 The Pokémon Company. Pokémon and all related names are trademarks of their
 respective owners, used here only to describe what this software does.
 
-## Support
-
-If this saved you some scrolling, you can support the author here:
-<https://linktr.ee/made_in_taly>
 
 ## Licence
 

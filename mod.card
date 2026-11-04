@@ -3,7 +3,6 @@ return {
   summary = "A Ruby/Sapphire-style box screen: a grid you can see, a cursor that carries a Pokemon, and a way to find one of two hundred and forty.",
   author = "MadeinTaly",
   -- shown in the manager's detail pane next to the author
-  support = "https://linktr.ee/made_in_taly",
   tags = { "ui", "storage", "quality-of-life", "boxes" },
   compat = { modApi = 2, games = { "gen1", "gen2", "gen3" } },
   differences = {
